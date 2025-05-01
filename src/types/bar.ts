@@ -3,10 +3,11 @@ export interface Product {
   id: string;
   name: string;
   price: number;
-  description?: string;
-  imageUrl?: string;
-  unitOfMeasure: string; // Un, g, Kg, L, etc.
+  description: string;
+  unitOfMeasure: string;
+  imageUrl: string;
   stock: number;
+  minStock?: number;
 }
 
 export interface SaleItem {
@@ -16,16 +17,21 @@ export interface SaleItem {
   quantity: number;
   total: number;
   unitOfMeasure: string;
-  imageUrl?: string;
+  imageUrl: string;
 }
 
 export interface Sale {
   id: string;
-  items: SaleItem[];
-  seller: string;
-  sellerId: string;
   timestamp: Date;
+  sellerId: string;
+  seller: string;
   total: number;
   amountPaid: number;
   change: number;
+  items: SaleItem[];
+}
+
+export interface User {
+  id: string;
+  name: string;
 }

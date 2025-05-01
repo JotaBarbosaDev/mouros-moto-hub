@@ -1,170 +1,165 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useBarProducts } from '@/hooks/use-bar-products';
+import { Input } from '@/components/ui/input';
+import { Plus, Search, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Image } from 'lucide-react';
-import { Product } from '@/types/bar';
-import { mockProducts } from '@/data/bar-mock-data';
-import { AddProductDialog } from './AddProductDialog';
-import { EditProductDialog } from './EditProductDialog';
 import { DeleteProductDialog } from './DeleteProductDialog';
+import { Product } from '@/types/bar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const BarMenu = () => {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { products, isLoading, deleteProduct } = useBarProducts();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
-  const handleAddProduct = (product: Product) => {
-    const newProduct = {
-      ...product,
-      id: `p${products.length + 1}`
-    };
-    
-    setProducts([...products, newProduct]);
-    setAddDialogOpen(false);
-  };
-  
-  const handleEditProduct = (product: Product) => {
-    setProducts(products.map(p => 
-      p.id === product.id ? product : p
-    ));
-    setEditDialogOpen(false);
-  };
-  
-  const handleDeleteProduct = () => {
-    if (!selectedProduct) return;
-    
-    setProducts(products.filter(p => p.id !== selectedProduct.id));
-    setDeleteDialogOpen(false);
-  };
-  
-  const showEditDialog = (product: Product) => {
+  const handleDeleteClick = (product: Product) => {
     setSelectedProduct(product);
-    setEditDialogOpen(true);
+    setIsDeleteDialogOpen(true);
   };
   
-  const showDeleteDialog = (product: Product) => {
-    setSelectedProduct(product);
-    setDeleteDialogOpen(true);
+  const handleDeleteConfirm = () => {
+    if (selectedProduct) {
+      deleteProduct(selectedProduct.id);
+      setIsDeleteDialogOpen(false);
+    }
   };
-  
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    if (filter === 'all') return matchesSearch;
+    if (filter === 'low-stock') return matchesSearch && product.stock <= (product.minStock || 10);
+    
+    return matchesSearch;
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64">A carregar produtos...</div>;
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Produtos do Bar</h2>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="flex-1 flex gap-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Pesquisar produtos..." 
+              className="pl-10"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select 
+            value={filter}
+            onValueChange={setFilter}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os produtos</SelectItem>
+              <SelectItem value="low-stock">Baixo estoque</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button className="bg-mouro-red hover:bg-mouro-red/90 whitespace-nowrap">
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Produto
         </Button>
       </div>
-      
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-14">Foto</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead className="text-center">Unidade</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="w-12 h-12 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
-                      {product.imageUrl ? (
-                        <img 
-                          src={product.imageUrl} 
-                          alt={product.name}
-                          className="w-full h-full object-cover" 
-                        />
-                      ) : (
-                        <Image className="w-6 h-6 text-gray-400" />
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>
-                    <span className="text-sm text-gray-500 line-clamp-2">
-                      {product.description || 'Sem descrição'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline">{product.unitOfMeasure}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {product.price.toFixed(2)}€
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {product.stock}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-1">
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => showEditDialog(product)}
-                      >
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Editar</span>
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="text-red-500"
-                        onClick={() => showDeleteDialog(product)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Eliminar</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+
+      {products.length === 0 ? (
+        <div className="text-center py-12 bg-slate-50 rounded-md border border-slate-200">
+          <AlertCircle className="mx-auto h-12 w-12 text-slate-400" />
+          <h3 className="text-lg font-medium text-slate-900 mt-4 mb-2">Nenhum produto cadastrado</h3>
+          <p className="text-sm text-slate-500 mb-4">Adicione produtos para exibir no menu do bar.</p>
+          <Button className="bg-mouro-red hover:bg-mouro-red/90 mx-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Produto
+          </Button>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-8">
+          <p>Nenhum produto corresponde à sua pesquisa.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredProducts.map((product) => (
+            <Card key={product.id} className="overflow-hidden">
+              <div className="aspect-video w-full bg-slate-100 relative overflow-hidden">
+                {product.imageUrl ? (
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-400">
+                    Sem imagem
+                  </div>
+                )}
+                {product.stock <= (product.minStock || 10) && (
+                  <Badge 
+                    variant="destructive"
+                    className="absolute top-2 right-2"
+                  >
+                    Estoque baixo
+                  </Badge>
+                )}
+              </div>
               
-              {products.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24 text-gray-500">
-                    Não existem produtos para mostrar
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      
-      {/* Dialogs */}
-      <AddProductDialog 
-        open={addDialogOpen} 
-        onOpenChange={setAddDialogOpen} 
-        onAddProduct={handleAddProduct} 
-      />
-      
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+                <p className="text-sm text-slate-500 mb-2">{product.description || "Sem descrição"}</p>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold">{product.price.toFixed(2)}€</span>
+                  <Badge variant="outline" className="bg-slate-100">
+                    {product.stock} {product.unitOfMeasure}
+                  </Badge>
+                </div>
+              </CardContent>
+              
+              <CardFooter className="border-t p-4 flex justify-between gap-2">
+                <Button 
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Editar
+                </Button>
+                <Button 
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => handleDeleteClick(product)}
+                >
+                  <AlertCircle className="h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {selectedProduct && (
-        <>
-          <EditProductDialog 
-            open={editDialogOpen} 
-            onOpenChange={setEditDialogOpen} 
-            product={selectedProduct}
-            onEditProduct={handleEditProduct} 
-          />
-          
-          <DeleteProductDialog 
-            open={deleteDialogOpen} 
-            onOpenChange={setDeleteDialogOpen} 
-            product={selectedProduct}
-            onDeleteProduct={handleDeleteProduct} 
-          />
-        </>
+        <DeleteProductDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          product={selectedProduct}
+          onDeleteProduct={handleDeleteConfirm}
+        />
       )}
     </div>
   );

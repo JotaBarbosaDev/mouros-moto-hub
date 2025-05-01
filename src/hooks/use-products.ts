@@ -23,6 +23,10 @@ export const useProducts = () => {
       throw error;
     }
 
+    if (!data || data.length === 0) {
+      return [];
+    }
+
     return data.map(product => ({
       id: product.id,
       name: product.name,
