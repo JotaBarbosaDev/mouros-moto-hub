@@ -17,7 +17,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { useEvents } from '@/hooks/use-events';
-import { Event, ScheduleItem, StopPoint, Participant, Motorcycle } from '@/types/events';
+import { Event } from '@/types/events';
 
 const Events = () => {
   const { user } = useAuth();

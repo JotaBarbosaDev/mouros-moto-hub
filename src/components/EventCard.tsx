@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Calendar, MapPin, Users, Clock, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Event } from '@/pages/Events';
+import { Event } from '@/types/events';
 import EventDetailsDialog from '@/components/EventDetailsDialog';
 import EventRegistrationDialog from '@/components/EventRegistrationDialog';
 

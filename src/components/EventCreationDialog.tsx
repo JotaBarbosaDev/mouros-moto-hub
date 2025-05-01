@@ -31,7 +31,7 @@ import { useForm } from 'react-hook-form';
 import { Plus, X, Upload, Calendar } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
-import { Event } from '@/pages/Events';
+import { Event } from '@/types/events';
 
 interface EventCreationDialogProps {
   isOpen: boolean;

@@ -74,7 +74,7 @@ export const useBarSales = () => {
   };
 
   // Create a new sale
-  const createSale = async (saleData: { 
+  const createSale = async (saleInput: { 
     items: Omit<SaleItem, 'imageUrl'>[];
     amountPaid: number;
   }): Promise<Sale> => {
@@ -87,17 +87,17 @@ export const useBarSales = () => {
       throw new Error('User not authenticated');
     }
 
-    const total = saleData.items.reduce((sum, item) => sum + item.total, 0);
-    const change = saleData.amountPaid - total;
+    const total = saleInput.items.reduce((sum, item) => sum + item.total, 0);
+    const change = saleInput.amountPaid - total;
 
     // Insert the sale
-    const { data: saleData, error: saleError } = await supabase
+    const { data: insertedSale, error: saleError } = await supabase
       .from('bar_sales')
       .insert({
         seller_id: user.id,
         seller_name: user.email, // Ideally, use user's full name if available
         total,
-        amount_paid: saleData.amountPaid,
+        amount_paid: saleInput.amountPaid,
         change,
         timestamp: new Date().toISOString()
       })
@@ -113,10 +113,10 @@ export const useBarSales = () => {
       throw saleError;
     }
 
-    const saleId = saleData.id;
+    const saleId = insertedSale.id;
     
     // Insert sale items
-    const saleItemsToInsert = saleData.items.map(item => ({
+    const saleItemsToInsert = saleInput.items.map(item => ({
       sale_id: saleId,
       product_id: item.productId,
       product_name: item.productName,
@@ -137,7 +137,7 @@ export const useBarSales = () => {
     }
 
     // Update product stock for each item
-    for (const item of saleData.items) {
+    for (const item of saleInput.items) {
       // First get current stock
       const { data: productData, error: productError } = await supabase
         .from('bar_products')
@@ -169,9 +169,9 @@ export const useBarSales = () => {
       sellerId: user.id,
       seller: user.email,
       total,
-      amountPaid: saleData.amountPaid,
+      amountPaid: saleInput.amountPaid,
       change,
-      items: saleData.items.map(item => ({
+      items: saleInput.items.map(item => ({
         ...item,
         imageUrl: ''
       }))

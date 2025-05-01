@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -155,7 +154,8 @@ export const useEvents = () => {
     }));
   };
 
-  // Create a new event
+// Within the useEvents function, replace the event creation logic:
+// Create a new event
   const createEvent = async (eventData: Omit<Event, 'id' | 'participants' | 'registeredParticipants'>): Promise<Event> => {
     // Format date strings
     const startDate = typeof eventData.date === 'string' 
@@ -195,7 +195,7 @@ export const useEvents = () => {
       throw error;
     }
 
-    const eventId = data.id;
+    const eventId = data.id as string;
 
     // Insert schedule items if provided
     if (eventData.schedule && eventData.schedule.length > 0) {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -145,6 +144,11 @@ const Dashboard = () => {
     return diffDays;
   };
 
+  // Fix for sales total display in the Financial Card
+  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const formattedTotalSales = totalSales.toFixed(2);
+  const formattedTodaySalesTotal = todaySalesTotal.toFixed(2);
+
   return (
     <MembersLayout>
       <div className="container mx-auto px-4 py-8">
@@ -250,7 +254,7 @@ const Dashboard = () => {
             </CardFooter>
           </Card>
 
-          {/* Financial Card */}
+          {/* Financial Card - with fixed toFixed issue */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium">
@@ -260,9 +264,9 @@ const Dashboard = () => {
               <Badge variant="secondary">Este mês</Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">€{sales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}</div>
+              <div className="text-3xl font-bold">€{formattedTotalSales}</div>
               <p className="text-sm text-muted-foreground mt-1">
-                €{todaySalesTotal.toFixed(2)} hoje
+                €{formattedTodaySalesTotal} hoje
               </p>
             </CardContent>
             <CardFooter className="pt-0">
@@ -437,10 +441,10 @@ const Dashboard = () => {
                               </p>
                             </div>
                           </div>
+                          {/* Fix for Progress component by removing indicatorColor and using class instead */}
                           <Progress 
                             value={(product.stock / (product.minStock || 10)) * 100} 
-                            className="w-24"
-                            indicatorColor={product.stock === 0 ? "bg-red-500" : "bg-amber-500"}
+                            className={`w-24 ${product.stock === 0 ? "bg-red-500" : "bg-amber-500"}`}
                           />
                         </div>
                       ))
