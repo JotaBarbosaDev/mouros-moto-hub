@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from '@/components/ui/button';
@@ -17,74 +16,9 @@ import { toast } from 'sonner';
 import { Product, ProductSize, ProductType } from '@/types/product';
 import { Plus, Search, Edit, Trash2, Eye, Filter, Lock } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
 import { getFallbackImage } from '@/utils/image-utils';
-
-// Mock data para desenvolvimento - seria substituído por chamadas reais ao Supabase
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'T-Shirt Os Mouros',
-    description: 'T-Shirt oficial do moto clube em algodão premium',
-    price: 19.99,
-    size: 'L',
-    color: 'Preto',
-    type: 'T-Shirt',
-    imageUrl: '/placeholders/tshirt.jpg',
-    membersOnly: true,
-    publishedOnLandingPage: true,
-    stock: 25,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '2',
-    name: 'Caneca Personalizada',
-    description: 'Caneca em cerâmica com logo do clube',
-    price: 9.99,
-    size: 'Único',
-    color: 'Branco',
-    type: 'Caneca',
-    imageUrl: '/placeholders/mug.jpg',
-    membersOnly: false,
-    publishedOnLandingPage: true,
-    stock: 15,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '3',
-    name: 'Boné Trucker',
-    description: 'Boné estilo trucker com malha e logo bordado',
-    price: 14.99,
-    size: 'Único',
-    color: 'Preto/Vermelho',
-    type: 'Boné',
-    imageUrl: '/placeholders/cap.jpg',
-    membersOnly: false,
-    publishedOnLandingPage: true,
-    stock: 10,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '4',
-    name: 'Pin Oficial',
-    description: 'Pin metálico com o logo do clube',
-    price: 4.99,
-    size: 'Único',
-    color: 'Metálico',
-    type: 'Pin',
-    imageUrl: '/placeholders/pin.jpg',
-    membersOnly: false,
-    publishedOnLandingPage: true,
-    stock: 50,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
+import { useProducts } from '@/hooks/use-products';
 
 // Componente para o formulário de produto
 interface ProductFormValues {
@@ -365,8 +299,8 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }: ProductFormProps) =>
 };
 
 const MemberStore = () => {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(mockProducts);
+  const { products, isLoading, createProduct, updateProduct, deleteProduct, toggleProductVisibility } = useProducts();
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState({
     type: 'Todos',
@@ -379,22 +313,10 @@ const MemberStore = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
 
-  // Aqui usaríamos o React Query para buscar produtos do Supabase
-  // const { data: products, isLoading, error } = useQuery({
-  //   queryKey: ['products'],
-  //   queryFn: async () => {
-  //     const { data, error } = await supabase
-  //       .from('products')
-  //       .select('*')
-  //       .order('createdAt', { ascending: false });
-  //       
-  //     if (error) throw error;
-  //     return data;
-  //   }
-  // });
-
   // Efeito para filtrar produtos com base em busca e filtros ativos
   useEffect(() => {
+    if (!products) return;
+    
     let result = [...products];
 
     // Filtro por busca de texto
@@ -437,100 +359,36 @@ const MemberStore = () => {
   }, [products, searchQuery, activeFilters]);
 
   const handleAddProduct = async (productData: ProductFormValues) => {
-    // Aqui seria uma chamada ao Supabase para adicionar o produto
-    // const { data, error } = await supabase
-    //   .from('products')
-    //   .insert([{
-    //     ...productData,
-    //     createdAt: new Date(),
-    //     updatedAt: new Date()
-    //   }])
-    //   .select();
-
-    // Criar um novo produto com ID temporário para o mock
-    const newProduct: Product = {
-      id: Date.now().toString(),
-      ...productData,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    setProducts(prev => [newProduct, ...prev]);
+    createProduct(productData);
     setIsAddDialogOpen(false);
-    toast.success('Produto adicionado com sucesso!');
   };
 
   const handleEditProduct = async (productData: ProductFormValues) => {
     if (!selectedProduct) return;
-
-    // Aqui seria uma chamada ao Supabase para atualizar o produto
-    // const { data, error } = await supabase
-    //   .from('products')
-    //   .update({
-    //     ...productData,
-    //     updatedAt: new Date()
-    //   })
-    //   .eq('id', selectedProduct.id)
-    //   .select();
-
-    // Atualizar o produto localmente
-    setProducts(prev => prev.map(product => {
-      if (product.id === selectedProduct.id) {
-        return {
-          ...product,
-          ...productData,
-          updatedAt: new Date()
-        };
-      }
-      return product;
-    }));
+    
+    updateProduct({
+      ...selectedProduct,
+      ...productData
+    });
 
     setIsEditDialogOpen(false);
     setSelectedProduct(null);
-    toast.success('Produto atualizado com sucesso!');
   };
 
   const handleDeleteProduct = async () => {
     if (!selectedProduct) return;
-
-    // Aqui seria uma chamada ao Supabase para deletar o produto
-    // const { error } = await supabase
-    //   .from('products')
-    //   .delete()
-    //   .eq('id', selectedProduct.id);
-
-    // Remover o produto localmente
-    setProducts(prev => prev.filter(product => product.id !== selectedProduct.id));
+    
+    deleteProduct(selectedProduct.id);
     
     setIsDeleteDialogOpen(false);
     setSelectedProduct(null);
-    toast.success('Produto removido com sucesso!');
   };
 
-  const toggleLandingPageVisibility = async (product: Product) => {
-    // Aqui seria uma chamada ao Supabase para atualizar a visibilidade
-    // const { data, error } = await supabase
-    //   .from('products')
-    //   .update({ 
-    //     publishedOnLandingPage: !product.publishedOnLandingPage,
-    //     updatedAt: new Date()
-    //   })
-    //   .eq('id', product.id)
-    //   .select();
-
-    // Atualizar localmente a visibilidade
-    setProducts(prev => prev.map(p => {
-      if (p.id === product.id) {
-        return {
-          ...p,
-          publishedOnLandingPage: !p.publishedOnLandingPage,
-          updatedAt: new Date()
-        };
-      }
-      return p;
-    }));
-
-    toast.success(`Produto ${!product.publishedOnLandingPage ? 'publicado na' : 'removido da'} landing page!`);
+  const handleToggleLandingPageVisibility = async (product: Product) => {
+    toggleProductVisibility({
+      productId: product.id,
+      currentVisibility: product.publishedOnLandingPage
+    });
   };
 
   const productTypes = ['Todos', 'T-Shirt', 'Caneca', 'Boné', 'Pin', 'Patch', 'Adesivo', 'Outro'];
@@ -623,109 +481,115 @@ const MemberStore = () => {
 
         <Card>
           <CardContent className="p-0 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">Imagem</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Preço</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Tamanho</TableHead>
-                  <TableHead>Cor</TableHead>
-                  <TableHead className="text-center">Stock</TableHead>
-                  <TableHead className="text-center">Visibilidade</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div className="w-10 h-10 rounded overflow-hidden">
-                          <img 
-                            src={product.imageUrl || getFallbackImage('product')} 
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = getFallbackImage('product');
-                            }}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">{product.description}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{product.price.toFixed(2)}€</TableCell>
-                      <TableCell>{product.type}</TableCell>
-                      <TableCell>{product.size}</TableCell>
-                      <TableCell>{product.color}</TableCell>
-                      <TableCell className="text-center">
-                        {product.stock > 0 ? (
-                          <Badge variant="outline" className="bg-green-100">{product.stock}</Badge>
-                        ) : (
-                          <Badge variant="secondary">Esgotado</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 justify-center">
-                          {product.membersOnly && (
-                            <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                              <Lock className="h-3 w-3" /> Sócios
-                            </Badge>
-                          )}
-                          {product.publishedOnLandingPage ? (
-                            <Badge variant="outline" className="bg-blue-100 text-xs">Landing</Badge>
+            {isLoading ? (
+              <div className="flex justify-center items-center p-8">
+                <p>Carregando produtos...</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">Imagem</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Preço</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Tamanho</TableHead>
+                    <TableHead>Cor</TableHead>
+                    <TableHead className="text-center">Stock</TableHead>
+                    <TableHead className="text-center">Visibilidade</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.length > 0 ? (
+                    filteredProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="w-10 h-10 rounded overflow-hidden">
+                            <img 
+                              src={product.imageUrl || getFallbackImage('product')} 
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = getFallbackImage('product');
+                              }}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{product.price.toFixed(2)}€</TableCell>
+                        <TableCell>{product.type}</TableCell>
+                        <TableCell>{product.size}</TableCell>
+                        <TableCell>{product.color}</TableCell>
+                        <TableCell className="text-center">
+                          {product.stock > 0 ? (
+                            <Badge variant="outline" className="bg-green-100">{product.stock}</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-xs">Não publicado</Badge>
+                            <Badge variant="secondary">Esgotado</Badge>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => toggleLandingPageVisibility(product)} 
-                          title={product.publishedOnLandingPage ? "Remover da landing page" : "Publicar na landing page"}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setIsEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 justify-center">
+                            {product.membersOnly && (
+                              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                                <Lock className="h-3 w-3" /> Sócios
+                              </Badge>
+                            )}
+                            {product.publishedOnLandingPage ? (
+                              <Badge variant="outline" className="bg-blue-100 text-xs">Landing</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">Não publicado</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right space-x-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleToggleLandingPageVisibility(product)} 
+                            title={product.publishedOnLandingPage ? "Remover da landing page" : "Publicar na landing page"}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setIsEditDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8">
+                        <p className="text-muted-foreground">Nenhum produto encontrado</p>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      <p className="text-muted-foreground">Nenhum produto encontrado</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
