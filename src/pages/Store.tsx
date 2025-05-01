@@ -9,10 +9,10 @@ import { ShoppingCart, Lock, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 import { getSafeImageUrl, getFallbackImage } from '@/utils/image-utils';
-import { Product } from '@/types/product';
+import { Product, ProductSize, ProductType } from '@/types/product';
 
 // Mock data para produtos públicos - Seria substituído por chamadas reais ao Supabase
-const publicProducts = [
+const publicProducts: Product[] = [
   {
     id: '1',
     name: "T-Shirt 'Os Mouros'",
@@ -21,8 +21,8 @@ const publicProducts = [
     membersOnly: true,
     imageUrl: "/placeholders/tshirt.jpg",
     publishedOnLandingPage: true,
-    type: "T-Shirt",
-    size: "L",
+    type: "T-Shirt" as ProductType,
+    size: "L" as ProductSize,
     color: "Preto",
     stock: 25,
     createdAt: new Date(),
@@ -36,8 +36,8 @@ const publicProducts = [
     membersOnly: false,
     imageUrl: "/placeholders/mug.jpg",
     publishedOnLandingPage: true,
-    type: "Caneca",
-    size: "Único",
+    type: "Caneca" as ProductType,
+    size: "Único" as ProductSize,
     color: "Branco",
     stock: 15,
     createdAt: new Date(),
@@ -51,8 +51,8 @@ const publicProducts = [
     membersOnly: false,
     imageUrl: "/placeholders/cap.jpg",
     publishedOnLandingPage: true,
-    type: "Boné",
-    size: "Único",
+    type: "Boné" as ProductType,
+    size: "Único" as ProductSize,
     color: "Preto/Vermelho",
     stock: 10,
     createdAt: new Date(),
@@ -66,8 +66,8 @@ const publicProducts = [
     membersOnly: false,
     imageUrl: "/placeholders/pin.jpg",
     publishedOnLandingPage: true,
-    type: "Pin",
-    size: "Único",
+    type: "Pin" as ProductType,
+    size: "Único" as ProductSize,
     color: "Metálico",
     stock: 50,
     createdAt: new Date(),
