@@ -1,187 +1,76 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { Event, ScheduleItem, StopPoint, Participant } from '@/types/events';
+import { Event } from '@/types/events';
 
 export const useEvents = () => {
   const queryClient = useQueryClient();
 
-  // Fetch all events with their details
+  // Fetch all events
   const getEvents = async (): Promise<Event[]> => {
-    const { data: eventsData, error: eventsError } = await supabase
+    const { data, error } = await supabase
       .from('events')
       .select('*')
       .order('start_date', { ascending: true });
 
-    if (eventsError) {
+    if (error) {
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os eventos.',
         variant: 'destructive',
       });
-      throw eventsError;
+      throw error;
     }
 
-    if (!eventsData || eventsData.length === 0) {
+    if (!data || data.length === 0) {
       return [];
     }
 
-    const eventIds = eventsData.map(event => event.id);
-
-    // Fetch schedule items for all events
-    const { data: scheduleData, error: scheduleError } = await supabase
-      .from('event_schedule')
-      .select('*')
-      .in('event_id', eventIds)
-      .order('start_time', { ascending: true });
-
-    if (scheduleError) {
-      console.error('Error fetching event schedules:', scheduleError);
-    }
-
-    // Fetch stops for all events
-    const { data: stopsData, error: stopsError } = await supabase
-      .from('event_stops')
-      .select('*')
-      .in('event_id', eventIds)
-      .order('order_index', { ascending: true });
-
-    if (stopsError) {
-      console.error('Error fetching event stops:', stopsError);
-    }
-
-    // Fetch registrations for all events
-    const { data: registrationsData, error: registrationsError } = await supabase
-      .from('event_registrations')
-      .select(`
-        *,
-        members:member_id (name, member_number),
-        vehicles:vehicle_id (brand, model, displacement)
-      `)
-      .in('event_id', eventIds);
-
-    if (registrationsError) {
-      console.error('Error fetching event registrations:', registrationsError);
-    }
-
-    // Group related data by event_id
-    const scheduleByEventId: Record<string, ScheduleItem[]> = {};
-    const stopsByEventId: Record<string, StopPoint[]> = {};
-    const registrationsByEventId: Record<string, Participant[]> = {};
-    const participantCountByEventId: Record<string, number> = {};
-
-    // Process schedule data
-    (scheduleData || []).forEach(item => {
-      if (!scheduleByEventId[item.event_id]) {
-        scheduleByEventId[item.event_id] = [];
-      }
-      
-      scheduleByEventId[item.event_id].push({
-        time: new Date(item.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        description: item.title + (item.description ? `: ${item.description}` : '')
-      });
-    });
-
-    // Process stops data
-    (stopsData || []).forEach(stop => {
-      if (!stopsByEventId[stop.event_id]) {
-        stopsByEventId[stop.event_id] = [];
-      }
-      
-      stopsByEventId[stop.event_id].push({
-        name: stop.name,
-        description: stop.description || '',
-        image: stop.photo_url
-      });
-    });
-
-    // Process registrations data
-    (registrationsData || []).forEach(registration => {
-      if (!participantCountByEventId[registration.event_id]) {
-        participantCountByEventId[registration.event_id] = 0;
-      }
-      participantCountByEventId[registration.event_id]++;
-      
-      if (!registrationsByEventId[registration.event_id]) {
-        registrationsByEventId[registration.event_id] = [];
-      }
-      
-      let participantName = registration.external_name || '';
-      let memberNumber: number | undefined = undefined;
-      let motorcycle: { id?: string; make: string; model: string; engineSize: number } | undefined = undefined;
-      
-      if (registration.members) {
-        participantName = registration.members.name;
-        memberNumber = parseInt(registration.members.member_number);
-      }
-      
-      if (registration.vehicles) {
-        motorcycle = {
-          make: registration.vehicles.brand,
-          model: registration.vehicles.model,
-          engineSize: registration.vehicles.displacement
-        };
-      }
-      
-      registrationsByEventId[registration.event_id].push({
-        id: registration.id,
-        name: participantName,
-        memberNumber,
-        motorcycle
-      });
-    });
-
-    // Map events with their related data
-    return eventsData.map(event => ({
+    // Map database events to frontend Event type
+    return data.map(event => ({
       id: event.id,
       title: event.title,
-      date: new Date(event.start_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+      date: new Date(event.start_date).toLocaleDateString('pt-PT'),
       location: event.location,
       image: event.poster_url || '',
-      thumbnail: event.thumbnail_url,
-      type: 'encontro', // Default type - adjust as needed
+      thumbnail: event.thumbnail_url || event.poster_url || '',
+      type: mapEventType(event.title),
       description: event.description,
-      participants: participantCountByEventId[event.id] || 0,
-      maxParticipants: event.maximum_participants,
+      participants: 0, // Will be updated with registrations count
+      maxParticipants: event.maximum_participants || undefined,
+      isFeatured: false,
       membersOnly: event.members_only,
-      registrationDeadline: event.registration_open ? event.end_date : undefined,
-      schedule: scheduleByEventId[event.id] || [],
-      stops: stopsByEventId[event.id] || [],
-      startPoint: event.location,
-      endPoint: event.location,
-      registeredParticipants: registrationsByEventId[event.id] || [],
-      isFeatured: event.published
+      registrationDeadline: event.end_date ? new Date(event.end_date).toISOString() : undefined,
+      registrationOpen: event.registration_open,
     }));
   };
 
-// Within the useEvents function, replace the event creation logic:
-// Create a new event
-  const createEvent = async (eventData: Omit<Event, 'id' | 'participants' | 'registeredParticipants'>): Promise<Event> => {
-    // Format date strings
-    const startDate = typeof eventData.date === 'string' 
-      ? new Date(eventData.date) 
-      : eventData.date;
+  // Map event type from title or other properties (placeholder logic)
+  const mapEventType = (title: string): 'trail' | 'estrada' | 'encontro' | 'solidario' => {
+    const lowerTitle = title.toLowerCase();
+    if (lowerTitle.includes('trail')) return 'trail';
+    if (lowerTitle.includes('estrada')) return 'estrada';
+    if (lowerTitle.includes('solidari')) return 'solidario';
+    return 'encontro';
+  };
 
-    // Calculate end date if not provided (default to 2 hours after start)
-    const endDate = eventData.registrationDeadline 
-      ? new Date(eventData.registrationDeadline) 
-      : new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
-
-    // Insert the event
+  // Create a new event
+  const createEvent = async (eventData: Omit<Event, 'id'>): Promise<Event> => {
+    // Transform frontend event data to database format
     const { data, error } = await supabase
       .from('events')
       .insert({
         title: eventData.title,
-        description: eventData.description,
+        start_date: new Date(eventData.date).toISOString(),
+        end_date: eventData.registrationDeadline || null,
         location: eventData.location,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
+        description: eventData.description,
         poster_url: eventData.image || null,
         thumbnail_url: eventData.thumbnail || null,
+        maximum_participants: eventData.maxParticipants || null,
         members_only: eventData.membersOnly || false,
-        registration_open: eventData.registrationDeadline !== undefined,
-        maximum_participants: eventData.maxParticipants,
-        published: eventData.isFeatured || false
+        registration_open: eventData.registrationOpen || false,
       })
       .select()
       .single();
@@ -195,94 +84,44 @@ export const useEvents = () => {
       throw error;
     }
 
-    const eventId = data.id as string;
-
-    // Insert schedule items if provided
-    if (eventData.schedule && eventData.schedule.length > 0) {
-      const scheduleToInsert = eventData.schedule.map((item, index) => {
-        // Parse time (assuming format like "14:30")
-        const [hours, minutes] = item.time.split(':').map(Number);
-        const itemDate = new Date(startDate);
-        itemDate.setHours(hours, minutes, 0);
-
-        return {
-          event_id: eventId,
-          title: item.description,
-          description: '',
-          start_time: itemDate.toISOString()
-        };
-      });
-
-      const { error: scheduleError } = await supabase
-        .from('event_schedule')
-        .insert(scheduleToInsert);
-
-      if (scheduleError) {
-        console.error('Error inserting schedule:', scheduleError);
-      }
-    }
-
-    // Insert stops if provided
-    if (eventData.stops && eventData.stops.length > 0) {
-      const stopsToInsert = eventData.stops.map((stop, index) => ({
-        event_id: eventId,
-        name: stop.name,
-        description: stop.description,
-        location: eventData.location, // Default to event location
-        photo_url: stop.image || null,
-        order_index: index
-      }));
-
-      const { error: stopsError } = await supabase
-        .from('event_stops')
-        .insert(stopsToInsert);
-
-      if (stopsError) {
-        console.error('Error inserting stops:', stopsError);
-      }
-    }
-
     toast({
       title: 'Sucesso',
       description: 'Evento criado com sucesso.',
     });
 
-    // Return the created event
     return {
-      ...eventData,
-      id: eventId,
+      id: data.id,
+      title: data.title,
+      date: new Date(data.start_date).toLocaleDateString('pt-PT'),
+      location: data.location,
+      image: data.poster_url || '',
+      thumbnail: data.thumbnail_url || data.poster_url || '',
+      type: mapEventType(data.title),
+      description: data.description,
       participants: 0,
-      registeredParticipants: []
+      maxParticipants: data.maximum_participants || undefined,
+      isFeatured: false,
+      membersOnly: data.members_only,
+      registrationDeadline: data.end_date ? new Date(data.end_date).toISOString() : undefined,
+      registrationOpen: data.registration_open,
     };
   };
 
-  // Update an existing event
+  // Update an event
   const updateEvent = async (eventData: Event): Promise<Event> => {
-    // Format date strings
-    const startDate = typeof eventData.date === 'string' 
-      ? new Date(eventData.date) 
-      : eventData.date;
-
-    // Calculate end date if not provided (default to 2 hours after start)
-    const endDate = eventData.registrationDeadline 
-      ? new Date(eventData.registrationDeadline) 
-      : new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
-
-    // Update the event
     const { data, error } = await supabase
       .from('events')
       .update({
         title: eventData.title,
-        description: eventData.description,
+        start_date: new Date(eventData.date).toISOString(),
+        end_date: eventData.registrationDeadline ? new Date(eventData.registrationDeadline).toISOString() : null,
         location: eventData.location,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
+        description: eventData.description,
         poster_url: eventData.image || null,
         thumbnail_url: eventData.thumbnail || null,
+        maximum_participants: eventData.maxParticipants || null,
         members_only: eventData.membersOnly || false,
-        registration_open: eventData.registrationDeadline !== undefined,
-        maximum_participants: eventData.maxParticipants,
-        published: eventData.isFeatured || false
+        registration_open: eventData.registrationOpen || false,
       })
       .eq('id', eventData.id)
       .select()
@@ -302,7 +141,22 @@ export const useEvents = () => {
       description: 'Evento atualizado com sucesso.',
     });
 
-    return eventData;
+    return {
+      id: data.id,
+      title: data.title,
+      date: new Date(data.start_date).toLocaleDateString('pt-PT'),
+      location: data.location,
+      image: data.poster_url || '',
+      thumbnail: data.thumbnail_url || data.poster_url || '',
+      type: mapEventType(data.title),
+      description: data.description,
+      participants: 0,
+      maxParticipants: data.maximum_participants || undefined,
+      isFeatured: false,
+      membersOnly: data.members_only,
+      registrationDeadline: data.end_date ? new Date(data.end_date).toISOString() : undefined,
+      registrationOpen: data.registration_open,
+    };
   };
 
   // Delete an event
@@ -315,7 +169,7 @@ export const useEvents = () => {
     if (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível excluir o evento.',
+        description: 'Não foi possível eliminar o evento.',
         variant: 'destructive',
       });
       throw error;
@@ -323,35 +177,40 @@ export const useEvents = () => {
 
     toast({
       title: 'Sucesso',
-      description: 'Evento excluído com sucesso.',
+      description: 'Evento eliminado com sucesso.',
     });
   };
 
-  // Register a participant for an event
-  const registerParticipant = async (eventId: string, data: {
-    memberId?: string;
-    externalName?: string;
-    externalEmail?: string;
-    externalPhone?: string;
-    vehicleId?: string;
-    notes?: string;
-  }): Promise<void> => {
+  // Register for an event
+  const registerForEvent = async (
+    eventId: string, 
+    registrationData: { name: string; email: string; phone: string; }
+  ): Promise<void> => {
+    // First, check if this is a member registration
+    const { data: memberData } = await supabase
+      .from('members')
+      .select('id')
+      .eq('email', registrationData.email)
+      .single();
+    
+    const memberId = memberData?.id || null;
+    
+    // Insert registration
     const { error } = await supabase
       .from('event_registrations')
       .insert({
         event_id: eventId,
-        member_id: data.memberId || null,
-        external_name: data.externalName || null,
-        external_email: data.externalEmail || null,
-        external_phone: data.externalPhone || null,
-        vehicle_id: data.vehicleId || null,
-        notes: data.notes || null
+        member_id: memberId,
+        external_name: memberId ? null : registrationData.name,
+        external_email: memberId ? null : registrationData.email,
+        external_phone: memberId ? null : registrationData.phone,
+        status: 'confirmed'
       });
 
     if (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível registrar o participante.',
+        description: 'Não foi possível efectuar a inscrição.',
         variant: 'destructive',
       });
       throw error;
@@ -363,32 +222,41 @@ export const useEvents = () => {
     });
   };
 
-  // Cancel a registration
-  const cancelRegistration = async (registrationId: string): Promise<void> => {
-    const { error } = await supabase
+  // Count event registrations
+  const getEventRegistrationsCount = async (eventId: string): Promise<number> => {
+    const { count, error } = await supabase
       .from('event_registrations')
-      .update({ status: 'cancelled' })
-      .eq('id', registrationId);
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId);
 
     if (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível cancelar a inscrição.',
-        variant: 'destructive',
-      });
-      throw error;
+      console.error('Error counting registrations:', error);
+      return 0;
     }
 
-    toast({
-      title: 'Sucesso',
-      description: 'Inscrição cancelada com sucesso.',
-    });
+    return count || 0;
+  };
+
+  // Fix here - Convert to string if it's a number
+  const updateEventRegistrations = async (events: Event[]): Promise<Event[]> => {
+    const updatedEvents = [...events];
+    
+    for (let i = 0; i < updatedEvents.length; i++) {
+      const event = updatedEvents[i];
+      const count = await getEventRegistrationsCount(event.id.toString());
+      updatedEvents[i] = { ...event, participants: count };
+    }
+    
+    return updatedEvents;
   };
 
   // React Query hooks
   const eventsQuery = useQuery({
     queryKey: ['events'],
-    queryFn: getEvents
+    queryFn: getEvents,
+    select: async (data) => {
+      return await updateEventRegistrations(data);
+    }
   });
 
   const createEventMutation = useMutation({
@@ -412,16 +280,11 @@ export const useEvents = () => {
     }
   });
 
-  const registerParticipantMutation = useMutation({
-    mutationFn: ({ eventId, data }: { eventId: string; data: Parameters<typeof registerParticipant>[1] }) =>
-      registerParticipant(eventId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-    }
-  });
-
-  const cancelRegistrationMutation = useMutation({
-    mutationFn: cancelRegistration,
+  const registerForEventMutation = useMutation({
+    mutationFn: ({ eventId, registrationData }: { 
+      eventId: string; 
+      registrationData: { name: string; email: string; phone: string; }
+    }) => registerForEvent(eventId, registrationData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
     }
@@ -434,7 +297,6 @@ export const useEvents = () => {
     createEvent: createEventMutation.mutate,
     updateEvent: updateEventMutation.mutate,
     deleteEvent: deleteEventMutation.mutate,
-    registerParticipant: registerParticipantMutation.mutate,
-    cancelRegistration: cancelRegistrationMutation.mutate,
+    registerForEvent: registerForEventMutation.mutate
   };
 };

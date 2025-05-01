@@ -5,8 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarMenu } from '@/components/bar/BarMenu';
 import { BarRegister } from '@/components/bar/BarRegister';
 import { SalesHistory } from '@/components/bar/SalesHistory';
+import { useLocation } from 'react-router-dom';
 
 const BarManagement = () => {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const defaultTab = queryParams.get('tab') || 'menu';
+
   return (
     <MembersLayout>
       <div className="container mx-auto px-4 py-8">
@@ -14,7 +19,7 @@ const BarManagement = () => {
           Gestão do <span className="text-mouro-red">Bar</span>
         </h1>
         
-        <Tabs defaultValue="menu" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="w-full mb-6">
             <TabsTrigger value="menu" className="flex-1">Produtos</TabsTrigger>
             <TabsTrigger value="register" className="flex-1">Caixa</TabsTrigger>
@@ -30,7 +35,7 @@ const BarManagement = () => {
           </TabsContent>
           
           <TabsContent value="history">
-            <SalesHistory sales={[]} />
+            <SalesHistory />
           </TabsContent>
         </Tabs>
       </div>

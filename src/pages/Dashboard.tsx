@@ -322,7 +322,7 @@ const Dashboard = () => {
                                           Vendas
                                         </span>
                                         <span className="font-bold text-muted-foreground">
-                                          €{payload[0].value.toFixed(2)}
+                                          €{Number(payload[0].value).toFixed(2)}
                                         </span>
                                       </div>
                                     </div>

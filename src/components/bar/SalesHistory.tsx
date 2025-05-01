@@ -1,210 +1,204 @@
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Search, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search, CalendarIcon, ChevronDown } from 'lucide-react';
 import { Sale } from '@/types/bar';
-import { mockUsers } from '@/data/bar-mock-data';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { useBarSales } from '@/hooks/use-bar-sales';
 
-interface SalesHistoryProps {
-  sales: Sale[];
-}
+export const SalesHistory = () => {
+  const { sales, isLoading, isError } = useBarSales();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
+  const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
 
-export const SalesHistory = ({ sales }: SalesHistoryProps) => {
-  const [dateFilter, setDateFilter] = useState<string>('');
-  const [sellerFilter, setSellerFilter] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  
-  // Filter sales based on date, seller, and search term
+  // Filter sales based on search and date
   const filteredSales = sales.filter(sale => {
-    const matchesDate = dateFilter 
-      ? format(sale.timestamp, 'yyyy-MM-dd') === dateFilter
+    const matchesSearch = 
+      sale.seller.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      sale.items.some(item => item.productName.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesDate = dateFilter
+      ? sale.timestamp.getDate() === dateFilter.getDate() &&
+        sale.timestamp.getMonth() === dateFilter.getMonth() &&
+        sale.timestamp.getFullYear() === dateFilter.getFullYear()
       : true;
-      
-    const matchesSeller = sellerFilter !== 'all'
-      ? sale.sellerId === sellerFilter
-      : true;
-      
-    const matchesSearch = searchTerm
-      ? sale.items.some(item => 
-          item.productName.toLowerCase().includes(searchTerm.toLowerCase()))
-      : true;
-      
-    return matchesDate && matchesSeller && matchesSearch;
+    
+    return matchesSearch && matchesDate;
   });
-  
-  // Group sales by seller for the summary
-  const salesBySeller = filteredSales.reduce((acc, sale) => {
-    if (!acc[sale.sellerId]) {
-      acc[sale.sellerId] = {
-        sellerName: sale.seller,
-        totalSales: 0,
-        salesCount: 0
-      };
-    }
-    acc[sale.sellerId].totalSales += sale.total;
-    acc[sale.sellerId].salesCount += 1;
-    return acc;
-  }, {} as Record<string, { sellerName: string; totalSales: number; salesCount: number }>);
-  
-  const totalSalesAmount = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
-  
-  const clearFilters = () => {
-    setDateFilter('');
-    setSellerFilter('all');
-    setSearchTerm('');
+
+  // Toggle expanded sale details
+  const toggleExpandSale = (saleId: string) => {
+    setExpandedSaleId(expandedSaleId === saleId ? null : saleId);
   };
-  
+
+  if (isLoading) {
+    return <div className="text-center p-6">Carregando histórico de vendas...</div>;
+  }
+
+  if (isError) {
+    return <div className="text-center p-6 text-red-500">Erro ao carregar o histórico de vendas.</div>;
+  }
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="relative col-span-2">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Pesquisar produtos vendidos..."
+            placeholder="Buscar por vendedor ou produto..."
+            className="pl-9"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
           />
         </div>
-        
-        <div className="relative">
-          <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        
-        <div className="relative">
-          <User className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 pointer-events-none" />
-          <Select value={sellerFilter} onValueChange={setSellerFilter}>
-            <SelectTrigger className="pl-9">
-              <SelectValue placeholder="Vendedor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Vendedores</SelectItem>
-              {mockUsers.map(user => (
-                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto justify-start text-left font-normal"
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateFilter ? (
+                format(dateFilter, "PPP", { locale: ptBR })
+              ) : (
+                "Filtrar por data"
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dateFilter}
+              onSelect={(date) => setDateFilter(date)}
+              initialFocus
+            />
+            {dateFilter && (
+              <div className="border-t p-2 flex justify-end">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setDateFilter(undefined)}
+                >
+                  Limpar filtro
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
-      
-      {(dateFilter || sellerFilter !== 'all' || searchTerm) && (
-        <div>
-          <Button variant="outline" size="sm" onClick={clearFilters}>
-            Limpar Filtros
-          </Button>
-        </div>
-      )}
-      
-      {filteredSales.length > 0 ? (
-        <div className="space-y-6">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Vendedor</TableHead>
-                  <TableHead>Produtos</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Valor Pago</TableHead>
-                  <TableHead className="text-right">Troco</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSales.map((sale) => (
+
+      {filteredSales.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-10">
+            <p className="text-muted-foreground mb-2">Nenhuma venda encontrada</p>
+            <p className="text-sm text-muted-foreground">
+              {searchTerm || dateFilter ? "Tente outros filtros de busca" : "Ainda não há vendas registradas no sistema"}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data/Hora</TableHead>
+                <TableHead>Vendedor</TableHead>
+                <TableHead className="hidden md:table-cell">Itens</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Detalhe</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSales.map((sale) => (
+                <>
                   <TableRow key={sale.id}>
                     <TableCell>
-                      {format(sale.timestamp, 'dd/MM/yyyy HH:mm')}
+                      {format(sale.timestamp, "dd/MM/yyyy HH:mm")}
                     </TableCell>
-                    <TableCell>
-                      {sale.seller}
-                    </TableCell>
-                    <TableCell>
-                      <ul className="list-disc list-inside">
-                        {sale.items.map((item, index) => (
-                          <li key={index}>
-                            {item.quantity}x {item.productName} ({item.unitOfMeasure})
-                          </li>
-                        ))}
-                      </ul>
-                    </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>{sale.seller}</TableCell>
+                    <TableCell className="hidden md:table-cell">{sale.items.length} produtos</TableCell>
+                    <TableCell className="text-right font-semibold">
                       {sale.total.toFixed(2)}€
                     </TableCell>
                     <TableCell className="text-right">
-                      {sale.amountPaid.toFixed(2)}€
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {sale.change.toFixed(2)}€
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleExpandSale(sale.id)}
+                      >
+                        Detalhes
+                        <ChevronDown 
+                          className={`ml-1 h-4 w-4 transition-all ${expandedSaleId === sale.id ? 'rotate-180' : ''}`} 
+                        />
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          
-          {/* Daily Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumo Diário de Vendas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="text-lg font-medium">
-                  Total: {totalSalesAmount.toFixed(2)}€
-                </div>
-                <h3 className="text-md font-medium">Por Vendedor:</h3>
-                <Table>
-                  <TableHeader>
+                  {expandedSaleId === sale.id && (
                     <TableRow>
-                      <TableHead>Vendedor</TableHead>
-                      <TableHead className="text-right">Nº Vendas</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
+                      <TableCell colSpan={5} className="bg-slate-50 p-0">
+                        <div className="p-4">
+                          <h4 className="text-sm font-semibold mb-2">Itens da venda</h4>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Produto</TableHead>
+                                <TableHead className="text-right">Qtd</TableHead>
+                                <TableHead className="text-right">Preço</TableHead>
+                                <TableHead className="text-right">Subtotal</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {sale.items.map((item, index) => (
+                                <TableRow key={`${sale.id}-item-${index}`}>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      {item.imageUrl && (
+                                        <div className="h-8 w-8 mr-3 rounded overflow-hidden">
+                                          <img 
+                                            src={item.imageUrl} 
+                                            alt={item.productName} 
+                                            className="h-full w-full object-cover" 
+                                          />
+                                        </div>
+                                      )}
+                                      {item.productName}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">{item.quantity}</TableCell>
+                                  <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
+                                  <TableCell className="text-right">{item.total.toFixed(2)}€</TableCell>
+                                </TableRow>
+                              ))}
+                              <TableRow>
+                                <TableCell colSpan={3} className="text-right font-semibold">Total</TableCell>
+                                <TableCell className="text-right font-semibold">{sale.total.toFixed(2)}€</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell colSpan={3} className="text-right">Valor pago</TableCell>
+                                <TableCell className="text-right">{sale.amountPaid.toFixed(2)}€</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell colSpan={3} className="text-right">Troco</TableCell>
+                                <TableCell className="text-right">{sale.change.toFixed(2)}€</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.values(salesBySeller).map((sellerData, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{sellerData.sellerName}</TableCell>
-                        <TableCell className="text-right">{sellerData.salesCount}</TableCell>
-                        <TableCell className="text-right">
-                          {sellerData.totalSales.toFixed(2)}€
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                  )}
+                </>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center p-6">
-            <p className="text-center text-muted-foreground">
-              Nenhuma venda encontrada com os filtros selecionados.
-            </p>
-            {(dateFilter || sellerFilter !== 'all' || searchTerm) && (
-              <Button 
-                variant="link" 
-                className="mt-2"
-                onClick={clearFilters}
-              >
-                Limpar filtros e mostrar todas as vendas
-              </Button>
-            )}
-          </CardContent>
-        </Card>
       )}
     </div>
   );

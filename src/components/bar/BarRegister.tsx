@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,17 +8,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { Sale, Product, SaleItem } from '@/types/bar';
-import { mockProducts, mockUsers } from '@/data/bar-mock-data';
 import { Label } from '@/components/ui/label';
+import { useBarProducts } from '@/hooks/use-bar-products';
+import { useBarSales } from '@/hooks/use-bar-sales';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CartItem extends SaleItem {
   id: string;
 }
 
 export const BarRegister = () => {
-  const [products] = useState<Product[]>(mockProducts);
+  const { products, isLoading: isLoadingProducts } = useBarProducts();
+  const { createSale } = useBarSales();
+  const { user } = useAuth();
+
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [sellerId, setSellerId] = useState<string>('');
   const [amountPaid, setAmountPaid] = useState<string>('');
   
   // Calculate total
@@ -77,8 +81,8 @@ export const BarRegister = () => {
   
   // Handle checkout
   const handleCheckout = () => {
-    if (!sellerId) {
-      alert('Por favor selecione o vendedor');
+    if (!user) {
+      alert('Por favor faça login para registrar uma venda');
       return;
     }
     
@@ -87,32 +91,19 @@ export const BarRegister = () => {
       return;
     }
     
-    const seller = mockUsers.find(user => user.id === sellerId);
-    
-    if (!seller) {
-      alert('Vendedor inválido');
-      return;
-    }
-    
-    const sale: Sale = {
-      id: `sale-${Date.now()}`,
+    createSale({
       items: cartItems.map(({ id, ...item }) => item),
-      seller: seller.name,
-      sellerId: seller.id,
-      timestamp: new Date(),
-      total,
-      amountPaid: parseFloat(amountPaid),
-      change
-    };
-    
-    // Here you would typically save the sale to a database
-    console.log('New sale:', sale);
+      amountPaid: parseFloat(amountPaid)
+    });
     
     // Clear cart and form
     setCartItems([]);
-    setSellerId('');
     setAmountPaid('');
   };
+
+  if (isLoadingProducts) {
+    return <div className="p-4 text-center">Carregando produtos...</div>
+  }
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -123,36 +114,54 @@ export const BarRegister = () => {
             <CardTitle>Produtos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {products.map(product => (
-                <Card 
-                  key={product.id}
-                  className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => addToCart(product)}
-                >
-                  <div className="aspect-square w-full overflow-hidden">
-                    {product.imageUrl ? (
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.name}
-                        className="w-full h-full object-cover" 
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">
-                        Sem imagem
-                      </div>
-                    )}
-                  </div>
-                  <CardContent className="p-3">
-                    <h3 className="font-medium truncate">{product.name}</h3>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className="text-lg font-bold">{product.price.toFixed(2)}€</p>
-                      <Badge variant="outline">{product.unitOfMeasure}</Badge>
+            {products.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">Nenhum produto cadastrado no sistema</p>
+                <Button variant="outline" onClick={() => window.location.href = '/bar?tab=menu'}>
+                  Ir para gestão de produtos
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {products.map(product => (
+                  <Card 
+                    key={product.id}
+                    className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => addToCart(product)}
+                  >
+                    <div className="aspect-square w-full overflow-hidden">
+                      {product.imageUrl ? (
+                        <img 
+                          src={product.imageUrl} 
+                          alt={product.name}
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">
+                          Sem imagem
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    <CardContent className="p-3">
+                      <h3 className="font-medium truncate">{product.name}</h3>
+                      <div className="flex justify-between items-center mt-1">
+                        <p className="text-lg font-bold">{product.price.toFixed(2)}€</p>
+                        <Badge variant="outline">{product.unitOfMeasure}</Badge>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {product.stock <= 0 ? (
+                          <span className="text-red-500 font-semibold">Sem estoque</span>
+                        ) : product.stock <= (product.minStock || 10) ? (
+                          <span className="text-amber-500">Estoque baixo: {product.stock}</span>
+                        ) : (
+                          <span>Disponível: {product.stock}</span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -232,20 +241,6 @@ export const BarRegister = () => {
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="seller">Vendedor</Label>
-                      <Select value={sellerId} onValueChange={setSellerId}>
-                        <SelectTrigger id="seller">
-                          <SelectValue placeholder="Selecione o vendedor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockUsers.map(user => (
-                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
                       <Label htmlFor="amount-paid">Valor Pago (€)</Label>
                       <Input
                         id="amount-paid"
@@ -271,7 +266,7 @@ export const BarRegister = () => {
           <CardFooter>
             <Button 
               className="w-full" 
-              disabled={cartItems.length === 0 || !sellerId || !amountPaid || parseFloat(amountPaid) < total}
+              disabled={cartItems.length === 0 || !amountPaid || parseFloat(amountPaid) < total || !user}
               onClick={handleCheckout}
             >
               Finalizar Venda
