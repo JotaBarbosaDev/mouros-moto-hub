@@ -39,10 +39,10 @@ export const useEvents = () => {
       description: event.description,
       participants: 0, // Will be updated with registrations count
       maxParticipants: event.maximum_participants || undefined,
-      isFeatured: false,
+      isFeatured: event.published || false,
       membersOnly: event.members_only,
       registrationDeadline: event.end_date ? new Date(event.end_date).toISOString() : undefined,
-      registrationOpen: event.registration_open,
+      registrationOpen: event.registration_open || false,
     }));
   };
 
@@ -100,10 +100,10 @@ export const useEvents = () => {
       description: data.description,
       participants: 0,
       maxParticipants: data.maximum_participants || undefined,
-      isFeatured: false,
+      isFeatured: data.published || false,
       membersOnly: data.members_only,
       registrationDeadline: data.end_date ? new Date(data.end_date).toISOString() : undefined,
-      registrationOpen: data.registration_open,
+      registrationOpen: data.registration_open || false,
     };
   };
 
@@ -123,7 +123,7 @@ export const useEvents = () => {
         members_only: eventData.membersOnly || false,
         registration_open: eventData.registrationOpen || false,
       })
-      .eq('id', eventData.id)
+      .eq('id', eventData.id.toString())
       .select()
       .single();
 
@@ -152,10 +152,10 @@ export const useEvents = () => {
       description: data.description,
       participants: 0,
       maxParticipants: data.maximum_participants || undefined,
-      isFeatured: false,
+      isFeatured: data.published || false,
       membersOnly: data.members_only,
       registrationDeadline: data.end_date ? new Date(data.end_date).toISOString() : undefined,
-      registrationOpen: data.registration_open,
+      registrationOpen: data.registration_open || false,
     };
   };
 
@@ -237,7 +237,7 @@ export const useEvents = () => {
     return count || 0;
   };
 
-  // Fix here - Convert to string if it's a number
+  // Update registrations count for events
   const updateEventRegistrations = async (events: Event[]): Promise<Event[]> => {
     const updatedEvents = [...events];
     

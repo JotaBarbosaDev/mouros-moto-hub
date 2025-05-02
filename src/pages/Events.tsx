@@ -33,7 +33,7 @@ const Events = () => {
     setIsCreationDialogOpen(false);
   };
   
-  const filteredEvents = events.filter(event => {
+  const filteredEvents = Array.isArray(events) ? events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -41,7 +41,7 @@ const Events = () => {
     const matchesType = filterType === 'all' || event.type === filterType;
     
     return matchesSearch && matchesType;
-  });
+  }) : [];
 
   if (isAuthenticated) {
     return (
@@ -89,7 +89,7 @@ const Events = () => {
           
           {isLoading ? (
             <div className="flex justify-center items-center h-64">A carregar eventos...</div>
-          ) : events.length === 0 ? (
+          ) : !Array.isArray(events) || events.length === 0 ? (
             <div className="text-center py-16 bg-slate-50 rounded-md border border-slate-200">
               <CalendarX className="h-16 w-16 text-slate-400 mx-auto" />
               <h3 className="text-xl font-medium text-slate-900 mt-4 mb-2">Nenhum evento cadastrado</h3>
@@ -164,7 +164,7 @@ const Events = () => {
         
         {isLoading ? (
           <div className="flex justify-center items-center h-64">A carregar eventos...</div>
-        ) : events.length === 0 ? (
+        ) : !Array.isArray(events) || events.length === 0 ? (
           <div className="text-center py-16 bg-slate-50 rounded-md border border-slate-200">
             <CalendarX className="h-16 w-16 text-slate-400 mx-auto" />
             <h3 className="text-xl font-medium text-slate-900 mt-4">Nenhum evento disponível no momento</h3>

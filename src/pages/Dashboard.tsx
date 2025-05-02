@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import { useEvents } from '@/hooks/use-events';
 import { useMembers } from '@/hooks/use-members';
 import { useBarProducts } from '@/hooks/use-bar-products';
 import { useBarSales } from '@/hooks/use-bar-sales';
+import { Event } from '@/types/events';
 
 const salesChartConfig = {
   sales: {
@@ -52,39 +54,40 @@ const Dashboard = () => {
   
   const isLoading = eventsLoading || membersLoading || productsLoading || salesLoading;
   
-  // Calculate dashboard metrics
-  const activeEvents = events.filter(event => {
+  // Calculate dashboard metrics with proper null checks
+  const activeEvents = !isLoading && Array.isArray(events) ? events.filter(event => {
     const eventDate = new Date(event.date);
     return eventDate >= new Date();
-  }).length;
+  }).length : 0;
   
-  const eventsWithOpenRegistrations = events.filter(event => event.registrationDeadline).length;
+  const eventsWithOpenRegistrations = !isLoading && Array.isArray(events) ? events.filter(event => event.registrationDeadline).length : 0;
   
-  const nextEvent = events
+  const nextEvent = !isLoading && Array.isArray(events) ? events
     .filter(event => {
       const eventDate = new Date(event.date);
       return eventDate >= new Date();
     })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] : undefined;
   
-  const directorsCount = members.filter(member => member.memberType === 'Administração').length;
-  const newLastMonth = members.filter(member => {
+  const directorsCount = Array.isArray(members) ? members.filter(member => member.memberType === 'Administração').length : 0;
+  
+  const newLastMonth = Array.isArray(members) ? members.filter(member => {
     const joinDate = new Date(member.joinDate);
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
     return joinDate >= oneMonthAgo;
-  }).length;
+  }).length : 0;
   
-  const belowMinStockCount = products.filter(product => product.stock <= (product.minStock || 10)).length;
+  const belowMinStockCount = Array.isArray(products) ? products.filter(product => product.stock <= (product.minStock || 10)).length : 0;
   
   // Calculate total sales today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todaySales = sales.filter(sale => {
+  const todaySales = Array.isArray(sales) ? sales.filter(sale => {
     const saleDate = new Date(sale.timestamp);
     saleDate.setHours(0, 0, 0, 0);
     return saleDate.getTime() === today.getTime();
-  });
+  }) : [];
   
   const todaySalesTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0);
   const todaySalesCount = todaySales.length;
@@ -100,11 +103,11 @@ const Dashboard = () => {
   const dailySalesData = last14Days.map(day => {
     const dayStr = day.getDate().toString().padStart(2, '0');
     
-    const daySales = sales.filter(sale => {
+    const daySales = Array.isArray(sales) ? sales.filter(sale => {
       const saleDay = new Date(sale.timestamp);
       saleDay.setHours(0, 0, 0, 0);
       return saleDay.getTime() === day.getTime();
-    });
+    }) : [];
     
     return {
       day: dayStr,
@@ -113,7 +116,7 @@ const Dashboard = () => {
   });
   
   // Recent registrations
-  const recentRegistrations = events
+  const recentRegistrations = !isLoading && Array.isArray(events) ? events
     .flatMap(event => 
       (event.registeredParticipants || []).map(participant => ({
         id: participant.id,
@@ -123,7 +126,7 @@ const Dashboard = () => {
       }))
     )
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3);
+    .slice(0, 3) : [];
 
   if (loading || isLoading) return null;
   
@@ -145,7 +148,7 @@ const Dashboard = () => {
   };
 
   // Fix for sales total display in the Financial Card
-  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalSales = Array.isArray(sales) ? sales.reduce((sum, sale) => sum + sale.total, 0) : 0;
   const formattedTotalSales = totalSales.toFixed(2);
   const formattedTodaySalesTotal = todaySalesTotal.toFixed(2);
 
@@ -167,7 +170,7 @@ const Dashboard = () => {
               <Badge variant="outline">{activeEvents} ativos</Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{events.length}</div>
+              <div className="text-3xl font-bold">{Array.isArray(events) ? events.length : 0}</div>
               <p className="text-sm text-muted-foreground mt-1">
                 {eventsWithOpenRegistrations} com inscrições abertas
               </p>
@@ -201,7 +204,7 @@ const Dashboard = () => {
               <Badge variant="outline">{newLastMonth} novos</Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{members.length}</div>
+              <div className="text-3xl font-bold">{Array.isArray(members) ? members.length : 0}</div>
               <p className="text-sm text-muted-foreground mt-1">
                 {directorsCount} na direção
               </p>
@@ -235,7 +238,7 @@ const Dashboard = () => {
               )}
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{products.length}</div>
+              <div className="text-3xl font-bold">{Array.isArray(products) ? products.length : 0}</div>
               <p className="text-sm text-muted-foreground mt-1">
                 Produtos no inventário
               </p>
@@ -353,7 +356,7 @@ const Dashboard = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {events.filter(event => {
+                    {!Array.isArray(events) || events.filter(event => {
                       const eventDate = new Date(event.date);
                       return eventDate >= new Date();
                     }).length === 0 ? (
@@ -363,7 +366,7 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {events
+                        {Array.isArray(events) && events
                           .filter(event => {
                             const eventDate = new Date(event.date);
                             return eventDate >= new Date();
@@ -409,14 +412,14 @@ const Dashboard = () => {
                 </Link>
               </CardHeader>
               <CardContent>
-                {products.filter(p => p.stock <= (p.minStock || 10)).length === 0 ? (
+                {!Array.isArray(products) || products.filter(p => p.stock <= (p.minStock || 10)).length === 0 ? (
                   <div className="text-center py-6">
                     <CircleCheck className="h-12 w-12 text-green-500 mx-auto mb-4" />
                     <p className="text-muted-foreground">Todos os produtos estão com estoque adequado</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {products
+                    {Array.isArray(products) && products
                       .filter(p => p.stock <= (p.minStock || 10))
                       .sort((a, b) => a.stock - b.stock)
                       .slice(0, 4)
@@ -441,7 +444,6 @@ const Dashboard = () => {
                               </p>
                             </div>
                           </div>
-                          {/* Fix for Progress component by removing indicatorColor and using class instead */}
                           <Progress 
                             value={(product.stock / (product.minStock || 10)) * 100} 
                             className={`w-24 ${product.stock === 0 ? "bg-red-500" : "bg-amber-500"}`}
@@ -452,7 +454,7 @@ const Dashboard = () => {
                   </div>
                 )}
               </CardContent>
-              {products.filter(p => p.stock <= (p.minStock || 10)).length > 0 && (
+              {Array.isArray(products) && products.filter(p => p.stock <= (p.minStock || 10)).length > 0 && (
                 <CardFooter>
                   <Link to="/bar" className="w-full">
                     <Button variant="outline" size="sm" className="w-full">
@@ -508,14 +510,14 @@ const Dashboard = () => {
                 <CardDescription>Últimas transações no bar</CardDescription>
               </CardHeader>
               <CardContent>
-                {sales.length === 0 ? (
+                {!Array.isArray(sales) || sales.length === 0 ? (
                   <div className="text-center py-6">
                     <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">Nenhuma venda registrada</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {sales.slice(0, 4).map((sale) => (
+                    {Array.isArray(sales) && sales.slice(0, 4).map((sale) => (
                       <div key={sale.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">

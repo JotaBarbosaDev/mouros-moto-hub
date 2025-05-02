@@ -48,4 +48,5 @@ export interface Event {
   stops?: StopPoint[];
   externalFormLink?: string;
   registeredParticipants?: Participant[];
+  registrationOpen?: boolean;  // Add this property to fix the errors
 }
