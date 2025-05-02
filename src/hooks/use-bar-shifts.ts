@@ -5,6 +5,7 @@ import { toast } from '@/components/ui/use-toast';
 
 export interface BarShift {
   id: string;
+  scheduleId: string;
   memberId: string;
   memberName?: string;
   startTime: Date;
@@ -17,14 +18,20 @@ export const useBarShifts = () => {
   const queryClient = useQueryClient();
 
   // Fetch all bar shifts with member information
-  const getBarShifts = async (): Promise<BarShift[]> => {
-    const { data, error } = await supabase
+  const getBarShifts = async (scheduleId?: string): Promise<BarShift[]> => {
+    let query = supabase
       .from('bar_shifts')
       .select(`
         *,
         members:member_id (name)
       `)
       .order('start_time', { ascending: true });
+    
+    if (scheduleId) {
+      query = query.eq('schedule_id', scheduleId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({
@@ -41,6 +48,7 @@ export const useBarShifts = () => {
 
     return data.map(shift => ({
       id: shift.id,
+      scheduleId: shift.schedule_id,
       memberId: shift.member_id,
       memberName: shift.members?.name || 'Membro não encontrado',
       startTime: new Date(shift.start_time),
@@ -52,9 +60,31 @@ export const useBarShifts = () => {
 
   // Create a new bar shift
   const createBarShift = async (shiftData: Omit<BarShift, 'id' | 'memberName'>): Promise<BarShift> => {
+    // Check if member already has a shift on this day
+    const shiftDate = new Date(shiftData.startTime);
+    const startOfDay = new Date(shiftDate.setHours(0, 0, 0, 0)).toISOString();
+    const endOfDay = new Date(shiftDate.setHours(23, 59, 59, 999)).toISOString();
+    
+    const { data: existingShifts } = await supabase
+      .from('bar_shifts')
+      .select('id')
+      .eq('member_id', shiftData.memberId)
+      .gte('start_time', startOfDay)
+      .lte('start_time', endOfDay);
+    
+    if (existingShifts && existingShifts.length > 0) {
+      toast({
+        title: 'Erro',
+        description: 'Este membro já tem um turno nesta data.',
+        variant: 'destructive',
+      });
+      throw new Error('Member already has a shift on this date');
+    }
+
     const { data, error } = await supabase
       .from('bar_shifts')
       .insert({
+        schedule_id: shiftData.scheduleId,
         member_id: shiftData.memberId,
         start_time: shiftData.startTime.toISOString(),
         end_time: shiftData.endTime.toISOString(),
@@ -83,6 +113,7 @@ export const useBarShifts = () => {
 
     return {
       id: data.id,
+      scheduleId: data.schedule_id,
       memberId: data.member_id,
       memberName: data.members?.name || 'Membro não encontrado',
       startTime: new Date(data.start_time),
@@ -126,6 +157,7 @@ export const useBarShifts = () => {
 
     return {
       id: data.id,
+      scheduleId: data.schedule_id,
       memberId: data.member_id,
       memberName: data.members?.name || 'Membro não encontrado',
       startTime: new Date(data.start_time),
@@ -180,22 +212,32 @@ export const useBarShifts = () => {
   };
 
   // React Query hooks
+  const getShiftsForSchedule = (scheduleId: string) => {
+    return useQuery({
+      queryKey: ['barShifts', scheduleId],
+      queryFn: () => getBarShifts(scheduleId),
+      enabled: !!scheduleId
+    });
+  };
+
   const shiftsQuery = useQuery({
     queryKey: ['barShifts'],
-    queryFn: getBarShifts
+    queryFn: () => getBarShifts()
   });
 
   const createShiftMutation = useMutation({
     mutationFn: createBarShift,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['barShifts'] });
+      queryClient.invalidateQueries({ queryKey: ['barShifts', data.scheduleId] });
     }
   });
 
   const updateShiftMutation = useMutation({
     mutationFn: updateBarShift,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['barShifts'] });
+      queryClient.invalidateQueries({ queryKey: ['barShifts', data.scheduleId] });
     }
   });
 
@@ -218,6 +260,7 @@ export const useBarShifts = () => {
     shifts: shiftsQuery.data || [],
     isLoading: shiftsQuery.isLoading,
     isError: shiftsQuery.isError,
+    getShiftsForSchedule,
     createShift: createShiftMutation.mutate,
     updateShift: updateShiftMutation.mutate,
     deleteShift: deleteShiftMutation.mutate,

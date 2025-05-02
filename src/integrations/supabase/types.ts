@@ -106,6 +106,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          inventory_id: string | null
           min_stock: number
           name: string
           price: number
@@ -118,6 +119,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          inventory_id?: string | null
           min_stock?: number
           name: string
           price: number
@@ -130,6 +132,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          inventory_id?: string | null
           min_stock?: number
           name?: string
           price?: number
@@ -137,7 +140,15 @@ export type Database = {
           unit_of_measure?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bar_products_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bar_sale_items: {
         Row: {
@@ -232,6 +243,36 @@ export type Database = {
         }
         Relationships: []
       }
+      bar_schedules: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          name: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bar_shifts: {
         Row: {
           created_at: string
@@ -239,6 +280,7 @@ export type Database = {
           id: string
           member_id: string
           notes: string | null
+          schedule_id: string | null
           start_time: string
           status: string
           updated_at: string
@@ -249,6 +291,7 @@ export type Database = {
           id?: string
           member_id: string
           notes?: string | null
+          schedule_id?: string | null
           start_time: string
           status?: string
           updated_at?: string
@@ -259,6 +302,7 @@ export type Database = {
           id?: string
           member_id?: string
           notes?: string | null
+          schedule_id?: string | null
           start_time?: string
           status?: string
           updated_at?: string
@@ -269,6 +313,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_shifts_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "bar_schedules"
             referencedColumns: ["id"]
           },
         ]
@@ -519,6 +570,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      inventory: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          quantity: number
+          unit_of_measure: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          quantity?: number
+          unit_of_measure: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          quantity?: number
+          unit_of_measure?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_log: {
+        Row: {
+          change_reason: string | null
+          created_at: string
+          id: string
+          inventory_id: string | null
+          new_quantity: number
+          previous_quantity: number
+          user_id: string | null
+        }
+        Insert: {
+          change_reason?: string | null
+          created_at?: string
+          id?: string
+          inventory_id?: string | null
+          new_quantity: number
+          previous_quantity: number
+          user_id?: string | null
+        }
+        Update: {
+          change_reason?: string | null
+          created_at?: string
+          id?: string
+          inventory_id?: string | null
+          new_quantity?: number
+          previous_quantity?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_log_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       members: {
         Row: {
