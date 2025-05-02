@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -17,9 +18,11 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdministrationMember {
-  id: number;
+  id: string;
   nome: string;
   memberNumber: string;
   cargo: string;
@@ -40,97 +43,75 @@ const getStatusColor = (status: AdministrationMember['status']) => {
   }
 };
 
-const mockAdministration: AdministrationMember[] = [
-  { 
-    id: 1, 
-    nome: 'Ricardo Pereira', 
-    memberNumber: '005',
-    cargo: 'Presidente', 
-    mandato: '2023-2025', 
-    status: 'Ativo',
-    email: 'ricardo@example.com',
-    telefone: '912345680',
-    inicioMandato: '2023-01-01',
-    fimMandato: '2025-12-31'
-  },
-  { 
-    id: 2, 
-    nome: 'Mariana Costa', 
-    memberNumber: '008',
-    cargo: 'Vice-Presidente', 
-    mandato: '2023-2025', 
-    status: 'Ativo',
-    email: 'mariana@example.com',
-    telefone: '912345681',
-    inicioMandato: '2023-01-01',
-    fimMandato: '2025-12-31'
-  },
-  { 
-    id: 3, 
-    nome: 'Fernando Santos', 
-    memberNumber: '012',
-    cargo: 'Tesoureiro', 
-    mandato: '2023-2025', 
-    status: 'Ativo',
-    email: 'fernando@example.com',
-    telefone: '912345682',
-    inicioMandato: '2023-01-01',
-    fimMandato: '2025-12-31'
-  },
-  { 
-    id: 4, 
-    nome: 'Lucia Ferreira', 
-    memberNumber: '015',
-    cargo: 'Secretária', 
-    mandato: '2023-2025', 
-    status: 'Licença',
-    email: 'lucia@example.com',
-    telefone: '912345683',
-    inicioMandato: '2023-01-01',
-    fimMandato: '2025-12-31'
-  },
-  { 
-    id: 5, 
-    nome: 'Roberto Silva', 
-    memberNumber: '020',
-    cargo: 'Dir. Eventos', 
-    mandato: '2023-2025', 
-    status: 'Ativo',
-    email: 'roberto@example.com',
-    telefone: '912345684',
-    inicioMandato: '2023-01-01',
-    fimMandato: '2025-12-31'
-  },
-  { 
-    id: 6, 
-    nome: 'Ana Oliveira', 
-    memberNumber: '025',
-    cargo: 'Dir. Marketing', 
-    mandato: '2023-2025', 
-    status: 'Ativo',
-    email: 'ana@example.com',
-    telefone: '912345685',
-    inicioMandato: '2023-01-01',
-    fimMandato: '2025-12-31'
-  },
-  { 
-    id: 7, 
-    nome: 'Carlos Mendes', 
-    memberNumber: '030',
-    cargo: 'Dir. Patrimônio', 
-    mandato: '2023-2025', 
-    status: 'Inativo',
-    email: 'carlos@example.com',
-    telefone: '912345686',
-    inicioMandato: '2023-01-01',
-    fimMandato: '2025-12-31'
-  }
-];
-
 const Administration = () => {
-  const activeMembers = mockAdministration.filter(m => m.status === 'Ativo').length;
-  const inactiveMembers = mockAdministration.filter(m => m.status === 'Inativo').length;
-  const onLeaveMembers = mockAdministration.filter(m => m.status === 'Licença').length;
+  const [administrationMembers, setAdministrationMembers] = useState<AdministrationMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchAdministration() {
+      try {
+        setIsLoading(true);
+        
+        // Fetch administration data with member details
+        const { data: admins, error } = await supabase
+          .from('administration')
+          .select(`
+            id,
+            role,
+            term,
+            term_start,
+            term_end,
+            status,
+            members (
+              id,
+              member_number,
+              name,
+              email,
+              phone_main
+            )
+          `)
+          .order('term_start', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+          
+        if (admins) {
+          // Transform the data to match our component's expected format
+          const transformedData: AdministrationMember[] = admins.map(admin => ({
+            id: admin.id,
+            nome: admin.members?.name || 'Desconhecido',
+            memberNumber: admin.members?.member_number || '-',
+            cargo: admin.role,
+            mandato: admin.term,
+            status: admin.status as AdministrationMember['status'],
+            email: admin.members?.email || '-',
+            telefone: admin.members?.phone_main || '-',
+            inicioMandato: admin.term_start,
+            fimMandato: admin.term_end
+          }));
+          
+          setAdministrationMembers(transformedData);
+        }
+      } catch (error) {
+        console.error('Error fetching administration data:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar os dados da administração.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchAdministration();
+  }, [toast]);
+  
+  const activeMembers = administrationMembers.filter(m => m.status === 'Ativo').length;
+  const inactiveMembers = administrationMembers.filter(m => m.status === 'Inativo').length;
+  const onLeaveMembers = administrationMembers.filter(m => m.status === 'Licença').length;
   
   return (
     <MembersLayout>
@@ -152,7 +133,11 @@ const Administration = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500">Período</p>
-              <p className="text-xl font-semibold">2023 - 2025</p>
+              <p className="text-xl font-semibold">
+                {administrationMembers.length > 0 
+                  ? administrationMembers[0].mandato 
+                  : "2023 - 2025"}
+              </p>
             </CardContent>
           </Card>
           
@@ -161,7 +146,7 @@ const Administration = () => {
               <CardTitle className="text-lg">Total de Dirigentes</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{mockAdministration.length}</p>
+              <p className="text-3xl font-bold">{administrationMembers.length}</p>
               <div className="text-sm text-gray-500 mt-1">
                 <span className="text-green-600 mr-2">{activeMembers} ativos</span>
                 <span className="text-amber-600 mr-2">{onLeaveMembers} licença</span>
@@ -176,43 +161,60 @@ const Administration = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500">Data</p>
-              <p className="text-xl font-semibold">Outubro de 2025</p>
+              <p className="text-xl font-semibold">
+                {administrationMembers.length > 0 
+                  ? new Date(administrationMembers[0].fimMandato).toLocaleDateString('pt-PT', {month: 'long', year: 'numeric'})
+                  : "Outubro de 2025"}
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Nº</TableHead>
-                <TableHead>Cargo</TableHead>
-                <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead className="hidden md:table-cell">Telefone</TableHead>
-                <TableHead>Mandato</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockAdministration.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.nome}</TableCell>
-                  <TableCell>{item.memberNumber}</TableCell>
-                  <TableCell>{item.cargo}</TableCell>
-                  <TableCell className="hidden md:table-cell">{item.email}</TableCell>
-                  <TableCell className="hidden md:table-cell">{item.telefone}</TableCell>
-                  <TableCell>{item.mandato}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(item.status)}>
-                      {item.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <p>A carregar dados da administração...</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow">
+            {administrationMembers.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Nº</TableHead>
+                    <TableHead>Cargo</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead className="hidden md:table-cell">Telefone</TableHead>
+                    <TableHead>Mandato</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {administrationMembers.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell>{item.memberNumber}</TableCell>
+                      <TableCell>{item.cargo}</TableCell>
+                      <TableCell className="hidden md:table-cell">{item.email}</TableCell>
+                      <TableCell className="hidden md:table-cell">{item.telefone}</TableCell>
+                      <TableCell>{item.mandato}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(item.status)}>
+                          {item.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-16 bg-slate-50 rounded-md">
+                <h3 className="text-xl font-medium text-slate-900 mb-2">Sem membros da administração</h3>
+                <p className="text-sm text-slate-500 mb-6">Não há membros registrados na administração do clube.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </MembersLayout>
   );

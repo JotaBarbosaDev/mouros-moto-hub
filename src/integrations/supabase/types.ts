@@ -529,6 +529,7 @@ export type Database = {
           id: string
           in_whatsapp_group: boolean
           is_active: boolean
+          is_admin: boolean
           join_date: string
           legacy_member: boolean
           member_number: string
@@ -551,6 +552,7 @@ export type Database = {
           id?: string
           in_whatsapp_group?: boolean
           is_active?: boolean
+          is_admin?: boolean
           join_date: string
           legacy_member?: boolean
           member_number: string
@@ -573,6 +575,7 @@ export type Database = {
           id?: string
           in_whatsapp_group?: boolean
           is_active?: boolean
+          is_admin?: boolean
           join_date?: string
           legacy_member?: boolean
           member_number?: string

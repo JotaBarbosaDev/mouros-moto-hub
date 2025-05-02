@@ -1,21 +1,81 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import { VehicleFilters } from '@/components/garage/VehicleFilters';
 import { VehiclesTable } from '@/components/garage/VehiclesTable';
-import { getAllVehicles } from '@/utils/vehicle-utils';
 import { Vehicle } from '@/types/member';
-import { mockMembers } from '@/data/mock-data';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Garage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [brandFilter, setBrandFilter] = useState<string>('');
   const [modelFilter, setModelFilter] = useState<string>('');
   const [displacementFilter, setDisplacementFilter] = useState<string>('');
+  const [vehicles, setVehicles] = useState<Array<Vehicle & { owner: string; memberNumber: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
   
-  const vehicles = getAllVehicles(mockMembers);
+  useEffect(() => {
+    async function fetchVehicles() {
+      try {
+        setIsLoading(true);
+        
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select(`
+            id,
+            brand,
+            model,
+            type,
+            displacement,
+            nickname,
+            photo_url,
+            members (
+              id,
+              name,
+              member_number
+            )
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          // Transform data to match our component's expected format
+          const transformedVehicles = data.map((item) => ({
+            id: item.id,
+            brand: item.brand,
+            model: item.model,
+            type: item.type,
+            displacement: item.displacement,
+            nickname: item.nickname || undefined,
+            photoUrl: item.photo_url || undefined,
+            owner: item.members?.name || 'Desconhecido',
+            memberNumber: item.members?.member_number || '-'
+          }));
+          
+          setVehicles(transformedVehicles);
+        }
+      } catch (error) {
+        console.error('Error fetching vehicles:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar os veículos.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchVehicles();
+  }, [toast]);
+  
   const uniqueBrands = [...new Set(vehicles.map(v => v.brand))];
   const uniqueModels = [...new Set(vehicles.map(v => v.model))];
   const uniqueDisplacements = [...new Set(vehicles.map(v => v.displacement))];
@@ -72,10 +132,21 @@ const Garage = () => {
           clearFilters={clearFilters}
         />
 
-        <VehiclesTable 
-          vehicles={filteredVehicles}
-          onEditClick={handleEditVehicle}
-        />
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <p>A carregar veículos...</p>
+          </div>
+        ) : filteredVehicles.length > 0 ? (
+          <VehiclesTable 
+            vehicles={filteredVehicles}
+            onEditClick={handleEditVehicle}
+          />
+        ) : (
+          <div className="text-center py-12 bg-slate-50 rounded-md border border-slate-200 mt-4">
+            <h3 className="text-xl font-medium text-slate-900 mb-2">Nenhum veículo encontrado</h3>
+            <p className="text-sm text-slate-500">Nenhum veículo foi encontrado na base de dados ou com os filtros aplicados.</p>
+          </div>
+        )}
       </div>
     </MembersLayout>
   );

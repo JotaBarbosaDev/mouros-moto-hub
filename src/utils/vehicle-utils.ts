@@ -1,19 +1,5 @@
 
-import { Member, Vehicle, VehicleType, DEFAULT_VEHICLE_PHOTOS } from '@/types/member';
-
-export const getAllVehicles = (members: Member[]): Array<Vehicle & { owner: string, memberNumber: string }> => {
-  const vehicles: Array<Vehicle & { owner: string, memberNumber: string }> = [];
-  members.forEach(member => {
-    member.vehicles.forEach(vehicle => {
-      vehicles.push({
-        ...vehicle,
-        owner: member.name,
-        memberNumber: member.memberNumber
-      });
-    });
-  });
-  return vehicles;
-};
+import { VehicleType, DEFAULT_VEHICLE_PHOTOS } from '@/types/member';
 
 export const getVehicleTypeColor = (type: VehicleType) => {
   switch (type) {
