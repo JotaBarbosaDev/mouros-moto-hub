@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from '@/components/ui/button';
@@ -82,13 +81,13 @@ const Administration = () => {
         // Transform the data to match our component's expected format
         const transformedData: AdministrationMember[] = admins.map(admin => ({
           id: admin.id,
-          nome: admin.members?.name || 'Desconhecido',
-          memberNumber: admin.members?.member_number || '-',
+          nome: admin.members ? admin.members.name || 'Desconhecido' : 'Desconhecido',
+          memberNumber: admin.members ? admin.members.member_number || '-' : '-',
           cargo: admin.role,
           mandato: admin.term,
           status: admin.status as AdministrationMember['status'],
-          email: admin.members?.email || '-',
-          telefone: admin.members?.phone_main || '-',
+          email: admin.members ? admin.members.email || '-' : '-',
+          telefone: admin.members ? admin.members.phone_main || '-' : '-',
           inicioMandato: admin.term_start,
           fimMandato: admin.term_end
         }));

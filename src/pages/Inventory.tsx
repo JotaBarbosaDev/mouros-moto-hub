@@ -57,11 +57,15 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { InventoryCategory, InventoryUseType } from '@/types/inventory';
 
 const inventoryItemSchema = z.object({
   name: z.string().min(1, { message: "O nome é obrigatório" }),
   quantity: z.coerce.number().int().min(0, { message: "A quantidade deve ser um número inteiro não negativo" }),
   unitOfMeasure: z.string().min(1, { message: "A unidade de medida é obrigatória" }),
+  category: z.string().min(1, { message: "A categoria é obrigatória" }),
+  useType: z.string().min(1, { message: "O tipo de uso é obrigatório" }),
+  imageUrl: z.string().optional(),
 });
 
 const inventoryUpdateSchema = z.object({
@@ -91,6 +95,9 @@ const Inventory = () => {
       name: "",
       quantity: 0,
       unitOfMeasure: "",
+      category: "Outro",
+      useType: "Outro",
+      imageUrl: "",
     },
   });
   
@@ -111,7 +118,10 @@ const Inventory = () => {
         ...selectedItem,
         name: data.name,
         quantity: data.quantity,
-        unitOfMeasure: data.unitOfMeasure
+        unitOfMeasure: data.unitOfMeasure,
+        category: data.category as InventoryCategory,
+        useType: data.useType as InventoryUseType,
+        imageUrl: data.imageUrl
       }, {
         onSuccess: () => {
           setDialogOpen(false);
@@ -124,7 +134,10 @@ const Inventory = () => {
       createItem({
         name: data.name,
         quantity: data.quantity,
-        unitOfMeasure: data.unitOfMeasure
+        unitOfMeasure: data.unitOfMeasure,
+        category: data.category as InventoryCategory,
+        useType: data.useType as InventoryUseType,
+        imageUrl: data.imageUrl
       }, {
         onSuccess: () => {
           setDialogOpen(false);
@@ -174,6 +187,9 @@ const Inventory = () => {
     form.setValue("name", item.name);
     form.setValue("quantity", item.quantity);
     form.setValue("unitOfMeasure", item.unitOfMeasure);
+    form.setValue("category", item.category);
+    form.setValue("useType", item.useType);
+    form.setValue("imageUrl", item.imageUrl || "");
     setDialogOpen(true);
   };
   

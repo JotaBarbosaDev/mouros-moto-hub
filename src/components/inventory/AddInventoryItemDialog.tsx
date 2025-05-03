@@ -1,41 +1,28 @@
 
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components/ui/form";
-import { z } from "zod";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileUpload } from "@/components/common/FileUpload";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { z } from "zod";
 import { InventoryCategory, InventoryUseType } from "@/types/inventory";
-import { FileUpload } from "@/components/common/FileUpload";
 
 interface AddInventoryItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: any) => void;
+  onSave: (data: {
+    name: string;
+    quantity: number;
+    unitOfMeasure: string;
+    category: InventoryCategory;
+    useType: InventoryUseType;
+    imageUrl?: string;
+  }) => void;
 }
 
 const inventoryItemSchema = z.object({
@@ -47,54 +34,57 @@ const inventoryItemSchema = z.object({
   imageUrl: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof inventoryItemSchema>;
-
-export function AddInventoryItemDialog({ open, onOpenChange, onSubmit }: AddInventoryItemDialogProps) {
+export function AddInventoryItemDialog({
+  open,
+  onOpenChange,
+  onSave
+}: AddInventoryItemDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
-  const form = useForm<FormValues>({
+  const form = useForm<z.infer<typeof inventoryItemSchema>>({
     resolver: zodResolver(inventoryItemSchema),
     defaultValues: {
       name: "",
       quantity: 0,
-      unitOfMeasure: "",
-      category: "Bebida",
-      useType: "Bar",
+      unitOfMeasure: "Un",
+      category: "Outro",
+      useType: "Outro",
       imageUrl: "",
-    }
+    },
   });
-  
-  const handleSubmit = (data: FormValues) => {
+
+  const handleSubmit = (values: z.infer<typeof inventoryItemSchema>) => {
     setIsSubmitting(true);
-    
     try {
-      onSubmit(data);
-      form.reset();
-      onOpenChange(false);
+      onSave({
+        name: values.name,
+        quantity: values.quantity,
+        unitOfMeasure: values.unitOfMeasure,
+        category: values.category as InventoryCategory,
+        useType: values.useType as InventoryUseType,
+        imageUrl: values.imageUrl,
+      });
     } catch (error) {
+      console.error("Error saving inventory item:", error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao adicionar o item.",
+        description: "Não foi possível adicionar o item ao inventário.",
         variant: "destructive",
       });
-      console.error("Error submitting inventory item:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
       if (!isOpen) form.reset();
       onOpenChange(isOpen);
     }}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Adicionar Item ao Inventário</DialogTitle>
-          <DialogDescription>
-            Preencha os dados para adicionar um novo item ao inventário.
-          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
@@ -106,7 +96,7 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSubmit }: AddInve
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome do item" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -121,7 +111,7 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSubmit }: AddInve
                   <FormItem>
                     <FormLabel>Quantidade</FormLabel>
                     <FormControl>
-                      <Input type="number" min="0" step="1" {...field} />
+                      <Input type="number" min="0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -135,22 +125,17 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSubmit }: AddInve
                   <FormItem>
                     <FormLabel>Unidade de Medida</FormLabel>
                     <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a unidade" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Un">Unidade (Un)</SelectItem>
                           <SelectItem value="L">Litro (L)</SelectItem>
-                          <SelectItem value="mL">Mililitro (mL)</SelectItem>
                           <SelectItem value="Kg">Quilograma (Kg)</SelectItem>
                           <SelectItem value="g">Grama (g)</SelectItem>
-                          <SelectItem value="Caixa">Caixa</SelectItem>
-                          <SelectItem value="Pacote">Pacote</SelectItem>
-                          <SelectItem value="Garrafa">Garrafa</SelectItem>
+                          <SelectItem value="mL">Mililitro (mL)</SelectItem>
+                          <SelectItem value="Cx">Caixa (Cx)</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -168,10 +153,7 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSubmit }: AddInve
                   <FormItem>
                     <FormLabel>Categoria</FormLabel>
                     <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a categoria" />
                         </SelectTrigger>
@@ -198,10 +180,7 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSubmit }: AddInve
                   <FormItem>
                     <FormLabel>Tipo de Uso</FormLabel>
                     <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o tipo de uso" />
                         </SelectTrigger>
@@ -226,12 +205,13 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSubmit }: AddInve
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Imagem do Item</FormLabel>
+                  <FormLabel>Imagem</FormLabel>
                   <FormControl>
                     <FileUpload
                       onUploadComplete={(url) => form.setValue("imageUrl", url)}
+                      currentImageUrl={field.value}
                       bucketName="inventory"
-                      folderPath="items"
+                      folderPath="images"
                     />
                   </FormControl>
                   <FormMessage />
@@ -248,10 +228,10 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSubmit }: AddInve
                 Cancelar
               </Button>
               <Button 
-                type="submit" 
+                type="submit"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "A adicionar..." : "Adicionar Item"}
+                {isSubmitting ? "A guardar..." : "Adicionar Item"}
               </Button>
             </DialogFooter>
           </form>

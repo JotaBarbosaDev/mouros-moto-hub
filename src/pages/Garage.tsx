@@ -8,6 +8,7 @@ import { VehiclesTable } from '@/components/garage/VehiclesTable';
 import { Vehicle } from '@/types/member';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AddVehicleDialog } from '@/components/garage/AddVehicleDialog';
 
 const Garage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +17,7 @@ const Garage = () => {
   const [displacementFilter, setDisplacementFilter] = useState<string>('');
   const [vehicles, setVehicles] = useState<Array<Vehicle & { owner: string; memberNumber: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -55,8 +57,8 @@ const Garage = () => {
             displacement: item.displacement,
             nickname: item.nickname || undefined,
             photoUrl: item.photo_url || undefined,
-            owner: item.members?.name || 'Desconhecido',
-            memberNumber: item.members?.member_number || '-'
+            owner: item.members ? item.members.name || 'Desconhecido' : 'Desconhecido',
+            memberNumber: item.members ? item.members.member_number || '-' : '-'
           }));
           
           setVehicles(transformedVehicles);
