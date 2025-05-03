@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import {
   Table,
@@ -81,6 +82,7 @@ export function MemberList() {
 
   const handleEditMember = (editedMember: Member) => {
     updateMember(editedMember);
+    setIsEditDialogOpen(false);
   };
 
   const handleDeleteMember = () => {
@@ -154,8 +156,8 @@ export function MemberList() {
 
       {members.length === 0 ? (
         <div className="text-center py-12 bg-slate-50 rounded-md border border-slate-200">
-          <h3 className="text-lg font-medium text-slate-900 mb-2">Nenhum membro cadastrado</h3>
-          <p className="text-sm text-slate-500 mb-4">Clique no botão acima para adicionar o primeiro membro.</p>
+          <h3 className="text-lg font-medium text-slate-900 mb-2">Nenhum membro encontrado</h3>
+          <p className="text-sm text-slate-500 mb-4">Crie um novo membro para começar.</p>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
             variant="outline"
@@ -254,18 +256,22 @@ export function MemberList() {
         onSubmit={handleAddMember}
       />
 
-      <EditMemberDialog
-        member={selectedMember as any}
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        onSave={handleEditMember as any}
-      />
+      {selectedMember && (
+        <>
+          <EditMemberDialog
+            member={selectedMember}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            onSave={handleEditMember}
+          />
 
-      <ViewMemberDialog
-        member={selectedMember as any}
-        open={isViewDialogOpen}
-        onOpenChange={setIsViewDialogOpen}
-      />
+          <ViewMemberDialog
+            member={selectedMember}
+            open={isViewDialogOpen}
+            onOpenChange={setIsViewDialogOpen}
+          />
+        </>
+      )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
