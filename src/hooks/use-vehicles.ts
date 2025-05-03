@@ -50,8 +50,8 @@ export const useVehicles = () => {
           displacement: item.displacement,
           nickname: item.nickname || undefined,
           photoUrl: item.photo_url || undefined,
-          owner: item.members ? item.members.name || 'Desconhecido' : 'Desconhecido',
-          memberNumber: item.members ? item.members.member_number || '-' : '-'
+          owner: item.members?.name || 'Desconhecido',
+          memberNumber: item.members?.member_number || '-'
         }));
         
         setVehicles(transformedVehicles);

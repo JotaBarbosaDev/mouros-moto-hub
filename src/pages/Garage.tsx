@@ -4,10 +4,9 @@ import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import { VehicleFilters } from '@/components/garage/VehicleFilters';
-import { VehiclesTable } from '@/components/garage/VehiclesTable';
-import { Vehicle } from '@/types/member';
 import { AddVehicleDialog } from '@/components/garage/AddVehicleDialog';
 import { useVehicles, VehicleWithOwner } from '@/hooks/use-vehicles';
+import { GarageContent } from '@/components/garage/GarageContent';
 
 const Garage = () => {
   const [searchTerm, setSearchTerm] = useState('');

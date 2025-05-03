@@ -60,12 +60,12 @@ export const useAdministration = () => {
       if (data) {
         const transformedMembers = data.map((admin) => ({
           id: admin.id,
-          name: admin.members ? admin.members.name || 'Desconhecido' : 'Desconhecido',
-          memberNumber: admin.members ? admin.members.member_number || '-' : '-',
+          name: admin.members?.name || 'Desconhecido',
+          memberNumber: admin.members?.member_number || '-',
           role: admin.role || 'Membro',
           status: admin.status || 'Inativo',
-          email: admin.members ? admin.members.email || '-' : '-',
-          phone: admin.members ? admin.members.phone_main || '-' : '-',
+          email: admin.members?.email || '-',
+          phone: admin.members?.phone_main || '-',
         }));
 
         setAdministrationMembers(transformedMembers);
