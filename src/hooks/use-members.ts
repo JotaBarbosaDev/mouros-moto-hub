@@ -29,7 +29,7 @@ export const useMembers = () => {
   const getMembers = async (): Promise<Member[]> => {
     const { data, error } = await supabase
       .from('members')
-      .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member')
+      .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit')
       .order('name');
 
     if (error) {
@@ -113,7 +113,10 @@ export const useMembers = () => {
         photo_url: memberData.photoUrl,
         join_date: memberData.joinDate,
         member_type: memberData.memberType,
-        honorary_member: memberData.honoraryMember
+        honorary_member: memberData.honoraryMember,
+        blood_type: memberData.bloodType,
+        in_whatsapp_group: memberData.inWhatsAppGroup,
+        received_member_kit: memberData.receivedMemberKit
       })
       .select()
       .single();
@@ -181,7 +184,10 @@ export const useMembers = () => {
         photo_url: memberData.photoUrl,
         join_date: memberData.joinDate,
         member_type: memberData.memberType,
-        honorary_member: memberData.honoraryMember
+        honorary_member: memberData.honoraryMember,
+        blood_type: memberData.bloodType,
+        in_whatsapp_group: memberData.inWhatsAppGroup,
+        received_member_kit: memberData.receivedMemberKit
       })
       .eq('id', memberData.id)
       .select()
