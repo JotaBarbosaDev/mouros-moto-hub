@@ -2,19 +2,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { Member as MemberType, BloodType, MemberType as MemberTypeEnum } from '@/types/member';
 
-export interface Member {
+// Extended Member type that includes properties from the database
+export interface Member extends Omit<MemberType, 'vehicles' | 'duesPayments'> {
   id: string;
   name: string;
   memberNumber: string;
   isAdmin: boolean;
+  isActive: boolean;
   email: string;
   phoneMain: string;
   phoneAlternative?: string;
   nickname?: string;
   photoUrl?: string;
   joinDate: string;
-  memberType: string;
+  memberType: MemberTypeEnum;
   honoraryMember: boolean;
   vehicles: any[];
   duesPayments: any[];
@@ -26,7 +29,7 @@ export const useMembers = () => {
   const getMembers = async (): Promise<Member[]> => {
     const { data, error } = await supabase
       .from('members')
-      .select('id, name, member_number, is_admin, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member')
+      .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member')
       .order('name');
 
     if (error) {
@@ -62,14 +65,30 @@ export const useMembers = () => {
           name: member.name,
           memberNumber: member.member_number,
           isAdmin: member.is_admin,
+          isActive: member.is_active,
           email: member.email,
           phoneMain: member.phone_main,
           phoneAlternative: member.phone_alternative,
           nickname: member.nickname,
           photoUrl: member.photo_url,
           joinDate: member.join_date,
-          memberType: member.member_type,
+          memberType: member.member_type as MemberTypeEnum,
           honoraryMember: member.honorary_member,
+          // Add required properties from MemberType
+          address: {
+            street: '',
+            number: '',
+            postalCode: '',
+            city: '',
+            district: '',
+            country: ''
+          },
+          bloodType: member.blood_type as BloodType | undefined,
+          legacyMember: false,
+          registrationFeePaid: false,
+          registrationFeeExempt: false,
+          inWhatsAppGroup: member.in_whatsapp_group || false,
+          receivedMemberKit: member.received_member_kit || false,
           vehicles: vehicles || [],
           duesPayments: duesPayments || [],
         };
@@ -86,6 +105,7 @@ export const useMembers = () => {
         name: memberData.name,
         member_number: memberData.memberNumber,
         is_admin: memberData.isAdmin,
+        is_active: memberData.isActive || true,
         email: memberData.email,
         phone_main: memberData.phoneMain,
         phone_alternative: memberData.phoneAlternative,
@@ -117,6 +137,7 @@ export const useMembers = () => {
       name: data.name,
       memberNumber: data.member_number,
       isAdmin: data.is_admin,
+      isActive: data.is_active,
       email: data.email,
       phoneMain: data.phone_main,
       phoneAlternative: data.phone_alternative,
@@ -125,8 +146,23 @@ export const useMembers = () => {
       joinDate: data.join_date,
       memberType: data.member_type,
       honoraryMember: data.honorary_member,
-      vehicles: [],
-      duesPayments: [],
+      // Add required properties from MemberType
+      address: {
+        street: '',
+        number: '',
+        postalCode: '',
+        city: '',
+        district: '',
+        country: ''
+      },
+      bloodType: data.blood_type as BloodType | undefined,
+      legacyMember: false,
+      registrationFeePaid: false,
+      registrationFeeExempt: false,
+      inWhatsAppGroup: data.in_whatsapp_group || false,
+      receivedMemberKit: data.received_member_kit || false,
+      vehicles: memberData.vehicles,
+      duesPayments: memberData.duesPayments,
     };
   };
 
@@ -137,6 +173,7 @@ export const useMembers = () => {
         name: memberData.name,
         member_number: memberData.memberNumber,
         is_admin: memberData.isAdmin,
+        is_active: memberData.isActive,
         email: memberData.email,
         phone_main: memberData.phoneMain,
         phone_alternative: memberData.phoneAlternative,
@@ -169,6 +206,7 @@ export const useMembers = () => {
       name: data.name,
       memberNumber: data.member_number,
       isAdmin: data.is_admin,
+      isActive: data.is_active,
       email: data.email,
       phoneMain: data.phone_main,
       phoneAlternative: data.phone_alternative,
@@ -177,6 +215,21 @@ export const useMembers = () => {
       joinDate: data.join_date,
       memberType: data.member_type,
       honoraryMember: data.honorary_member,
+      // Add required properties from MemberType
+      address: {
+        street: '',
+        number: '',
+        postalCode: '',
+        city: '',
+        district: '',
+        country: ''
+      },
+      bloodType: data.blood_type as BloodType | undefined,
+      legacyMember: false,
+      registrationFeePaid: false,
+      registrationFeeExempt: false,
+      inWhatsAppGroup: data.in_whatsapp_group || false,
+      receivedMemberKit: data.received_member_kit || false,
       vehicles: memberData.vehicles,
       duesPayments: memberData.duesPayments,
     };

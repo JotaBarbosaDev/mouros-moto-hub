@@ -58,8 +58,23 @@ export function MemberList() {
     createMember({
       ...member,
       memberNumber: member.memberNumber || String(Date.now()).substring(7), // Generate a unique number if not provided
+      isActive: true,
       vehicles: [],
       duesPayments: [],
+      // Add required properties from MemberType
+      address: {
+        street: '',
+        number: '',
+        postalCode: '',
+        city: '',
+        district: '',
+        country: ''
+      },
+      legacyMember: false,
+      registrationFeePaid: false,
+      registrationFeeExempt: false,
+      inWhatsAppGroup: false,
+      receivedMemberKit: false,
     } as any);
     setIsAddDialogOpen(false);
   };
@@ -240,14 +255,14 @@ export function MemberList() {
       />
 
       <EditMemberDialog
-        member={selectedMember}
+        member={selectedMember as any}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        onSave={handleEditMember}
+        onSave={handleEditMember as any}
       />
 
       <ViewMemberDialog
-        member={selectedMember}
+        member={selectedMember as any}
         open={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
       />
