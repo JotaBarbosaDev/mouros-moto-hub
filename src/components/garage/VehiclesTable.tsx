@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bike, Image, Bug } from 'lucide-react';
-import { Vehicle } from '@/types/member';
+import { VehicleWithOwner } from '@/hooks/use-vehicles';
 import { getVehicleTypeColor, getDefaultVehiclePhoto } from '@/utils/vehicle-utils';
 
 const getVehicleTypeIcon = (type: string) => {
@@ -17,8 +17,8 @@ const getVehicleTypeIcon = (type: string) => {
 };
 
 interface VehiclesTableProps {
-  vehicles: Array<Vehicle & { owner: string; memberNumber: string; }>;
-  onEditClick: (vehicle: Vehicle & { owner: string; memberNumber: string; }) => void;
+  vehicles: VehicleWithOwner[];
+  onEditClick: (vehicle: VehicleWithOwner) => void;
 }
 
 export const VehiclesTable = ({ vehicles, onEditClick }: VehiclesTableProps) => {
