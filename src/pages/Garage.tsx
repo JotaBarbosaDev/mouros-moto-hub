@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from "@/components/ui/button";
@@ -149,6 +148,7 @@ const Garage = () => {
   };
 
   return (
+    
     <MembersLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
