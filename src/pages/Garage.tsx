@@ -113,7 +113,10 @@ const Garage = () => {
           <h1 className="text-4xl font-display text-mouro-black">
             <span className="text-mouro-red">Garagem</span> do Clube
           </h1>
-          <Button className="bg-mouro-red hover:bg-mouro-red/90">
+          <Button 
+            className="bg-mouro-red hover:bg-mouro-red/90"
+            onClick={() => setIsDialogOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Novo Veículo
           </Button>
@@ -149,6 +152,15 @@ const Garage = () => {
             <p className="text-sm text-slate-500">Nenhum veículo foi encontrado na base de dados ou com os filtros aplicados.</p>
           </div>
         )}
+        
+        <AddVehicleDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onSuccess={() => {
+            fetchVehicles();
+            setIsDialogOpen(false);
+          }}
+        />
       </div>
     </MembersLayout>
   );
