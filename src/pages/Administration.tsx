@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AddAdminDialog } from '@/components/administration/AddAdminDialog';
 
 interface AdministrationMember {
   id: string;
@@ -46,67 +47,87 @@ const getStatusColor = (status: AdministrationMember['status']) => {
 const Administration = () => {
   const [administrationMembers, setAdministrationMembers] = useState<AdministrationMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function fetchAdministration() {
-      try {
-        setIsLoading(true);
-        
-        // Fetch administration data with member details
-        const { data: admins, error } = await supabase
-          .from('administration')
-          .select(`
+  const fetchAdministration = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch administration data with member details
+      const { data: admins, error } = await supabase
+        .from('administration')
+        .select(`
+          id,
+          role,
+          term,
+          term_start,
+          term_end,
+          status,
+          members (
             id,
-            role,
-            term,
-            term_start,
-            term_end,
-            status,
-            members (
-              id,
-              member_number,
-              name,
-              email,
-              phone_main
-            )
-          `)
-          .order('term_start', { ascending: false });
-          
-        if (error) {
-          throw error;
-        }
-          
-        if (admins) {
-          // Transform the data to match our component's expected format
-          const transformedData: AdministrationMember[] = admins.map(admin => ({
-            id: admin.id,
-            nome: admin.members?.name || 'Desconhecido',
-            memberNumber: admin.members?.member_number || '-',
-            cargo: admin.role,
-            mandato: admin.term,
-            status: admin.status as AdministrationMember['status'],
-            email: admin.members?.email || '-',
-            telefone: admin.members?.phone_main || '-',
-            inicioMandato: admin.term_start,
-            fimMandato: admin.term_end
-          }));
-          
-          setAdministrationMembers(transformedData);
-        }
-      } catch (error) {
-        console.error('Error fetching administration data:', error);
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível carregar os dados da administração.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
+            member_number,
+            name,
+            email,
+            phone_main
+          )
+        `)
+        .order('term_start', { ascending: false });
+        
+      if (error) {
+        throw error;
       }
+        
+      if (admins) {
+        // Transform the data to match our component's expected format
+        const transformedData: AdministrationMember[] = admins.map(admin => ({
+          id: admin.id,
+          nome: admin.members?.name || 'Desconhecido',
+          memberNumber: admin.members?.member_number || '-',
+          cargo: admin.role,
+          mandato: admin.term,
+          status: admin.status as AdministrationMember['status'],
+          email: admin.members?.email || '-',
+          telefone: admin.members?.phone_main || '-',
+          inicioMandato: admin.term_start,
+          fimMandato: admin.term_end
+        }));
+        
+        setAdministrationMembers(transformedData);
+      }
+    } catch (error) {
+      console.error('Error fetching administration data:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os dados da administração.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
+  };
+
+  useEffect(() => {
     fetchAdministration();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('administration-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'administration' 
+        }, 
+        () => {
+          fetchAdministration();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [toast]);
   
   const activeMembers = administrationMembers.filter(m => m.status === 'Ativo').length;
@@ -120,7 +141,10 @@ const Administration = () => {
           <h1 className="text-4xl font-display text-mouro-black">
             Administração do <span className="text-mouro-red">Clube</span>
           </h1>
-          <Button className="bg-mouro-red hover:bg-mouro-red/90">
+          <Button 
+            className="bg-mouro-red hover:bg-mouro-red/90"
+            onClick={() => setIsDialogOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Novo Administrador
           </Button>
@@ -211,10 +235,23 @@ const Administration = () => {
               <div className="text-center py-16 bg-slate-50 rounded-md">
                 <h3 className="text-xl font-medium text-slate-900 mb-2">Sem membros da administração</h3>
                 <p className="text-sm text-slate-500 mb-6">Não há membros registrados na administração do clube.</p>
+                <Button 
+                  onClick={() => setIsDialogOpen(true)}
+                  variant="outline"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Administrador
+                </Button>
               </div>
             )}
           </div>
         )}
+        
+        <AddAdminDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onSuccess={fetchAdministration}
+        />
       </div>
     </MembersLayout>
   );
