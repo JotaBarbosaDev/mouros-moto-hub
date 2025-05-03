@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from "@/components/ui/button";
@@ -134,6 +135,8 @@ const Garage = () => {
         description: 'Veículo adicionado com sucesso.',
       });
       
+      // Refresh the vehicles list
+      fetchVehicles();
     } catch (error) {
       console.error('Error saving vehicle:', error);
       toast({
