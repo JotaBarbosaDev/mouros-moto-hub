@@ -8,6 +8,7 @@ export interface Product {
   imageUrl: string;
   stock: number;
   minStock?: number;
+  inventoryId?: string; // Add inventoryId property
 }
 
 export interface SaleItem {

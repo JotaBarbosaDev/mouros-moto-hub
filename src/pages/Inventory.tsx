@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from '@/components/ui/button';
@@ -122,7 +121,11 @@ const Inventory = () => {
       });
     } else {
       // Create new item
-      createItem(data, {
+      createItem({
+        name: data.name,
+        quantity: data.quantity,
+        unitOfMeasure: data.unitOfMeasure
+      }, {
         onSuccess: () => {
           setDialogOpen(false);
           form.reset();
@@ -185,7 +188,7 @@ const Inventory = () => {
   const handleDeleteItem = (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir este item do inventário?")) {
       // Check if the item is linked to any bar product
-      const linkedProducts = products.filter(p => p.inventory_id === id);
+      const linkedProducts = products.filter(p => p.inventoryId === id);
       if (linkedProducts.length > 0) {
         toast({
           title: "Não foi possível excluir",

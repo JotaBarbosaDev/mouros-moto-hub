@@ -35,7 +35,8 @@ export const useBarProducts = () => {
       unitOfMeasure: product.unit_of_measure,
       imageUrl: product.image_url || '',
       stock: product.stock,
-      minStock: product.min_stock
+      minStock: product.min_stock,
+      inventoryId: product.inventory_id
     }));
   };
 
@@ -50,7 +51,8 @@ export const useBarProducts = () => {
         unit_of_measure: productData.unitOfMeasure,
         image_url: productData.imageUrl || null,
         stock: productData.stock || 0,
-        min_stock: productData.minStock || 10
+        min_stock: productData.minStock || 10,
+        inventory_id: productData.inventoryId || null
       })
       .select()
       .single();
@@ -77,7 +79,8 @@ export const useBarProducts = () => {
       unitOfMeasure: data.unit_of_measure,
       imageUrl: data.image_url || '',
       stock: data.stock,
-      minStock: data.min_stock
+      minStock: data.min_stock,
+      inventoryId: data.inventory_id
     };
   };
 
@@ -92,7 +95,8 @@ export const useBarProducts = () => {
         unit_of_measure: productData.unitOfMeasure,
         image_url: productData.imageUrl || null,
         stock: productData.stock,
-        min_stock: productData.minStock || 10
+        min_stock: productData.minStock || 10,
+        inventory_id: productData.inventoryId || null
       })
       .eq('id', productData.id)
       .select()
@@ -120,7 +124,8 @@ export const useBarProducts = () => {
       unitOfMeasure: data.unit_of_measure,
       imageUrl: data.image_url || '',
       stock: data.stock,
-      minStock: data.min_stock
+      minStock: data.min_stock,
+      inventoryId: data.inventory_id
     };
   };
 

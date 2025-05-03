@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import {
   Table,
@@ -26,10 +25,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { Member, MemberType } from '@/types/member';
-import { useMembers } from '@/hooks/use-members';
+import { useMembers, Member } from '@/hooks/use-members';
 
-const getMemberTypeColor = (type: MemberType) => {
+const getMemberTypeColor = (type: string) => {
   switch (type) {
     case 'Sócio Adulto': return 'bg-blue-500';
     case 'Sócio Criança': return 'bg-green-500';
