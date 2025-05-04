@@ -64,12 +64,12 @@ export const useAdministration = () => {
       if (data) {
         const transformedMembers: AdministrationMember[] = data.map((admin) => ({
           id: admin.id,
-          nome: admin.members?.name || 'Desconhecido',
-          memberNumber: admin.members?.member_number || '-',
+          nome: admin.members ? admin.members.name || 'Desconhecido' : 'Desconhecido',
+          memberNumber: admin.members ? admin.members.member_number || '-' : '-',
           cargo: admin.role || 'Membro',
           status: admin.status || 'Inativo',
-          email: admin.members?.email || '-',
-          telefone: admin.members?.phone_main || '-',
+          email: admin.members ? admin.members.email || '-' : '-',
+          telefone: admin.members ? admin.members.phone_main || '-' : '-',
           mandato: admin.term || '2024-2026',
           inicioMandato: admin.term_start || '',
           fimMandato: admin.term_end || ''
