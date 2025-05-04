@@ -51,7 +51,7 @@ export function MemberFormTabs({
       </TabsContent>
       
       <TabsContent value="status">
-        <MemberStatusTab form={form} />
+        <MemberStatusTab form={form} member={member} />
       </TabsContent>
       
       <TabsContent value="vehicles">

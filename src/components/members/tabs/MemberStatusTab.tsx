@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormProps } from "../MemberFormTypes";
 
-export function MemberStatusTab({ form }: FormProps) {
+export function MemberStatusTab({ form, member }: FormProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-4">
