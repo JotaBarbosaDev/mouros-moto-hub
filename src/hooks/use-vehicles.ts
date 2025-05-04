@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Vehicle } from '@/types/member';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +6,22 @@ import { useToast } from '@/hooks/use-toast';
 export interface VehicleWithOwner extends Vehicle {
   owner: string;
   memberNumber: string;
+}
+
+// Define the type for the Supabase response
+interface VehicleResponse {
+  id: string;
+  brand: string;
+  model: string;
+  type: string;
+  displacement: number;
+  nickname: string | null;
+  photo_url: string | null;
+  members: {
+    id: string;
+    name: string;
+    member_number: string;
+  } | null;
 }
 
 export const useVehicles = () => {
@@ -42,7 +57,7 @@ export const useVehicles = () => {
       
       if (data) {
         // Transform data to match our component's expected format
-        const transformedVehicles = data.map((item) => ({
+        const transformedVehicles = (data as VehicleResponse[]).map((item) => ({
           id: item.id,
           brand: item.brand,
           model: item.model,

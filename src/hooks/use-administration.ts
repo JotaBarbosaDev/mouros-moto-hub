@@ -25,6 +25,23 @@ export interface AdminStats {
   nextElection: string;
 }
 
+// Define the type for the Supabase response to prevent TypeScript errors
+interface AdminMemberResponse {
+  id: string;
+  role: string;
+  status: string;
+  term: string;
+  term_start: string;
+  term_end: string;
+  members: {
+    id: string;
+    member_number: string;
+    name: string;
+    email: string;
+    phone_main: string;
+  } | null;
+}
+
 export const useAdministration = () => {
   const [administrationMembers, setAdministrationMembers] = useState<AdministrationMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +79,7 @@ export const useAdministration = () => {
       if (error) throw error;
 
       if (data) {
-        const transformedMembers: AdministrationMember[] = data.map((admin) => ({
+        const transformedMembers: AdministrationMember[] = (data as AdminMemberResponse[]).map((admin) => ({
           id: admin.id,
           nome: admin.members ? admin.members.name || 'Desconhecido' : 'Desconhecido',
           memberNumber: admin.members ? admin.members.member_number || '-' : '-',
