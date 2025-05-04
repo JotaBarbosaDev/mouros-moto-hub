@@ -1,21 +1,10 @@
 
 import { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Pencil, Trash2, Eye } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { PlusCircle } from 'lucide-react';
 import { AddMemberDialog } from './AddMemberDialog';
 import { EditMemberDialog } from './EditMemberDialog';
 import { ViewMemberDialog } from './ViewMemberDialog';
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,19 +16,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useMembers, Member } from '@/hooks/use-members';
-
-const getMemberTypeColor = (type: string) => {
-  switch (type) {
-    case 'Sócio Adulto': return 'bg-blue-500';
-    case 'Sócio Criança': return 'bg-green-500';
-    case 'Administração': return 'bg-purple-500';
-    case 'Convidado': return 'bg-gray-500';
-    default: return 'bg-slate-500';
-  }
-};
+import { MembersTable } from './MembersTable';
+import { MemberEmptyState } from './MemberEmptyState';
 
 export function MemberList() {
-  const { toast } = useToast();
   const { 
     members, 
     isLoading, 
@@ -108,31 +88,6 @@ export function MemberList() {
     setIsDeleteDialogOpen(true);
   };
 
-  const currentYear = new Date().getFullYear();
-  const getDuesStatus = (member: Member) => {
-    const currentYearPayment = member.duesPayments.find(payment => payment.year === currentYear);
-    if (currentYearPayment?.exempt) return "Isento";
-    return currentYearPayment?.paid ? "Paga" : "Pendente";
-  };
-
-  const getDuesStatusClass = (status: string) => {
-    switch (status) {
-      case "Paga": return "text-green-600";
-      case "Pendente": return "text-red-600";
-      case "Isento": return "text-blue-600";
-      default: return "";
-    }
-  };
-
-  const getMemberInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-  };
-
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">A carregar membros...</div>;
   }
@@ -155,99 +110,14 @@ export function MemberList() {
       </div>
 
       {members.length === 0 ? (
-        <div className="text-center py-12 bg-slate-50 rounded-md border border-slate-200">
-          <h3 className="text-lg font-medium text-slate-900 mb-2">Nenhum membro encontrado</h3>
-          <p className="text-sm text-slate-500 mb-4">Crie um novo membro para começar.</p>
-          <Button 
-            onClick={() => setIsAddDialogOpen(true)}
-            variant="outline"
-            className="mx-auto"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Membro
-          </Button>
-        </div>
+        <MemberEmptyState onAddClick={() => setIsAddDialogOpen(true)} />
       ) : (
-        <div className="rounded-md border overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Foto</TableHead>
-                  <TableHead>Nº</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Veículos</TableHead>
-                  <TableHead>Cota Anual</TableHead>
-                  <TableHead>Entrada</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {members.map((member) => (
-                  <TableRow key={member.id}>
-                    <TableCell>
-                      <Avatar>
-                        {member.photoUrl ? (
-                          <AvatarImage src={member.photoUrl} alt={member.name} />
-                        ) : (
-                          <AvatarFallback>{getMemberInitials(member.name)}</AvatarFallback>
-                        )}
-                      </Avatar>
-                    </TableCell>
-                    <TableCell>{member.memberNumber}</TableCell>
-                    <TableCell className="font-medium">
-                      {member.name}
-                      {member.nickname && <div className="text-xs text-gray-500">{member.nickname}</div>}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${getMemberTypeColor(member.memberType)}`}>
-                        {member.memberType}
-                      </Badge>
-                      {member.honoraryMember && (
-                        <Badge className="ml-2 bg-amber-500">Honorário</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{member.email}</TableCell>
-                    <TableCell>{member.phoneMain}</TableCell>
-                    <TableCell>{member.vehicles.length}</TableCell>
-                    <TableCell className={getDuesStatusClass(getDuesStatus(member))}>
-                      {getDuesStatus(member)}
-                    </TableCell>
-                    <TableCell>{new Date(member.joinDate).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          onClick={() => handleViewMember(member)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          onClick={() => handleEditClick(member)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          onClick={() => handleDeleteClick(member)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+        <MembersTable 
+          members={members}
+          onViewMember={handleViewMember}
+          onEditMember={handleEditClick}
+          onDeleteMember={handleDeleteClick}
+        />
       )}
 
       <AddMemberDialog 
