@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -11,6 +11,11 @@ import { useAdministration } from '@/hooks/use-administration';
 const Administration = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { administrationMembers, isLoading, fetchAdministration, stats } = useAdministration();
+  
+  // Refresh data when component mounts or when dialog closes (potential new member added)
+  useEffect(() => {
+    fetchAdministration();
+  }, [isDialogOpen]);
 
   return (
     <MembersLayout>

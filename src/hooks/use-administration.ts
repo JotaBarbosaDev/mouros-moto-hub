@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdministrationMember } from '@/components/administration/AdministrationTable';
+import { MemberType } from '@/types/member';
 
 export interface AdminMember {
   id: string;
@@ -25,21 +26,15 @@ export interface AdminStats {
   nextElection: string;
 }
 
-// Define the type for the Supabase response to prevent TypeScript errors
-interface AdminMemberResponse {
+// Define the type for the Supabase members response
+interface MemberResponse {
   id: string;
-  role: string;
-  status: string;
-  term: string;
-  term_start: string;
-  term_end: string;
-  members: {
-    id: string;
-    member_number: string;
-    name: string;
-    email: string;
-    phone_main: string;
-  } | null;
+  name: string;
+  member_number: string;
+  email: string;
+  phone_main: string;
+  is_active: boolean;
+  member_type: MemberType;
 }
 
 export const useAdministration = () => {
@@ -58,44 +53,39 @@ export const useAdministration = () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('administration')
+        .from('members')
         .select(`
-          id, 
-          role, 
-          status, 
-          term, 
-          term_start, 
-          term_end, 
-          members (
-            id, 
-            member_number, 
-            name, 
-            email, 
-            phone_main
-          )
+          id,
+          name,
+          member_number,
+          email,
+          phone_main,
+          is_active,
+          member_type
         `)
-        .order('created_at', { ascending: false });
+        .eq('member_type', 'Administração')
+        .order('name');
 
       if (error) throw error;
 
       if (data) {
-        // First cast to unknown to safely convert the data
-        const adminData = data as unknown as AdminMemberResponse[];
+        // Cast to the correct type
+        const memberData = data as unknown as MemberResponse[];
         
-        const transformedMembers: AdministrationMember[] = adminData.map((admin) => ({
-          id: admin.id,
-          nome: admin.members ? admin.members.name || 'Desconhecido' : 'Desconhecido',
-          memberNumber: admin.members ? admin.members.member_number || '-' : '-',
-          cargo: admin.role || 'Membro',
-          // Ensure the status is always one of the allowed values
-          status: (admin.status === 'Ativo' || admin.status === 'Inativo' || admin.status === 'Licença') 
-            ? admin.status 
+        const transformedMembers: AdministrationMember[] = memberData.map((member) => ({
+          id: member.id,
+          nome: member.name || 'Desconhecido',
+          memberNumber: member.member_number || '-',
+          cargo: 'Membro da Administração', // Default role since we don't have specific roles in members table
+          // Map is_active to the proper status format
+          status: member.is_active 
+            ? 'Ativo' 
             : 'Inativo',
-          email: admin.members ? admin.members.email || '-' : '-',
-          telefone: admin.members ? admin.members.phone_main || '-' : '-',
-          mandato: admin.term || '2024-2026',
-          inicioMandato: admin.term_start || '',
-          fimMandato: admin.term_end || ''
+          email: member.email || '-',
+          telefone: member.phone_main || '-',
+          mandato: '2024-2026', // Default term values since we don't have specific terms in members table
+          inicioMandato: '', 
+          fimMandato: ''
         }));
 
         setAdministrationMembers(transformedMembers);
