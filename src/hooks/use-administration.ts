@@ -79,12 +79,18 @@ export const useAdministration = () => {
       if (error) throw error;
 
       if (data) {
-        const transformedMembers: AdministrationMember[] = (data as AdminMemberResponse[]).map((admin) => ({
+        // First cast to unknown to safely convert the data
+        const adminData = data as unknown as AdminMemberResponse[];
+        
+        const transformedMembers: AdministrationMember[] = adminData.map((admin) => ({
           id: admin.id,
           nome: admin.members ? admin.members.name || 'Desconhecido' : 'Desconhecido',
           memberNumber: admin.members ? admin.members.member_number || '-' : '-',
           cargo: admin.role || 'Membro',
-          status: admin.status || 'Inativo',
+          // Ensure the status is always one of the allowed values
+          status: (admin.status === 'Ativo' || admin.status === 'Inativo' || admin.status === 'Licença') 
+            ? admin.status 
+            : 'Inativo',
           email: admin.members ? admin.members.email || '-' : '-',
           telefone: admin.members ? admin.members.phone_main || '-' : '-',
           mandato: admin.term || '2024-2026',

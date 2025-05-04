@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Vehicle } from '@/types/member';
+import { Vehicle, VehicleType } from '@/types/member';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -56,12 +56,15 @@ export const useVehicles = () => {
       }
       
       if (data) {
+        // Cast to unknown first then to the expected type
+        const vehicleData = data as unknown as VehicleResponse[];
+        
         // Transform data to match our component's expected format
-        const transformedVehicles = (data as VehicleResponse[]).map((item) => ({
+        const transformedVehicles = vehicleData.map((item) => ({
           id: item.id,
           brand: item.brand,
           model: item.model,
-          type: item.type,
+          type: item.type as VehicleType, // Cast string to VehicleType enum
           displacement: item.displacement,
           nickname: item.nickname || undefined,
           photoUrl: item.photo_url || undefined,
@@ -69,7 +72,8 @@ export const useVehicles = () => {
           memberNumber: item.members ? item.members.member_number || '-' : '-'
         }));
         
-        setVehicles(transformedVehicles);
+        // Cast the transformed vehicles to VehicleWithOwner[]
+        setVehicles(transformedVehicles as VehicleWithOwner[]);
       }
     } catch (error) {
       console.error('Error fetching vehicles:', error);
