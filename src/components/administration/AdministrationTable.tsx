@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { AdminStatus } from '@/types/member';
 
 export interface AdministrationMember {
   id: string;
@@ -16,7 +15,7 @@ export interface AdministrationMember {
   memberNumber: string;
   cargo: string;
   mandato: string;
-  status: AdminStatus;
+  status: 'Ativo' | 'Inativo' | 'Licença';
   email: string;
   telefone: string;
   inicioMandato: string;
@@ -27,7 +26,7 @@ interface AdministrationTableProps {
   members: AdministrationMember[];
 }
 
-export const getStatusColor = (status: AdminStatus) => {
+export const getStatusColor = (status: AdministrationMember['status']) => {
   switch (status) {
     case 'Ativo': return 'bg-green-500';
     case 'Inativo': return 'bg-red-500';

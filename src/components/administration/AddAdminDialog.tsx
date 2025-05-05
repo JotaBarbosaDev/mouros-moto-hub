@@ -14,9 +14,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage
+  FormControl
 } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -41,7 +39,6 @@ interface AddAdminDialogProps {
 const addAdminSchema = z.object({
   memberId: z.string().min(1, "Membro é obrigatório"),
   role: z.string().min(1, "Cargo é obrigatório"),
-  status: z.string().min(1, "Status é obrigatório"),
   term: z.string().min(1, "Mandato é obrigatório"),
   termStart: z.string().min(1, "Data de início é obrigatória"),
   termEnd: z.string().min(1, "Data de fim é obrigatória"),
@@ -66,13 +63,9 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
         
       if (data) {
         const adminIds = data.map(admin => admin.member_id);
-        // Filter out members who are already active admins or are already of type 'Administração'
-        setAvailableMembers(members.filter(member => 
-          !adminIds.includes(member.id) && member.memberType !== 'Administração'
-        ));
+        setAvailableMembers(members.filter(member => !adminIds.includes(member.id)));
       } else {
-        // Only include members who are not already of type 'Administração'
-        setAvailableMembers(members.filter(member => member.memberType !== 'Administração'));
+        setAvailableMembers(members);
       }
     };
     
@@ -86,7 +79,6 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
     defaultValues: {
       memberId: "",
       role: "",
-      status: "Ativo",
       term: "",
       termStart: new Date().toISOString().split('T')[0],
       termEnd: new Date(new Date().getFullYear() + 2, 0, 1).toISOString().split('T')[0]
@@ -103,21 +95,18 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
         .insert({
           member_id: values.memberId,
           role: values.role,
-          status: values.status,
           term: values.term,
           term_start: values.termStart,
-          term_end: values.termEnd
+          term_end: values.termEnd,
+          status: 'Ativo'
         });
         
       if (error) throw error;
 
-      // 2. Update member type and status
+      // 2. Update member type to 'Administração'
       const { error: updateError } = await supabase
         .from('members')
-        .update({ 
-          member_type: 'Administração',
-          admin_status: values.status
-        })
+        .update({ member_type: 'Administração' })
         .eq('id', values.memberId);
         
       if (updateError) throw updateError;
@@ -179,7 +168,6 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -207,36 +195,6 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <FormControl>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      value={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Ativo">Ativo</SelectItem>
-                        <SelectItem value="Licença">Licença</SelectItem>
-                        <SelectItem value="Inativo">Inativo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormDescription>
-                    Status do membro na administração.
-                  </FormDescription>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -267,7 +225,6 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -286,7 +243,6 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -304,7 +260,6 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -321,7 +276,6 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
               <Button 
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-mouro-red hover:bg-mouro-red/90"
               >
                 {isSubmitting ? "A adicionar..." : "Adicionar"}
               </Button>

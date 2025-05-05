@@ -18,7 +18,6 @@ import {
 import { useMembers, Member } from '@/hooks/use-members';
 import { MembersTable } from './MembersTable';
 import { MemberEmptyState } from './MemberEmptyState';
-import { useToast } from '@/hooks/use-toast';
 
 export function MemberList() {
   const { 
@@ -30,7 +29,6 @@ export function MemberList() {
     deleteMember 
   } = useMembers();
   
-  const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -42,27 +40,23 @@ export function MemberList() {
       ...member,
       memberNumber: member.memberNumber || String(Date.now()).substring(7), // Generate a unique number if not provided
       isActive: true,
+      vehicles: [],
+      duesPayments: [],
       // Add required properties from MemberType
       address: {
-        street: member.address?.street || '',
-        number: member.address?.number || '',
-        postalCode: member.address?.postalCode || '',
-        city: member.address?.city || '',
-        district: member.address?.district || '',
-        country: member.address?.country || 'Portugal'
+        street: '',
+        number: '',
+        postalCode: '',
+        city: '',
+        district: '',
+        country: ''
       },
       legacyMember: false,
       registrationFeePaid: false,
       registrationFeeExempt: false,
-      inWhatsAppGroup: member.inWhatsAppGroup || false,
-      receivedMemberKit: member.receivedMemberKit || false,
+      inWhatsAppGroup: false,
+      receivedMemberKit: false,
     } as any);
-    
-    toast({
-      title: "Membro adicionado",
-      description: "O membro foi adicionado com sucesso.",
-    });
-    
     setIsAddDialogOpen(false);
   };
 
@@ -159,10 +153,7 @@ export function MemberList() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteMember}
-              className="bg-red-500 hover:bg-red-600"
-            >
+            <AlertDialogAction onClick={handleDeleteMember}>
               Remover
             </AlertDialogAction>
           </AlertDialogFooter>

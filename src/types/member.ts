@@ -2,7 +2,6 @@
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
 export type MemberType = 'Sócio Adulto' | 'Sócio Criança' | 'Administração' | 'Convidado';
 export type VehicleType = 'Mota' | 'Moto-quatro' | 'Buggy';
-export type AdminStatus = 'Ativo' | 'Licença' | 'Inativo';
 
 export interface Address {
   street: string;
@@ -28,7 +27,6 @@ export interface DuesPayment {
   paid: boolean;
   date?: string;
   exempt: boolean;
-  registration_fee_paid?: boolean;
 }
 
 export interface Member {
@@ -41,7 +39,6 @@ export interface Member {
   address: Address;
   bloodType?: BloodType;
   memberType: MemberType;
-  adminStatus?: AdminStatus;
   joinDate: string;
   vehicles: Vehicle[];
   legacyMember: boolean;
@@ -51,8 +48,8 @@ export interface Member {
   duesPayments: DuesPayment[];
   inWhatsAppGroup: boolean;
   receivedMemberKit: boolean;
-  photoUrl?: string;
-  nickname?: string;
+  photoUrl?: string; // Added photoUrl field
+  nickname?: string; // Added nickname field
 }
 
 // Default placeholder images for members and vehicles
