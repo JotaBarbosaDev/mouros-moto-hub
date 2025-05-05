@@ -66,9 +66,13 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
         
       if (data) {
         const adminIds = data.map(admin => admin.member_id);
-        setAvailableMembers(members.filter(member => !adminIds.includes(member.id)));
+        // Filter out members who are already active admins or are already of type 'Administração'
+        setAvailableMembers(members.filter(member => 
+          !adminIds.includes(member.id) && member.memberType !== 'Administração'
+        ));
       } else {
-        setAvailableMembers(members);
+        // Only include members who are not already of type 'Administração'
+        setAvailableMembers(members.filter(member => member.memberType !== 'Administração'));
       }
     };
     
@@ -175,6 +179,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -202,6 +207,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -230,6 +236,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                   <FormDescription>
                     Status do membro na administração.
                   </FormDescription>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -260,6 +267,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -278,6 +286,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -295,6 +304,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -311,6 +321,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
               <Button 
                 type="submit"
                 disabled={isSubmitting}
+                className="bg-mouro-red hover:bg-mouro-red/90"
               >
                 {isSubmitting ? "A adicionar..." : "Adicionar"}
               </Button>

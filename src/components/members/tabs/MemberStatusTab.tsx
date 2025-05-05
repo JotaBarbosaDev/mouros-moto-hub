@@ -5,6 +5,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FormProps } from "../MemberFormTypes";
 
 export function MemberStatusTab({ form, member }: FormProps) {
+  // Get current member type to determine if admin status should be shown
+  const memberType = form.watch("memberType");
+  const showAdminStatus = memberType === "Administração";
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-4">
@@ -16,7 +20,13 @@ export function MemberStatusTab({ form, member }: FormProps) {
               <FormLabel>Tipo de Membro</FormLabel>
               <FormControl>
                 <Select 
-                  onValueChange={field.onChange} 
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    // Clear admin status if changing from administration to another type
+                    if (value !== "Administração" && form.getValues("adminStatus")) {
+                      form.setValue("adminStatus", undefined);
+                    }
+                  }} 
                   value={field.value}
                 >
                   <SelectTrigger>
@@ -34,7 +44,7 @@ export function MemberStatusTab({ form, member }: FormProps) {
           )}
         />
         
-        {form.watch("memberType") === "Administração" && (
+        {showAdminStatus && (
           <FormField
             control={form.control}
             name="adminStatus"

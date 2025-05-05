@@ -1,132 +1,43 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import Index from "./pages/Index";
-import About from "./pages/About";
-import Events from "./pages/Events";
-import Gallery from "./pages/Gallery";
-import Store from "./pages/Store";
-import Bar from "./pages/Bar";
-import Contact from "./pages/Contact";
-import Members from "./pages/Members";
-import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/Dashboard";
-import Scale from "./pages/Scale";
-import Inventory from "./pages/Inventory";
-import Administration from "./pages/Administration";
-import Garage from "./pages/Garage";
-import Settings from "./pages/Settings";
-import BarManagement from "./pages/Bar";
-import MemberStore from "./pages/MemberStore";
-import Products from "./pages/Products";
-import History from "./pages/History";
+import { Suspense, lazy } from 'react';
+import { Routes, Route, BrowserRouter } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/providers/ThemeProvider';
+
+// Routes
+import Home from '@/pages/Home';
+import Members from '@/pages/Members';
+import Bar from '@/pages/Bar';
+import Garage from '@/pages/Garage';
+import Administration from '@/pages/Administration';
+import Settings from '@/pages/Settings';
+import { Spinner } from '@/components/common/Spinner';
+import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/sobre" element={<About />} />
-          <Route path="/eventos" element={<Events />} />
-          <Route path="/galeria" element={<Gallery />} />
-          <Route path="/loja" element={<Store />} />
-          <Route path="/bar" element={<Bar />} />
-          <Route path="/contato" element={<Contact />} />
-          <Route path="/membros" element={<Members />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/escala" 
-            element={
-              <ProtectedRoute>
-                <Scale />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/inventario" 
-            element={
-              <ProtectedRoute>
-                <Inventory />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/administracao" 
-            element={
-              <ProtectedRoute>
-                <Administration />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/garagem" 
-            element={
-              <ProtectedRoute>
-                <Garage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/configuracoes" 
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/bar-management" 
-            element={
-              <ProtectedRoute>
-                <BarManagement />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/produtos" 
-            element={
-              <ProtectedRoute>
-                <MemberStore />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/historico" 
-            element={
-              <ProtectedRoute>
-                <History />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/caixa" 
-            element={
-              <ProtectedRoute>
-                <div>Página de Caixa em construção</div>
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Suspense fallback={<Spinner />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/membros" element={<Members />} />
+              <Route path="/bar" element={<Bar />} />
+              <Route path="/garagem" element={<Garage />} />
+              <Route path="/administracao" element={<Administration />} />
+              <Route path="/configuracoes" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+        <Toaster />
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

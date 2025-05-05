@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -31,7 +32,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
   const [activeTab, setActiveTab] = useState("basic");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
-  const [duesPayments, setDuesPayments] = useState<{year: number, paid: boolean, exempt: boolean}[]>([]);
+  const [duesPayments, setDuesPayments] = useState<{year: number, paid: boolean, exempt: boolean, registration_fee_paid?: boolean}[]>([]);
   
   const form = useForm<EditMemberFormValues>({
     resolver: zodResolver(editMemberSchema),
@@ -129,7 +130,8 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       setDuesPayments(data.map(p => ({
         year: p.year,
         paid: p.paid,
-        exempt: p.exempt
+        exempt: p.exempt,
+        registration_fee_paid: p.registration_fee_paid
       })));
     } else {
       // Create default dues payments for last 3 years
@@ -137,7 +139,8 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       const defaults = Array.from({length: 3}, (_, i) => ({
         year: currentYear - i,
         paid: false,
-        exempt: false
+        exempt: false,
+        registration_fee_paid: false
       }));
       setDuesPayments(defaults);
     }
@@ -280,6 +283,10 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
     setIsSubmitting(true);
     
     try {
+      // Check if member type changed from 'Administração' to something else
+      const wasAdmin = member.memberType === 'Administração';
+      const isNowAdmin = values.memberType === 'Administração';
+      
       // Update member in database
       const { error } = await supabase
         .from('members')
@@ -291,6 +298,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
           nickname: values.nickname || null,
           blood_type: values.bloodType,
           member_type: values.memberType,
+          admin_status: values.memberType === 'Administração' ? values.adminStatus || 'Ativo' : null,
           in_whatsapp_group: values.inWhatsAppGroup || false,
           received_member_kit: values.receivedMemberKit || false,
           photo_url: values.photoUrl || null,
@@ -299,8 +307,20 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         
       if (error) throw error;
       
-      // If member is of type "Administração", update or create admin record
-      if (values.memberType === "Administração") {
+      // Handle admin status changes
+      if (wasAdmin && !isNowAdmin) {
+        // Remove from administration table if no longer an admin
+        const { error: deleteError } = await supabase
+          .from('administration')
+          .delete()
+          .eq('member_id', member.id);
+          
+        if (deleteError) {
+          console.error('Error removing from administration:', deleteError);
+        }
+      } 
+      else if (isNowAdmin) {
+        // If member is of type "Administração", update or create admin record
         // Check if admin record exists
         const { data: existingAdmin } = await supabase
           .from('administration')
@@ -343,7 +363,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         nickname: values.nickname,
         bloodType: values.bloodType,
         memberType: values.memberType,
-        adminStatus: values.adminStatus,
+        adminStatus: values.memberType === 'Administração' ? values.adminStatus : undefined,
         inWhatsAppGroup: values.inWhatsAppGroup || false,
         receivedMemberKit: values.receivedMemberKit || false,
         photoUrl: values.photoUrl,
@@ -405,6 +425,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
               <Button 
                 type="submit"
                 disabled={isSubmitting}
+                className="bg-mouro-red hover:bg-mouro-red/90"
               >
                 {isSubmitting ? "A guardar..." : "Guardar"}
               </Button>

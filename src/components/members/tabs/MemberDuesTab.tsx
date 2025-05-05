@@ -2,6 +2,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSystemSettings } from "@/hooks/use-system-settings";
 
 interface DuesPayment {
   year: number;
@@ -20,33 +21,25 @@ export function MemberDuesTab({
   duesPayments,
   handleDuesPaymentChange
 }: MemberDuesTabProps) {
-  const [foundingDate, setFoundingDate] = useState<string>('2000-01-01');
+  const { settings, isLoading } = useSystemSettings();
   const [years, setYears] = useState<number[]>([]);
   
-  // Fetch founding date from settings
+  // Generate years from founding date to current year
   useEffect(() => {
-    const fetchFoundingDate = async () => {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('founding_date')
-        .single();
-        
-      if (!error && data) {
-        setFoundingDate(data.founding_date);
-        
-        // Generate years from founding date to current year
-        const foundingYear = new Date(data.founding_date).getFullYear();
-        const currentYear = new Date().getFullYear();
-        const yearsRange = Array.from(
-          { length: currentYear - foundingYear + 1 }, 
-          (_, i) => currentYear - i
-        );
-        setYears(yearsRange);
-      }
-    };
-    
-    fetchFoundingDate();
-  }, []);
+    if (settings?.foundingDate) {
+      const foundingYear = new Date(settings.foundingDate).getFullYear();
+      const currentYear = new Date().getFullYear();
+      const yearsRange = Array.from(
+        { length: currentYear - foundingYear + 1 }, 
+        (_, i) => currentYear - i
+      );
+      setYears(yearsRange);
+    }
+  }, [settings]);
+  
+  if (isLoading) {
+    return <div className="py-4">A carregar dados...</div>;
+  }
   
   return (
     <div className="space-y-4">
@@ -110,94 +103,29 @@ export function MemberDuesTab({
                     </label>
                   </div>
                   
-                  {year === parseInt(foundingDate.split('-')[0]) && (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`reg-fee-${year}`}
-                        checked={payment.registration_fee_paid}
-                        onCheckedChange={(checked) => 
-                          handleDuesPaymentChange(year, 'registration_fee_paid', !!checked)
-                        }
-                      />
-                      <label
-                        htmlFor={`reg-fee-${year}`}
-                        className="text-sm font-medium leading-none"
-                      >
-                        Joia
-                      </label>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`reg-fee-${year}`}
+                      checked={payment.registration_fee_paid}
+                      onCheckedChange={(checked) => 
+                        handleDuesPaymentChange(year, 'registration_fee_paid', !!checked)
+                      }
+                    />
+                    <label
+                      htmlFor={`reg-fee-${year}`}
+                      className="text-sm font-medium leading-none"
+                    >
+                      Joia
+                    </label>
+                  </div>
                 </div>
               </div>
             );
           })
         ) : (
-          duesPayments.map(payment => (
-            <div 
-              key={payment.year} 
-              className="flex items-center justify-between p-3 border rounded-md"
-            >
-              <div>
-                <p className="font-medium">{payment.year}</p>
-                {payment.payment_date && (
-                  <p className="text-xs text-gray-500">
-                    Data: {new Date(payment.payment_date).toLocaleDateString('pt-PT')}
-                  </p>
-                )}
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`paid-${payment.year}`}
-                    checked={payment.paid}
-                    onCheckedChange={(checked) => 
-                      handleDuesPaymentChange(payment.year, 'paid', !!checked)
-                    }
-                    disabled={payment.exempt}
-                  />
-                  <label
-                    htmlFor={`paid-${payment.year}`}
-                    className={`text-sm font-medium leading-none ${payment.exempt ? 'text-slate-400' : ''}`}
-                  >
-                    Paga
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`exempt-${payment.year}`}
-                    checked={payment.exempt}
-                    onCheckedChange={(checked) => 
-                      handleDuesPaymentChange(payment.year, 'exempt', !!checked)
-                    }
-                  />
-                  <label
-                    htmlFor={`exempt-${payment.year}`}
-                    className="text-sm font-medium leading-none"
-                  >
-                    Isento
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`reg-fee-${payment.year}`}
-                    checked={payment.registration_fee_paid}
-                    onCheckedChange={(checked) => 
-                      handleDuesPaymentChange(payment.year, 'registration_fee_paid', !!checked)
-                    }
-                  />
-                  <label
-                    htmlFor={`reg-fee-${payment.year}`}
-                    className="text-sm font-medium leading-none"
-                  >
-                    Joia
-                  </label>
-                </div>
-              </div>
-            </div>
-          ))
+          <div className="text-center py-8 bg-slate-50 rounded-lg">
+            <p className="text-sm text-slate-500">Nenhum ano de pagamento configurado. Verifique a data de fundação nas configurações.</p>
+          </div>
         )}
       </div>
     </div>

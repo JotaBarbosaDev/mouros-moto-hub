@@ -1,5 +1,6 @@
 
 import { Member } from '@/hooks/use-members';
+import { Badge } from '@/components/ui/badge';
 
 interface MemberDuesStatusProps {
   member: Member;
@@ -14,20 +15,21 @@ export function MemberDuesStatus({ member }: MemberDuesStatusProps) {
     return currentYearPayment?.paid ? "Paga" : "Pendente";
   };
 
-  const getDuesStatusClass = (status: string) => {
+  const getDuesStatusVariant = (status: string) => {
     switch (status) {
-      case "Paga": return "text-green-600";
-      case "Pendente": return "text-red-600";
-      case "Isento": return "text-blue-600";
-      default: return "";
+      case "Paga": return "success";
+      case "Pendente": return "destructive";
+      case "Isento": return "secondary";
+      default: return "outline";
     }
   };
 
   const status = getDuesStatus(member);
+  const variant = getDuesStatusVariant(status);
   
   return (
-    <span className={getDuesStatusClass(status)}>
+    <Badge variant={variant as any}>
       {status}
-    </span>
+    </Badge>
   );
 }
