@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { MemberExtended, MemberDbResponse } from '@/types/member-extended';
@@ -7,7 +6,7 @@ import { BloodType, MemberType } from '@/types/member';
 export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
   const { data, error } = await supabase
     .from('members')
-    .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit')
+    .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit, admin_status')
     .order('name');
 
   if (error) {
@@ -51,6 +50,7 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
         photoUrl: member.photo_url,
         joinDate: member.join_date,
         memberType: member.member_type,
+        adminStatus: member.admin_status,
         honoraryMember: member.honorary_member,
         // Add required properties from MemberType
         address: {
@@ -91,6 +91,7 @@ export const createMemberInDb = async (memberData: Omit<MemberExtended, 'id'>): 
       photo_url: memberData.photoUrl,
       join_date: memberData.joinDate,
       member_type: memberData.memberType,
+      admin_status: memberData.adminStatus,
       honorary_member: memberData.honoraryMember,
       blood_type: memberData.bloodType,
       in_whatsapp_group: memberData.inWhatsAppGroup,
@@ -126,6 +127,7 @@ export const createMemberInDb = async (memberData: Omit<MemberExtended, 'id'>): 
     photoUrl: data.photo_url,
     joinDate: data.join_date,
     memberType: data.member_type,
+    adminStatus: data.admin_status,
     honoraryMember: data.honorary_member,
     address: {
       street: '',
@@ -161,6 +163,7 @@ export const updateMemberInDb = async (memberData: MemberExtended): Promise<Memb
       photo_url: memberData.photoUrl,
       join_date: memberData.joinDate,
       member_type: memberData.memberType,
+      admin_status: memberData.adminStatus,
       honorary_member: memberData.honoraryMember,
       blood_type: memberData.bloodType,
       in_whatsapp_group: memberData.inWhatsAppGroup,
@@ -197,6 +200,7 @@ export const updateMemberInDb = async (memberData: MemberExtended): Promise<Memb
     photoUrl: data.photo_url,
     joinDate: data.join_date,
     memberType: data.member_type,
+    adminStatus: data.admin_status,
     honoraryMember: data.honorary_member,
     address: {
       street: '',

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TimePicker } from "@/components/ui/time-picker";
 import { Save } from "lucide-react";
+import { useSystemSettings } from "@/hooks/use-system-settings";
 
 // Define types for our settings
 interface ClubSettings {
@@ -42,7 +42,9 @@ interface ScaleSettings {
   excludeHolidays: boolean;
 }
 
-interface DefaultSettings {
+interface CustomizationSettings {
+  themeColor: string;
+  foundingDate: string;
   defaultMemberPhoto: string;
   defaultMotorcyclePhoto: string;
   defaultQuadPhoto: string;
@@ -52,6 +54,7 @@ interface DefaultSettings {
 const Settings = () => {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const { settings, isLoading, updateSettings } = useSystemSettings();
 
   // Club Info Form
   const clubInfoSchema = z.object({
@@ -111,23 +114,48 @@ const Settings = () => {
     },
   });
 
-  // Defaults & Customization Form
-  const defaultsSchema = z.object({
+  // Customization Form
+  const customizationSchema = z.object({
+    themeColor: z.string().min(1, "Cor obrigatória"),
+    foundingDate: z.string().min(1, "Data de fundação obrigatória"),
     defaultMemberPhoto: z.string().url("URL inválido").optional(),
     defaultMotorcyclePhoto: z.string().url("URL inválido").optional(),
     defaultQuadPhoto: z.string().url("URL inválido").optional(),
     defaultBuggyPhoto: z.string().url("URL inválido").optional(),
   });
 
-  const defaultsForm = useForm<z.infer<typeof defaultsSchema>>({
-    resolver: zodResolver(defaultsSchema),
+  const customizationForm = useForm<z.infer<typeof customizationSchema>>({
+    resolver: zodResolver(customizationSchema),
     defaultValues: {
+      themeColor: "#ea384c",
+      foundingDate: "2000-01-01",
       defaultMemberPhoto: "/placeholders/default-member.jpg",
       defaultMotorcyclePhoto: "/placeholders/default-motorcycle.jpg",
       defaultQuadPhoto: "/placeholders/default-quad.jpg",
       defaultBuggyPhoto: "/placeholders/default-buggy.jpg",
     },
   });
+
+  // Update the customization form when settings load
+  useEffect(() => {
+    if (settings) {
+      customizationForm.reset({
+        themeColor: settings.themeColor,
+        foundingDate: settings.foundingDate,
+        defaultMemberPhoto: "/placeholders/default-member.jpg",
+        defaultMotorcyclePhoto: "/placeholders/default-motorcycle.jpg",
+        defaultQuadPhoto: "/placeholders/default-quad.jpg",
+        defaultBuggyPhoto: "/placeholders/default-buggy.jpg",
+      });
+    }
+  }, [settings, customizationForm]);
+
+  // Apply theme color
+  useEffect(() => {
+    if (settings?.themeColor) {
+      document.documentElement.style.setProperty('--mouro-red', settings.themeColor);
+    }
+  }, [settings]);
 
   // Handle form submissions
   const handleClubInfoSubmit = (values: z.infer<typeof clubInfoSchema>) => {
@@ -169,17 +197,22 @@ const Settings = () => {
     }, 1000);
   };
 
-  const handleDefaultsSubmit = (values: z.infer<typeof defaultsSchema>) => {
+  const handleCustomizationSubmit = async (values: z.infer<typeof customizationSchema>) => {
     setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Default settings saved:", values);
-      setIsSaving(false);
-      toast({
-        title: "Configurações salvas",
-        description: "As configurações de personalização foram atualizadas com sucesso.",
+    
+    try {
+      const success = await updateSettings({
+        themeColor: values.themeColor,
+        foundingDate: values.foundingDate
       });
-    }, 1000);
+      
+      if (success) {
+        // Apply theme color immediately
+        document.documentElement.style.setProperty('--mouro-red', values.themeColor);
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -507,14 +540,58 @@ const Settings = () => {
               <CardHeader>
                 <CardTitle>Personalização</CardTitle>
                 <CardDescription>
-                  Configure imagens padrão para membros e veículos.
+                  Configure a aparência e informações básicas do clube.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Form {...defaultsForm}>
-                  <form onSubmit={defaultsForm.handleSubmit(handleDefaultsSubmit)} className="space-y-4">
+                <Form {...customizationForm}>
+                  <form onSubmit={customizationForm.handleSubmit(handleCustomizationSubmit)} className="space-y-4">
                     <FormField
-                      control={defaultsForm.control}
+                      control={customizationForm.control}
+                      name="themeColor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cor Principal do Tema</FormLabel>
+                          <div className="flex items-center space-x-3">
+                            <FormControl>
+                              <Input type="color" {...field} className="w-16 h-10" />
+                            </FormControl>
+                            <Input
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="#ea384c"
+                              className="flex-1"
+                            />
+                          </div>
+                          <FormDescription>
+                            Esta cor será usada em botões, destaques e elementos interativos.
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={customizationForm.control}
+                      name="foundingDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Data de Fundação do Motoclube</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Esta data será usada para gerar automaticamente a lista de anos de cotas.
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+
+                    <Separator className="my-4" />
+                    
+                    <h3 className="text-lg font-medium">Imagens Padrão</h3>
+                    
+                    <FormField
+                      control={customizationForm.control}
                       name="defaultMemberPhoto"
                       render={({ field }) => (
                         <FormItem>
@@ -530,7 +607,7 @@ const Settings = () => {
                     />
 
                     <FormField
-                      control={defaultsForm.control}
+                      control={customizationForm.control}
                       name="defaultMotorcyclePhoto"
                       render={({ field }) => (
                         <FormItem>
@@ -543,7 +620,7 @@ const Settings = () => {
                     />
 
                     <FormField
-                      control={defaultsForm.control}
+                      control={customizationForm.control}
                       name="defaultQuadPhoto"
                       render={({ field }) => (
                         <FormItem>
@@ -556,7 +633,7 @@ const Settings = () => {
                     />
 
                     <FormField
-                      control={defaultsForm.control}
+                      control={customizationForm.control}
                       name="defaultBuggyPhoto"
                       render={({ field }) => (
                         <FormItem>

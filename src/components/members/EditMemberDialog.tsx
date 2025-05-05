@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -47,6 +46,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       inWhatsAppGroup: member?.inWhatsAppGroup || false,
       receivedMemberKit: member?.receivedMemberKit || false,
       photoUrl: member?.photoUrl || "",
+      adminStatus: member?.adminStatus
     }
   });
 
@@ -61,6 +61,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         nickname: member.nickname || "",
         bloodType: member.bloodType,
         memberType: member.memberType,
+        adminStatus: member.adminStatus,
         inWhatsAppGroup: member.inWhatsAppGroup || false,
         receivedMemberKit: member.receivedMemberKit || false,
         photoUrl: member.photoUrl || "",
@@ -220,7 +221,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
   };
   
   // Handle updating dues payment status
-  const handleDuesPaymentChange = async (year: number, field: 'paid' | 'exempt', value: boolean) => {
+  const handleDuesPaymentChange = async (year: number, field: 'paid' | 'exempt' | 'registration_fee_paid', value: boolean) => {
     if (!member) return;
     
     try {
@@ -297,6 +298,40 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         .eq('id', member.id);
         
       if (error) throw error;
+      
+      // If member is of type "Administração", update or create admin record
+      if (values.memberType === "Administração") {
+        // Check if admin record exists
+        const { data: existingAdmin } = await supabase
+          .from('administration')
+          .select('*')
+          .eq('member_id', member.id)
+          .maybeSingle();
+          
+        if (existingAdmin) {
+          // Update admin status
+          await supabase
+            .from('administration')
+            .update({
+              status: values.adminStatus || 'Ativo',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingAdmin.id);
+        } else {
+          // Create new admin record with default values
+          const currentYear = new Date().getFullYear();
+          await supabase
+            .from('administration')
+            .insert({
+              member_id: member.id,
+              role: 'Membro da Administração',
+              status: values.adminStatus || 'Ativo',
+              term: `${currentYear} - ${currentYear + 2}`,
+              term_start: new Date().toISOString().split('T')[0],
+              term_end: new Date(currentYear + 2, 11, 31).toISOString().split('T')[0]
+            });
+        }
+      }
     
       // Update only the edited fields
       const editedMember: Member = {
@@ -308,6 +343,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         nickname: values.nickname,
         bloodType: values.bloodType,
         memberType: values.memberType,
+        adminStatus: values.adminStatus,
         inWhatsAppGroup: values.inWhatsAppGroup || false,
         receivedMemberKit: values.receivedMemberKit || false,
         photoUrl: values.photoUrl,

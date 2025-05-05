@@ -34,6 +34,36 @@ export function MemberStatusTab({ form, member }: FormProps) {
           )}
         />
         
+        {form.watch("memberType") === "Administração" && (
+          <FormField
+            control={form.control}
+            name="adminStatus"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status Administrativo</FormLabel>
+                <FormControl>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value || "Ativo"}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ativo">Ativo</SelectItem>
+                      <SelectItem value="Licença">Licença</SelectItem>
+                      <SelectItem value="Inativo">Inativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormDescription>
+                  Status do membro dentro da administração
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+        )}
+        
         <FormField
           control={form.control}
           name="inWhatsAppGroup"

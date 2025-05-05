@@ -7,6 +7,7 @@ import { BloodType } from "@/types/member";
 // Create a Zod schema for form validation
 export const bloodTypeSchema = z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional();
 export const memberTypeSchema = z.enum(['Sócio Adulto', 'Sócio Criança', 'Administração', 'Convidado']);
+export const adminStatusSchema = z.enum(['Ativo', 'Licença', 'Inativo']).optional();
 
 export const editMemberSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -16,6 +17,7 @@ export const editMemberSchema = z.object({
   nickname: z.string().optional(),
   bloodType: bloodTypeSchema,
   memberType: memberTypeSchema,
+  adminStatus: adminStatusSchema,
   inWhatsAppGroup: z.boolean().optional(),
   receivedMemberKit: z.boolean().optional(),
   photoUrl: z.string().optional(),

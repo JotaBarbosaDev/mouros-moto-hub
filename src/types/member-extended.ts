@@ -1,5 +1,5 @@
 
-import { Member as BaseMember, BloodType, MemberType as MemberTypeEnum } from '@/types/member';
+import { Member as BaseMember, BloodType, MemberType as MemberTypeEnum, AdminStatus } from '@/types/member';
 
 // Extended Member type that includes properties from the database
 export interface MemberExtended extends Omit<BaseMember, 'vehicles' | 'duesPayments'> {
@@ -15,6 +15,7 @@ export interface MemberExtended extends Omit<BaseMember, 'vehicles' | 'duesPayme
   photoUrl?: string;
   joinDate: string;
   memberType: MemberTypeEnum;
+  adminStatus?: AdminStatus;
   honoraryMember: boolean;
   vehicles: any[];
   duesPayments: any[];
@@ -34,6 +35,7 @@ export interface MemberDbResponse {
   photo_url?: string;
   join_date: string;
   member_type: MemberTypeEnum;
+  admin_status?: AdminStatus;
   honorary_member: boolean;
   blood_type?: BloodType;
   in_whatsapp_group?: boolean;
