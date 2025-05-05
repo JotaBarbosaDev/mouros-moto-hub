@@ -6,14 +6,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 
 // Routes
-import Home from '@/pages/Home';
+import { Spinner } from '@/components/common/Spinner';
+import NotFound from '@/pages/NotFound';
 import Members from '@/pages/Members';
 import Bar from '@/pages/Bar';
 import Garage from '@/pages/Garage';
 import Administration from '@/pages/Administration';
 import Settings from '@/pages/Settings';
-import { Spinner } from '@/components/common/Spinner';
-import NotFound from '@/pages/NotFound';
+import Index from '@/pages/Index';
 
 const queryClient = new QueryClient();
 
@@ -24,7 +24,7 @@ function App() {
         <BrowserRouter>
           <Suspense fallback={<Spinner />}>
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Index />} />
               <Route path="/membros" element={<Members />} />
               <Route path="/bar" element={<Bar />} />
               <Route path="/garagem" element={<Garage />} />
