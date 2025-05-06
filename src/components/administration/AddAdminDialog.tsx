@@ -14,7 +14,8 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormControl
+  FormControl,
+  FormMessage
 } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -29,6 +30,15 @@ import {
 import { useMembers } from "@/hooks/use-members";
 import { Member } from "@/types/member";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button as ShadcnButton } from "@/components/ui/button";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 
 interface AddAdminDialogProps {
   open: boolean;
@@ -40,8 +50,14 @@ const addAdminSchema = z.object({
   memberId: z.string().min(1, "Membro é obrigatório"),
   role: z.string().min(1, "Cargo é obrigatório"),
   term: z.string().min(1, "Mandato é obrigatório"),
-  termStart: z.string().min(1, "Data de início é obrigatória"),
-  termEnd: z.string().min(1, "Data de fim é obrigatória"),
+  termStart: z.date({
+    required_error: "Data de início é obrigatória",
+  }),
+  termEnd: z.date({
+    required_error: "Data de fim é obrigatória",
+  }).refine(date => date > new Date(), {
+    message: "Data de fim deve ser no futuro",
+  }),
 });
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
@@ -73,15 +89,19 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
       fetchAdminIds();
     }
   }, [open, members]);
+
+  const currentYear = new Date().getFullYear();
+  const twoYearsFromNow = new Date();
+  twoYearsFromNow.setFullYear(currentYear + 2);
   
   const form = useForm<AddAdminFormValues>({
     resolver: zodResolver(addAdminSchema),
     defaultValues: {
       memberId: "",
       role: "",
-      term: "",
-      termStart: new Date().toISOString().split('T')[0],
-      termEnd: new Date(new Date().getFullYear() + 2, 0, 1).toISOString().split('T')[0]
+      term: `${currentYear} - ${currentYear + 2}`,
+      termStart: new Date(),
+      termEnd: twoYearsFromNow,
     }
   });
 
@@ -89,6 +109,10 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
     setIsSubmitting(true);
     
     try {
+      // Format dates for database storage
+      const formattedStartDate = format(values.termStart, "yyyy-MM-dd");
+      const formattedEndDate = format(values.termEnd, "yyyy-MM-dd");
+
       // 1. Add record to administration table
       const { error } = await supabase
         .from('administration')
@@ -96,8 +120,8 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
           member_id: values.memberId,
           role: values.role,
           term: values.term,
-          term_start: values.termStart,
-          term_end: values.termEnd,
+          term_start: formattedStartDate,
+          term_end: formattedEndDate,
           status: 'Ativo'
         });
         
@@ -118,11 +142,11 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
       
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding administrator:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar o administrador.",
+        description: error.message || "Não foi possível adicionar o administrador.",
         variant: "destructive"
       });
     } finally {
@@ -168,6 +192,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -195,6 +220,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -225,6 +251,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                       </SelectContent>
                     </Select>
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -234,15 +261,34 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                 control={form.control}
                 name="termStart"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Início do Mandato</FormLabel>
-                    <FormControl>
-                      <input
-                        type="date"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      />
-                    </FormControl>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <ShadcnButton
+                            variant="outline"
+                            className={`w-full pl-3 text-left font-normal ${!field.value && "text-muted-foreground"}`}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy")
+                            ) : (
+                              <span>Selecionar data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </ShadcnButton>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -251,15 +297,34 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                 control={form.control}
                 name="termEnd"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Fim do Mandato</FormLabel>
-                    <FormControl>
-                      <input
-                        type="date"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      />
-                    </FormControl>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <ShadcnButton
+                            variant="outline"
+                            className={`w-full pl-3 text-left font-normal ${!field.value && "text-muted-foreground"}`}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy")
+                            ) : (
+                              <span>Selecionar data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </ShadcnButton>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -270,6 +335,7 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                 variant="outline" 
                 onClick={() => onOpenChange(false)}
                 type="button"
+                disabled={isSubmitting}
               >
                 Cancelar
               </Button>
@@ -277,7 +343,12 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess }: AddAdminDialog
                 type="submit"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "A adicionar..." : "Adicionar"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    A adicionar...
+                  </>
+                ) : "Adicionar"}
               </Button>
             </DialogFooter>
           </form>

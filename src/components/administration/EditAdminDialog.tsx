@@ -177,9 +177,20 @@ export function EditAdminDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cargo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Presidente, Tesoureiro, Secretário..." {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o cargo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Presidente">Presidente</SelectItem>
+                        <SelectItem value="Vice-Presidente">Vice-Presidente</SelectItem>
+                        <SelectItem value="Tesoureiro">Tesoureiro</SelectItem>
+                        <SelectItem value="Secretário">Secretário</SelectItem>
+                        <SelectItem value="Vogal">Vogal</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
