@@ -4,9 +4,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 interface MemberAvatarProps {
   photoUrl?: string;
   name: string;
+  size?: "sm" | "md" | "lg"; // Add size prop with allowed values
 }
 
-export function MemberAvatar({ photoUrl, name }: MemberAvatarProps) {
+export function MemberAvatar({ photoUrl, name, size = "md" }: MemberAvatarProps) {
   const getMemberInitials = (name: string) => {
     return name
       .split(' ')
@@ -16,8 +17,15 @@ export function MemberAvatar({ photoUrl, name }: MemberAvatarProps) {
       .toUpperCase();
   };
 
+  // Apply different sizes based on the size prop
+  const sizeClasses = {
+    sm: "h-8 w-8",
+    md: "h-10 w-10", // Default size from Avatar component
+    lg: "h-16 w-16"
+  };
+
   return (
-    <Avatar>
+    <Avatar className={size ? sizeClasses[size] : undefined}>
       {photoUrl ? (
         <AvatarImage src={photoUrl} alt={name} />
       ) : (
