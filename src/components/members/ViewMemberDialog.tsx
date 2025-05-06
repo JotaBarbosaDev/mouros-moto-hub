@@ -63,12 +63,15 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
             <MemberAvatar 
               photoUrl={member.photoUrl} 
               name={member.name}
-              className="h-16 w-16"
+              size="lg"
             />
             <div>
               <h3 className="text-xl font-semibold">{member.name}</h3>
               <div className="flex items-center gap-2 mt-1">
-                <MemberTypeBadge memberType={member.memberType} />
+                <MemberTypeBadge 
+                  type={member.memberType} 
+                  isHonorary={member.honoraryMember} 
+                />
                 <span className="text-sm text-gray-500">#{member.memberNumber}</span>
               </div>
               {member.nickname && (

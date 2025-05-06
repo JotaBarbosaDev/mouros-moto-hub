@@ -10,7 +10,12 @@ import { useAdministration } from '@/hooks/use-administration';
 
 const Administration = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { administrationMembers, isLoading, fetchAdministration, stats } = useAdministration();
+  const { 
+    administrationMembers, 
+    isLoading, 
+    fetchAdministration, 
+    stats 
+  } = useAdministration();
   
   // Refresh data when component mounts or when dialog closes (potential new member added)
   useEffect(() => {
@@ -47,7 +52,10 @@ const Administration = () => {
             <p>A carregar dados da administração...</p>
           </div>
         ) : (
-          <AdministrationTable members={administrationMembers} />
+          <AdministrationTable 
+            members={administrationMembers} 
+            onRefresh={fetchAdministration}
+          />
         )}
         
         <AddAdminDialog

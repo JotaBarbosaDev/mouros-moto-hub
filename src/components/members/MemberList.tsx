@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from 'lucide-react';
@@ -128,7 +127,7 @@ export function MemberList() {
             member={selectedMember}
             open={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
-            onSave={handleEditMember}
+            onSave={updateMember}
           />
 
           <ViewMemberDialog
@@ -149,7 +148,13 @@ export function MemberList() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteMember}>
+            <AlertDialogAction onClick={() => {
+              if (selectedMember) {
+                deleteMember(selectedMember.id);
+                setIsDeleteDialogOpen(false);
+                setSelectedMember(null);
+              }
+            }}>
               Remover
             </AlertDialogAction>
           </AlertDialogFooter>

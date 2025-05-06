@@ -1,7 +1,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Edit } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -17,8 +17,10 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { EditAdminDialog } from './EditAdminDialog';
 
 export interface AdministrationMember {
   id: string;
@@ -35,6 +37,7 @@ export interface AdministrationMember {
 
 interface AdministrationTableProps {
   members: AdministrationMember[];
+  onRefresh: () => void;
 }
 
 export const getStatusColor = (status: AdministrationMember['status']) => {
@@ -46,11 +49,13 @@ export const getStatusColor = (status: AdministrationMember['status']) => {
   }
 };
 
-export function AdministrationTable({ members }: AdministrationTableProps) {
+export function AdministrationTable({ members, onRefresh }: AdministrationTableProps) {
   const [statuses, setStatuses] = useState<Record<string, AdministrationMember['status']>>(
     members.reduce((acc, member) => ({ ...acc, [member.id]: member.status }), {})
   );
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [editingAdmin, setEditingAdmin] = useState<AdministrationMember | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const updateMemberStatus = async (memberId: string, status: AdministrationMember['status']) => {
@@ -83,6 +88,16 @@ export function AdministrationTable({ members }: AdministrationTableProps) {
     }
   };
 
+  const handleEditClick = (admin: AdministrationMember) => {
+    setEditingAdmin(admin);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    onRefresh();
+    setEditingAdmin(null);
+  };
+
   if (members.length === 0) {
     return (
       <div className="text-center py-16 bg-slate-50 rounded-md">
@@ -104,6 +119,7 @@ export function AdministrationTable({ members }: AdministrationTableProps) {
             <TableHead className="hidden md:table-cell">Telefone</TableHead>
             <TableHead>Mandato</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -152,10 +168,28 @@ export function AdministrationTable({ members }: AdministrationTableProps) {
                   </SelectContent>
                 </Select>
               </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEditClick(item)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      {editingAdmin && (
+        <EditAdminDialog
+          admin={editingAdmin}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onSuccess={handleEditSuccess}
+        />
+      )}
     </div>
   );
 }
