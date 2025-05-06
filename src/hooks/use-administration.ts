@@ -37,6 +37,17 @@ interface MemberResponse {
   member_type: MemberType;
 }
 
+// Define the type for the Supabase administration response
+interface AdministrationResponse {
+  id: string;
+  member_id: string;
+  role: string;
+  status: 'Ativo' | 'Inativo' | 'Licença';
+  term: string;
+  term_start: string;
+  term_end: string;
+}
+
 export const useAdministration = () => {
   const [administrationMembers, setAdministrationMembers] = useState<AdministrationMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +63,9 @@ export const useAdministration = () => {
   const fetchAdministration = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      
+      // First get members of administration type
+      const { data: membersData, error: membersError } = await supabase
         .from('members')
         .select(`
           id,
@@ -66,27 +79,44 @@ export const useAdministration = () => {
         .eq('member_type', 'Administração')
         .order('name');
 
-      if (error) throw error;
+      if (membersError) throw membersError;
 
-      if (data) {
+      // Then get their administration details
+      const { data: adminData, error: adminError } = await supabase
+        .from('administration')
+        .select('*');
+
+      if (adminError) throw adminError;
+
+      // Map the member IDs to administration data
+      const adminMap = new Map();
+      if (adminData) {
+        adminData.forEach((admin: AdministrationResponse) => {
+          adminMap.set(admin.member_id, admin);
+        });
+      }
+
+      if (membersData) {
         // Cast to the correct type
-        const memberData = data as unknown as MemberResponse[];
+        const memberData = membersData as unknown as MemberResponse[];
         
-        const transformedMembers: AdministrationMember[] = memberData.map((member) => ({
-          id: member.id,
-          nome: member.name || 'Desconhecido',
-          memberNumber: member.member_number || '-',
-          cargo: 'Membro da Administração', // Default role since we don't have specific roles in members table
-          // Map is_active to the proper status format
-          status: member.is_active 
-            ? 'Ativo' 
-            : 'Inativo',
-          email: member.email || '-',
-          telefone: member.phone_main || '-',
-          mandato: '2024-2026', // Default term values since we don't have specific terms in members table
-          inicioMandato: '', 
-          fimMandato: ''
-        }));
+        const transformedMembers: AdministrationMember[] = memberData.map((member) => {
+          const adminDetails = adminMap.get(member.id);
+
+          return {
+            id: member.id,
+            nome: member.name || 'Desconhecido',
+            memberNumber: member.member_number || '-',
+            cargo: adminDetails?.role || 'Membro da Administração',
+            // Use status from administration table if available, otherwise default based on is_active
+            status: adminDetails?.status || (member.is_active ? 'Ativo' : 'Inativo'),
+            email: member.email || '-',
+            telefone: member.phone_main || '-',
+            mandato: adminDetails?.term || '2024-2026',
+            inicioMandato: adminDetails?.term_start || '', 
+            fimMandato: adminDetails?.term_end || ''
+          };
+        });
 
         setAdministrationMembers(transformedMembers);
 

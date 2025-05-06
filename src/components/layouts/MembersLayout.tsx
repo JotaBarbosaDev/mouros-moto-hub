@@ -11,7 +11,11 @@ export function MembersLayout({ children }: MembersLayoutProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <Sidebar>
+        <Sidebar 
+          className="border-r border-gray-200 shadow-sm"
+          variant="sidebar"
+          collapsible="offcanvas"
+        >
           <SidebarNav />
         </Sidebar>
         <PageContent>{children}</PageContent>

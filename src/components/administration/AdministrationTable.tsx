@@ -1,5 +1,7 @@
 
 import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
+import { Check, X } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -8,6 +10,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AdministrationMember {
   id: string;
@@ -36,6 +47,42 @@ export const getStatusColor = (status: AdministrationMember['status']) => {
 };
 
 export function AdministrationTable({ members }: AdministrationTableProps) {
+  const [statuses, setStatuses] = useState<Record<string, AdministrationMember['status']>>(
+    members.reduce((acc, member) => ({ ...acc, [member.id]: member.status }), {})
+  );
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const { toast } = useToast();
+
+  const updateMemberStatus = async (memberId: string, status: AdministrationMember['status']) => {
+    setLoading(prev => ({ ...prev, [memberId]: true }));
+    try {
+      // First update the administration table
+      const { error: adminError } = await supabase
+        .from('administration')
+        .update({ status })
+        .eq('member_id', memberId);
+
+      if (adminError) throw adminError;
+      
+      // Update local state
+      setStatuses(prev => ({ ...prev, [memberId]: status }));
+      
+      toast({
+        title: "Status atualizado",
+        description: "O status do administrador foi atualizado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar o status do administrador.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(prev => ({ ...prev, [memberId]: false }));
+    }
+  };
+
   if (members.length === 0) {
     return (
       <div className="text-center py-16 bg-slate-50 rounded-md">
@@ -69,9 +116,41 @@ export function AdministrationTable({ members }: AdministrationTableProps) {
               <TableCell className="hidden md:table-cell">{item.telefone}</TableCell>
               <TableCell>{item.mandato}</TableCell>
               <TableCell>
-                <Badge className={getStatusColor(item.status)}>
-                  {item.status}
-                </Badge>
+                <Select 
+                  value={statuses[item.id]} 
+                  onValueChange={(value) => updateMemberStatus(item.id, value as AdministrationMember['status'])}
+                  disabled={loading[item.id]}
+                >
+                  <SelectTrigger className={`w-28 ${loading[item.id] ? 'opacity-50' : ''}`}>
+                    <SelectValue>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getStatusColor(statuses[item.id])}>
+                          {loading[item.id] ? '...' : statuses[item.id]}
+                        </Badge>
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ativo" className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                        <span>Ativo</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Inativo">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                        <span>Inativo</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Licença">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                        <span>Licença</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </TableCell>
             </TableRow>
           ))}

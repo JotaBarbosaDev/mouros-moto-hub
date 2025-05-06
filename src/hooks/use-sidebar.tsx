@@ -27,4 +27,3 @@ export function useSidebar() {
 
 export { SidebarContext }
 export type { SidebarContext as SidebarContextType }
-

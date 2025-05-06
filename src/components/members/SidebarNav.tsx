@@ -101,7 +101,7 @@ export function SidebarNav() {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Os Mouros MC</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-sm font-bold text-mouro-red">Os Mouros MC</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {menuItems.map((item) => (
@@ -110,9 +110,16 @@ export function SidebarNav() {
                 asChild
                 isActive={location.pathname === item.href}
                 tooltip={item.title}
+                className={cn(
+                  "transition-all duration-200 ease-in-out",
+                  location.pathname === item.href ? "bg-mouro-red/10 text-mouro-red" : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                )}
               >
                 <Link to={item.href} className="w-full">
-                  <item.icon className="h-4 w-4" />
+                  <item.icon className={cn(
+                    "h-4 w-4 transition-colors",
+                    location.pathname === item.href ? "text-mouro-red" : ""
+                  )} />
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>
@@ -122,7 +129,7 @@ export function SidebarNav() {
             <SidebarMenuButton
               onClick={logout}
               tooltip="Sair"
-              className="w-full text-red-500 hover:text-red-600"
+              className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200"
             >
               <LogOut className="h-4 w-4" />
               <span>Sair</span>
