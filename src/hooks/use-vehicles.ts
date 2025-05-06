@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Vehicle, VehicleType } from '@/types/member';
 import { supabase } from '@/integrations/supabase/client';
@@ -87,14 +88,18 @@ export const useVehicles = () => {
     }
   };
 
-  const handleSaveVehicle = async (vehicle: Omit<Vehicle, 'id'>) => {
+  const handleSaveVehicle = async (vehicle: Omit<Vehicle, 'id'>, memberId?: string) => {
     try {
-      // Get the first member as a default for now
-      // In a real app, you'd have a member selector
-      const { data: members } = await supabase.from('members').select('id').limit(1);
-      const memberId = members && members.length > 0 ? members[0].id : null;
+      // If memberId is provided, use it; otherwise get the first member
+      let targetMemberId = memberId;
       
-      if (!memberId) {
+      if (!targetMemberId) {
+        // Get the first member as a default for now
+        const { data: members } = await supabase.from('members').select('id').limit(1);
+        targetMemberId = members && members.length > 0 ? members[0].id : null;
+      }
+      
+      if (!targetMemberId) {
         throw new Error('No member found to associate with vehicle');
       }
       
@@ -105,7 +110,7 @@ export const useVehicles = () => {
         displacement: vehicle.displacement,
         nickname: vehicle.nickname || null,
         photo_url: vehicle.photoUrl || null,
-        member_id: memberId
+        member_id: targetMemberId
       });
       
       if (error) throw error;

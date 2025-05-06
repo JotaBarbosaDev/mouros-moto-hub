@@ -34,30 +34,25 @@ export function MemberList() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddMember = (member: Partial<Member>) => {
-    createMember({
-      ...member,
-      memberNumber: member.memberNumber || String(Date.now()).substring(7), // Generate a unique number if not provided
-      isActive: true,
-      vehicles: [],
-      duesPayments: [],
-      // Add required properties from MemberType
-      address: {
-        street: '',
-        number: '',
-        postalCode: '',
-        city: '',
-        district: '',
-        country: ''
-      },
-      legacyMember: false,
-      registrationFeePaid: false,
-      registrationFeeExempt: false,
-      inWhatsAppGroup: false,
-      receivedMemberKit: false,
-    } as any);
-    setIsAddDialogOpen(false);
+  const handleAddMember = async (member: Partial<Member>) => {
+    setIsSubmitting(true);
+    try {
+      await createMember({
+        ...member,
+        memberNumber: member.memberNumber || String(Date.now()).substring(7), // Generate a unique number if not provided
+        isActive: true,
+        legacyMember: false,
+        registrationFeePaid: false,
+        registrationFeeExempt: false,
+        inWhatsAppGroup: member.inWhatsAppGroup || false,
+        receivedMemberKit: member.receivedMemberKit || false,
+      } as any);
+    } finally {
+      setIsSubmitting(false);
+      setIsAddDialogOpen(false);
+    }
   };
 
   const handleEditMember = (editedMember: Member) => {
@@ -124,6 +119,7 @@ export function MemberList() {
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onSubmit={handleAddMember}
+        isSubmitting={isSubmitting}
       />
 
       {selectedMember && (

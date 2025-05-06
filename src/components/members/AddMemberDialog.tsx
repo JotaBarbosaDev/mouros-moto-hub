@@ -19,15 +19,18 @@ import {
 } from "@/components/ui/select";
 import { Plus, X, Upload, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Member, MemberType, BloodType, Vehicle, VehicleType, DEFAULT_MEMBER_PHOTO, DEFAULT_VEHICLE_PHOTOS } from '@/types/member';
+import { Member, MemberType, BloodType, Vehicle, VehicleType } from '@/types/member';
+import { Loader2 } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
 
 interface AddMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (member: Partial<Member>) => void;
+  isSubmitting?: boolean;
 }
 
-export function AddMemberDialog({ open, onOpenChange, onSubmit }: AddMemberDialogProps) {
+export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = false }: AddMemberDialogProps) {
   const [formData, setFormData] = useState<Partial<Member>>({
     name: '',
     email: '',
@@ -47,6 +50,8 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit }: AddMemberDialo
     vehicles: [],
     nickname: '',
     photoUrl: '',
+    inWhatsAppGroup: false,
+    receivedMemberKit: false,
   });
 
   const [vehicleForm, setVehicleForm] = useState<Partial<Vehicle>>({
@@ -64,29 +69,6 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit }: AddMemberDialo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      phoneMain: '',
-      phoneAlternative: '',
-      memberType: 'Sócio Adulto' as MemberType,
-      bloodType: 'A+' as BloodType,
-      joinDate: new Date().toISOString().split('T')[0],
-      address: {
-        street: '',
-        number: '',
-        postalCode: '',
-        city: '',
-        district: '',
-        country: 'Portugal'
-      },
-      vehicles: [],
-      nickname: '',
-      photoUrl: '',
-    });
-    setPhotoPreview(null);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,7 +154,11 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit }: AddMemberDialo
   const vehicleTypes: VehicleType[] = ['Mota', 'Moto-quatro', 'Buggy'];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(state) => {
+      if (!isSubmitting) {
+        onOpenChange(state);
+      }
+    }}>
       <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Adicionar Novo Membro</DialogTitle>
@@ -346,6 +332,25 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit }: AddMemberDialo
                 required
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="whatsapp" 
+                  checked={formData.inWhatsAppGroup} 
+                  onCheckedChange={(checked) => setFormData({ ...formData, inWhatsAppGroup: checked })}
+                />
+                <Label htmlFor="whatsapp">Grupo WhatsApp</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="memberKit" 
+                  checked={formData.receivedMemberKit} 
+                  onCheckedChange={(checked) => setFormData({ ...formData, receivedMemberKit: checked })}
+                />
+                <Label htmlFor="memberKit">Kit de Membro</Label>
+              </div>
+            </div>
             
             <div className="border-t pt-4 mt-2">
               <Label className="mb-3 block">Veículos</Label>
@@ -470,8 +475,15 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit }: AddMemberDialo
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" className="bg-mouro-red hover:bg-mouro-red/90">
-              Adicionar Membro
+            <Button type="submit" className="bg-mouro-red hover:bg-mouro-red/90" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  A adicionar...
+                </>
+              ) : (
+                'Adicionar Membro'
+              )}
             </Button>
           </DialogFooter>
         </form>
