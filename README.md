@@ -1,73 +1,151 @@
-# Welcome to your Lovable project
+# 🏍️ Mouros Moto Hub
 
-## Project info
+![Mouros Moto Hub](https://img.shields.io/badge/Mouros-Moto_Hub-e11d48?style=for-the-badge)
+![Licença](https://img.shields.io/badge/Licença-MIT-blue?style=flat-square)
+![Estágio](https://img.shields.io/badge/Status-Em_Desenvolvimento-yellow?style=flat-square)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)
+![Supabase](https://img.shields.io/badge/Supabase-00C7B7?style=flat-square&logo=supabase)
+![Vite](https://img.shields.io/badge/Vite-latest-646CFF?style=flat-square&logo=vite)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=flat-square&logo=tailwind-css)
 
-**URL**: https://lovable.dev/projects/412200cd-e4b6-4981-8d12-d2731ef17303
+Plataforma completa de gerenciamento para o moto clube "Os Mouros", oferecendo funcionalidades públicas e privativas para membros, com foco na gestão de eventos, loja, bar e muito mais.
 
-## How can I edit this code?
+## 📋 Índice
 
-There are several ways of editing your application.
+- [🚀 Visão Geral](#-visão-geral)
+- [✨ Funcionalidades](#-funcionalidades)
+- [🛠️ Tecnologias](#️-tecnologias)
+- [⚙️ Instalação e Uso](#️-instalação-e-uso)
+- [📊 Estrutura do Projeto](#-estrutura-do-projeto)
+- [🔒 Autenticação](#-autenticação)
+- [📷 Screenshots](#-screenshots)
+- [👥 Contribuidores](#-contribuidores)
+- [📄 Licença](#-licença)
 
-**Use Lovable**
+## 🚀 Visão Geral
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/412200cd-e4b6-4981-8d12-d2731ef17303) and start prompting.
+O Mouros Moto Hub é uma aplicação web completa desenvolvida para o moto clube "Os Mouros". A plataforma permite gerenciar todos os aspectos do clube, desde eventos e membros até produtos da loja, stock do bar e escalas de trabalho. O sistema possui uma área pública com informações do clube e uma área privativa para membros com acesso a funcionalidades administrativas.
 
-Changes made via Lovable will be committed automatically to this repo.
+## ✨ Funcionalidades
 
-**Use your preferred IDE**
+### Área Pública
+- **🏠 Página Inicial** - Landing page com informações sobre o clube
+- **📜 Sobre** - História e valores do moto clube
+- **🎭 Eventos** - Calendário e detalhes de eventos públicos
+- **🖼️ Galeria** - Fotos de eventos e atividades
+- **🛒 Loja** - Produtos do clube disponíveis para compra
+- **🍻 Bar** - Informações sobre o bar do clube
+- **📞 Contato** - Formulário para contatar o clube
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Área de Membros (Protegida)
+- **📊 Dashboard** - Visão geral das atividades do clube
+- **👥 Gestão de Membros** - Cadastro e gerenciamento de membros
+- **🗓️ Gestão de Eventos** - Criação e organização de eventos
+- **🍺 Gestão do Bar** - Controle de vendas e stock do bar
+- **👕 Gestão da Loja** - Gerenciamento de produtos e vendas
+- **📦 Gestão de Inventário** - Controle de stock de produtos
+- **⏰ Escalas** - Gerenciamento de escalas/turnos
+- **🏍️ Garagem** - Cadastro de motocicletas dos membros
+- **📚 Histórico** - Registro de atividades e eventos passados
+- **👑 Administração** - Configurações administrativas do clube
+- **⚙️ Configurações** - Preferências e configurações do sistema
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🛠️ Tecnologias
 
-Follow these steps:
+O projeto é construído com um stack moderno de tecnologias:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **Frontend**: 
+  - [React](https://reactjs.org/) - Biblioteca JavaScript para construção de interfaces
+  - [TypeScript](https://www.typescriptlang.org/) - Superset tipado de JavaScript
+  - [Vite](https://vitejs.dev/) - Build tool para desenvolvimento rápido
+  - [React Router](https://reactrouter.com/) - Roteamento dinâmico para aplicações React
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- **Estilização**:
+  - [Tailwind CSS](https://tailwindcss.com/) - Framework CSS utilitário
+  - [shadcn/ui](https://ui.shadcn.com/) - Componentes reutilizáveis construídos com Radix UI
 
-# Step 3: Install the necessary dependencies.
-npm i
+- **Estado e Requisições**:
+  - [React Query](https://tanstack.com/query) - Gerenciamento de estado do servidor
+  - [React Hook Form](https://react-hook-form.com/) - Gerenciamento de formulários
+  - [Zod](https://zod.dev/) - Validação de esquemas TypeScript
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+- **Backend**:
+  - [Supabase](https://supabase.io/) - Backend-as-a-Service com autenticação e banco de dados
+
+## ⚙️ Instalação e Uso
+
+### Pré-requisitos
+- Node.js (versão 18 ou superior)
+- npm ou bun
+
+### Instalação
+
+1. Clone o repositório
+   ```bash
+   git clone https://github.com/seuusuario/mouros-moto-hub.git
+   cd mouros-moto-hub
+   ```
+
+2. Instale as dependências
+   ```bash
+   # Usando npm
+   npm install
+   
+   # Usando bun
+   bun install
+   ```
+
+3. Configure as variáveis de ambiente
+   ```bash
+   cp .env.example .env.local
+   # Edite o arquivo .env.local com suas credenciais do Supabase
+   ```
+
+4. Inicie o servidor de desenvolvimento
+   ```bash
+   npm run dev
+   # ou
+   bun dev
+   ```
+
+5. Acesse o site em `http://localhost:5173`
+
+## 📊 Estrutura do Projeto
+
+```
+mouros-moto-hub/
+├── public/                # Arquivos estáticos
+├── src/
+│   ├── components/        # Componentes React reutilizáveis
+│   ├── pages/             # Páginas da aplicação
+│   ├── hooks/             # Custom hooks React
+│   ├── data/              # Dados estáticos/mock
+│   ├── integrations/      # Integração com serviços externos
+│   ├── utils/             # Funções utilitárias
+│   ├── lib/               # Bibliotecas e configurações
+│   ├── types/             # Definições de tipos TypeScript
+│   ├── App.tsx            # Componente principal da aplicação
+│   └── main.tsx           # Ponto de entrada da aplicação
+├── supabase/              # Configurações do Supabase
+└── ...                    # Arquivos de configuração
 ```
 
-**Edit a file directly in GitHub**
+## 🔒 Autenticação
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+O sistema utiliza o Supabase para autenticação, permitindo os seguintes métodos:
+- Login com e-mail/senha
+- Login com redes sociais (opcional)
+- Sistema de recuperação de senha
 
-**Use GitHub Codespaces**
+## 📷 Screenshots
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+*(Adicione screenshots da aplicação quando disponíveis)*
 
-## What technologies are used for this project?
+## 👥 Contribuidores
 
-This project is built with:
+- João Barbosa - Desenvolvedor Principal
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📄 Licença
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/412200cd-e4b6-4981-8d12-d2731ef17303) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Este projeto está licenciado sob a Licença MIT - consulte o arquivo [LICENSE](LICENSE) para obter detalhes.

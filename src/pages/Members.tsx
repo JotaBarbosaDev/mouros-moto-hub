@@ -9,6 +9,8 @@ import Footer from '@/components/Footer';
 const Members = () => {
   const { user, loading } = useAuth();
 
+  console.log('User:', user);
+
   if (loading) return null;
   
   // Se o usuário estiver autenticado, mostre a área de membros

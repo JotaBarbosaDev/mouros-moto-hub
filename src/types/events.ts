@@ -31,7 +31,7 @@ export interface Event {
   location: string;
   image: string;
   thumbnail?: string;
-  type: 'trail' | 'estrada' | 'encontro' | 'solidario';
+  type: 'trail' | 'estrada' | 'encontro' | 'solidario' | 'visita' | 'visita_recebida' | 'concentracao' | 'interno';
   description: string;
   participants?: number;
   maxParticipants?: number;
@@ -49,4 +49,5 @@ export interface Event {
   externalFormLink?: string;
   registeredParticipants?: Participant[];
   registrationOpen?: boolean;  // Add this property to fix the errors
+  _isoDate?: string; // Propriedade para armazenar a data ISO para uso interno
 }

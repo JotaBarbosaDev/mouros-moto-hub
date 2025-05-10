@@ -24,6 +24,8 @@ import BarManagement from "./pages/Bar";
 import MemberStore from "./pages/MemberStore";
 import Products from "./pages/Products";
 import History from "./pages/History";
+import Calendar from "./pages/Calendar";
+import Treasury from "./pages/Treasury";
 
 const queryClient = new QueryClient();
 
@@ -115,10 +117,18 @@ const App = () => (
             } 
           />
           <Route 
-            path="/caixa" 
+            path="/calendario" 
             element={
               <ProtectedRoute>
-                <div>Página de Caixa em construção</div>
+                <Calendar />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/tesouraria" 
+            element={
+              <ProtectedRoute>
+                <Treasury />
               </ProtectedRoute>
             } 
           />
