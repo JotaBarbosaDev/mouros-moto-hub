@@ -14,6 +14,8 @@ export const editMemberSchema = z.object({
   phoneMain: z.string().min(1, "Telefone principal é obrigatório"),
   phoneAlternative: z.string().optional(),
   nickname: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(), // Campo para alteração de senha
   bloodType: bloodTypeSchema,
   memberType: memberTypeSchema,
   inWhatsAppGroup: z.boolean().optional(),

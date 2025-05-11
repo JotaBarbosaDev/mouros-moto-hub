@@ -738,97 +738,116 @@ export type Database = {
         }
         Relationships: []
       }
-      store_products: {
+      security_questions: {
         Row: {
-          color: string | null
+          answer: string
           created_at: string
-          description: string
           id: string
-          image_url: string | null
-          members_only: boolean
-          name: string
-          price: number
-          published_on_landing_page: boolean
-          size: Database["public"]["Enums"]["product_size"] | null
-          stock: number
-          type: Database["public"]["Enums"]["product_type"]
+          member_id: string
+          question: string
           updated_at: string
         }
         Insert: {
-          color?: string | null
+          answer: string
           created_at?: string
-          description: string
           id?: string
-          image_url?: string | null
-          members_only?: boolean
-          name: string
-          price: number
-          published_on_landing_page?: boolean
-          size?: Database["public"]["Enums"]["product_size"] | null
-          stock?: number
-          type: Database["public"]["Enums"]["product_type"]
+          member_id: string
+          question: string
           updated_at?: string
         }
         Update: {
-          color?: string | null
+          answer?: string
           created_at?: string
-          description?: string
-          id?: string
-          image_url?: string | null
-          members_only?: boolean
-          name?: string
-          price?: number
-          published_on_landing_page?: boolean
-          size?: Database["public"]["Enums"]["product_size"] | null
-          stock?: number
-          type?: Database["public"]["Enums"]["product_type"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      vehicles: {
-        Row: {
-          brand: string
-          created_at: string
-          displacement: number
-          id: string
-          member_id: string
-          model: string
-          nickname: string | null
-          photo_url: string | null
-          type: Database["public"]["Enums"]["vehicle_type"]
-          updated_at: string
-        }
-        Insert: {
-          brand: string
-          created_at?: string
-          displacement: number
-          id?: string
-          member_id: string
-          model: string
-          nickname?: string | null
-          photo_url?: string | null
-          type: Database["public"]["Enums"]["vehicle_type"]
-          updated_at?: string
-        }
-        Update: {
-          brand?: string
-          created_at?: string
-          displacement?: number
           id?: string
           member_id?: string
-          model?: string
-          nickname?: string | null
-          photo_url?: string | null
-          type?: Database["public"]["Enums"]["vehicle_type"]
+          question?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "vehicles_member_id_fkey"
+            foreignKeyName: "security_questions_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          id: string
+          key: string
+          value: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          value: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          value?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shift_replacements: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          notes: string | null
+          new_schedule_id: string | null
+          old_schedule_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          new_schedule_id?: string | null
+          old_schedule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          new_schedule_id?: string | null
+          old_schedule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_replacements_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_replacements_new_schedule_id_fkey"
+            columns: ["new_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "bar_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_replacements_old_schedule_id_fkey"
+            columns: ["old_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "bar_schedules"
             referencedColumns: ["id"]
           },
         ]
@@ -885,7 +904,7 @@ export type Tables<
   }
     ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never,
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
   ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {

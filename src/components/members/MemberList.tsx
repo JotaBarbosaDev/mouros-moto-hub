@@ -17,6 +17,7 @@ import {
 import { useMembers, Member } from '@/hooks/use-members';
 import { MembersTable } from './MembersTable';
 import { MemberEmptyState } from './MemberEmptyState';
+import { supabase } from '@/integrations/supabase/client';
 
 export function MemberList() {
   const { 
@@ -38,6 +39,43 @@ export function MemberList() {
   const handleAddMember = async (member: Partial<Member>) => {
     setIsSubmitting(true);
     try {
+      // Definir username e password
+      let username = member.username || '';
+      if (!username) {
+        // Se não foi fornecido username, gera um baseado no email
+        const emailParts = member.email?.split('@') || [];
+        username = emailParts[0] || `membro${Date.now().toString().substring(7)}`;
+      }
+      
+      // Se não foi fornecida senha, usar o username como senha
+      const password = member.password || username;
+      
+      // Tenta criar o usuário na autenticação do Supabase
+      try {
+        const { error } = await supabase.auth.signUp({
+          email: member.email || '',
+          password: password,
+          options: {
+            data: {
+              member_type: member.memberType,
+              is_admin: member.memberType === "Administração"
+            }
+          }
+        });
+        
+        if (error) {
+          console.warn("Erro ao criar usuário na autenticação:", error.message);
+          // Continua mesmo com erro, usuário poderá ser associado manualmente depois
+        } else {
+          console.log("Usuário criado com sucesso na autenticação");
+        }
+      } catch (authError) {
+        console.error("Falha ao criar usuário:", authError);
+        // Continua mesmo com erro
+      }
+      
+      // Criar o membro no banco
+      // Criar o membro no banco usando a interface MemberExtended
       await createMember({
         ...member,
         memberNumber: member.memberNumber || String(Date.now()).substring(7), // Generate a unique number if not provided
@@ -47,7 +85,10 @@ export function MemberList() {
         registrationFeeExempt: false,
         inWhatsAppGroup: member.inWhatsAppGroup || false,
         receivedMemberKit: member.receivedMemberKit || false,
-      } as any);
+        username: username,
+        duesPayments: [], // Inicializa com array vazio em vez de any
+        vehicles: member.vehicles || [] // Usa os veículos do membro ou array vazio
+      });
     } finally {
       setIsSubmitting(false);
       setIsAddDialogOpen(false);

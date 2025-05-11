@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,42 +15,28 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TimePicker } from "@/components/ui/time-picker";
 import { Save } from "lucide-react";
-
-// Define types for our settings
-interface ClubSettings {
-  name: string;
-  address: string;
-  email: string;
-  phone: string;
-  logo?: string;
-}
-
-interface FeesSettings {
-  registrationFee: number;
-  annualDues: number;
-  childDiscount: number;
-  exemptHonoraryMembers: boolean;
-  exemptAdminMembers: boolean;
-}
-
-interface ScaleSettings {
-  defaultStartTime: string;
-  defaultEndTime: string;
-  autoCreateMonthlySchedule: boolean;
-  notifyMembersBeforeDays: number;
-  excludeHolidays: boolean;
-}
-
-interface DefaultSettings {
-  defaultMemberPhoto: string;
-  defaultMotorcyclePhoto: string;
-  defaultQuadPhoto: string;
-  defaultBuggyPhoto: string;
-}
+import { useSettings, ClubSettings, FeesSettings, ScaleSettings, DefaultSettings } from "@/hooks/use-settings";
 
 const Settings = () => {
   const { toast } = useToast();
-  const [isSaving, setIsSaving] = useState(false);
+  const { 
+    clubSettings,
+    feesSettings,
+    scaleSettings,
+    defaultSettings,
+    isLoadingClubSettings,
+    isLoadingFeesSettings,
+    isLoadingScaleSettings,
+    isLoadingDefaultSettings,
+    saveClubSettings,
+    saveFeesSettings,
+    saveScaleSettings,
+    saveDefaultSettings,
+    isSavingClubSettings,
+    isSavingFeesSettings,
+    isSavingScaleSettings,
+    isSavingDefaultSettings
+  } = useSettings();
 
   // Club Info Form
   const clubInfoSchema = z.object({
@@ -64,12 +49,19 @@ const Settings = () => {
   const clubInfoForm = useForm<z.infer<typeof clubInfoSchema>>({
     resolver: zodResolver(clubInfoSchema),
     defaultValues: {
-      name: "Os Mouros",
-      address: "Rua Principal, 123, Lisboa",
-      email: "contacto@osmouros.pt",
-      phone: "212345678",
+      name: "",
+      address: "",
+      email: "",
+      phone: "",
     },
   });
+  
+  // Update form values when data is loaded
+  useEffect(() => {
+    if (clubSettings) {
+      clubInfoForm.reset(clubSettings);
+    }
+  }, [clubSettings, clubInfoForm]);
 
   // Fees & Dues Form
   const feesSchema = z.object({
@@ -90,6 +82,13 @@ const Settings = () => {
       exemptAdminMembers: false,
     },
   });
+  
+  // Update form values when data is loaded
+  useEffect(() => {
+    if (feesSettings) {
+      feesForm.reset(feesSettings);
+    }
+  }, [feesSettings, feesForm]);
 
   // Scale Settings Form
   const scaleSchema = z.object({
@@ -110,6 +109,13 @@ const Settings = () => {
       excludeHolidays: true,
     },
   });
+  
+  // Update form values when data is loaded
+  useEffect(() => {
+    if (scaleSettings) {
+      scaleForm.reset(scaleSettings);
+    }
+  }, [scaleSettings, scaleForm]);
 
   // Defaults & Customization Form
   const defaultsSchema = z.object({
@@ -131,55 +137,50 @@ const Settings = () => {
 
   // Handle form submissions
   const handleClubInfoSubmit = (values: z.infer<typeof clubInfoSchema>) => {
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Club info saved:", values);
-      setIsSaving(false);
-      toast({
-        title: "Configurações salvas",
-        description: "As informações do clube foram atualizadas com sucesso.",
-      });
-    }, 1000);
+    // Verificar se todos os campos obrigatórios estão presentes
+    const completeValues: ClubSettings = {
+      name: values.name || clubSettings?.name || "Os Mouros",
+      address: values.address || clubSettings?.address || "Rua Principal, 123, Lisboa",
+      email: values.email || clubSettings?.email || "contacto@osmouros.pt",
+      phone: values.phone || clubSettings?.phone || "212345678",
+      logo: clubSettings?.logo
+    };
+    saveClubSettings(completeValues);
   };
 
   const handleFeesSubmit = (values: z.infer<typeof feesSchema>) => {
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Fee settings saved:", values);
-      setIsSaving(false);
-      toast({
-        title: "Configurações salvas",
-        description: "Os valores de cotas e joias foram atualizados com sucesso.",
-      });
-    }, 1000);
+    // Verificar se todos os campos obrigatórios estão presentes
+    const completeValues: FeesSettings = {
+      registrationFee: values.registrationFee ?? feesSettings?.registrationFee ?? 50,
+      annualDues: values.annualDues ?? feesSettings?.annualDues ?? 120,
+      childDiscount: values.childDiscount ?? feesSettings?.childDiscount ?? 50,
+      exemptHonoraryMembers: values.exemptHonoraryMembers ?? feesSettings?.exemptHonoraryMembers ?? true,
+      exemptAdminMembers: values.exemptAdminMembers ?? feesSettings?.exemptAdminMembers ?? false
+    };
+    saveFeesSettings(completeValues);
   };
 
   const handleScaleSubmit = (values: z.infer<typeof scaleSchema>) => {
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Scale settings saved:", values);
-      setIsSaving(false);
-      toast({
-        title: "Configurações salvas",
-        description: "As configurações de escalas foram atualizadas com sucesso.",
-      });
-    }, 1000);
+    // Verificar se todos os campos obrigatórios estão presentes
+    const completeValues: ScaleSettings = {
+      defaultStartTime: values.defaultStartTime ?? scaleSettings?.defaultStartTime ?? "18:00",
+      defaultEndTime: values.defaultEndTime ?? scaleSettings?.defaultEndTime ?? "23:00",
+      autoCreateMonthlySchedule: values.autoCreateMonthlySchedule ?? scaleSettings?.autoCreateMonthlySchedule ?? true,
+      notifyMembersBeforeDays: values.notifyMembersBeforeDays ?? scaleSettings?.notifyMembersBeforeDays ?? 3,
+      excludeHolidays: values.excludeHolidays ?? scaleSettings?.excludeHolidays ?? true
+    };
+    saveScaleSettings(completeValues);
   };
 
   const handleDefaultsSubmit = (values: z.infer<typeof defaultsSchema>) => {
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Default settings saved:", values);
-      setIsSaving(false);
-      toast({
-        title: "Configurações salvas",
-        description: "As configurações de personalização foram atualizadas com sucesso.",
-      });
-    }, 1000);
+    // Verificar se todos os campos obrigatórios estão presentes
+    const completeValues: DefaultSettings = {
+      defaultMemberPhoto: values.defaultMemberPhoto ?? defaultSettings?.defaultMemberPhoto ?? "/placeholders/default-member.jpg",
+      defaultMotorcyclePhoto: values.defaultMotorcyclePhoto ?? defaultSettings?.defaultMotorcyclePhoto ?? "/placeholders/default-motorcycle.jpg",
+      defaultQuadPhoto: values.defaultQuadPhoto ?? defaultSettings?.defaultQuadPhoto ?? "/placeholders/default-quad.jpg",
+      defaultBuggyPhoto: values.defaultBuggyPhoto ?? defaultSettings?.defaultBuggyPhoto ?? "/placeholders/default-buggy.jpg"
+    };
+    saveDefaultSettings(completeValues);
   };
 
   return (
@@ -207,68 +208,74 @@ const Settings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Form {...clubInfoForm}>
-                  <form onSubmit={clubInfoForm.handleSubmit(handleClubInfoSubmit)} className="space-y-4">
-                    <FormField
-                      control={clubInfoForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome do Clube</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                {isLoadingClubSettings ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mouro-red"></div>
+                  </div>
+                ) : (
+                  <Form {...clubInfoForm}>
+                    <form onSubmit={clubInfoForm.handleSubmit(handleClubInfoSubmit)} className="space-y-4">
+                      <FormField
+                        control={clubInfoForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome do Clube</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={clubInfoForm.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Morada</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={clubInfoForm.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Morada</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={clubInfoForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email de Contato</FormLabel>
-                          <FormControl>
-                            <Input type="email" {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={clubInfoForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email de Contato</FormLabel>
+                            <FormControl>
+                              <Input type="email" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={clubInfoForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Telefone</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={clubInfoForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefone</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                    <div className="pt-2">
-                      <Button type="submit" disabled={isSaving} className="bg-mouro-red hover:bg-mouro-red/90">
-                        <Save className="mr-2 h-4 w-4" />
-                        {isSaving ? "A guardar..." : "Guardar Alterações"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
+                      <div className="pt-2">
+                        <Button type="submit" disabled={isSavingClubSettings} className="bg-mouro-red hover:bg-mouro-red/90">
+                          <Save className="mr-2 h-4 w-4" />
+                          {isSavingClubSettings ? "A guardar..." : "Guardar Alterações"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -283,108 +290,114 @@ const Settings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Form {...feesForm}>
-                  <form onSubmit={feesForm.handleSubmit(handleFeesSubmit)} className="space-y-4">
-                    <FormField
-                      control={feesForm.control}
-                      name="registrationFee"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Jóia de Inscrição (€)</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Valor a pagar no momento da inscrição como novo sócio.
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={feesForm.control}
-                      name="annualDues"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cota Anual (€)</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Valor da cota anual para sócios adultos.
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={feesForm.control}
-                      name="childDiscount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Desconto para Crianças (%)</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Desconto aplicado a sócios crianças.
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-
-                    <Separator className="my-4" />
-
-                    <FormField
-                      control={feesForm.control}
-                      name="exemptHonoraryMembers"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Isentar Membros Honorários</FormLabel>
+                {isLoadingFeesSettings ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mouro-red"></div>
+                  </div>
+                ) : (
+                  <Form {...feesForm}>
+                    <form onSubmit={feesForm.handleSubmit(handleFeesSubmit)} className="space-y-4">
+                      <FormField
+                        control={feesForm.control}
+                        name="registrationFee"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Jóia de Inscrição (€)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} />
+                            </FormControl>
                             <FormDescription>
-                              Membros honorários não pagam cotas anuais.
+                              Valor a pagar no momento da inscrição como novo sócio.
                             </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={feesForm.control}
-                      name="exemptAdminMembers"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Isentar Membros da Administração</FormLabel>
+                      <FormField
+                        control={feesForm.control}
+                        name="annualDues"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cota Anual (€)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} />
+                            </FormControl>
                             <FormDescription>
-                              Membros da administração não pagam cotas anuais.
+                              Valor da cota anual para sócios adultos.
                             </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                          </FormItem>
+                        )}
+                      />
 
-                    <div className="pt-2">
-                      <Button type="submit" disabled={isSaving} className="bg-mouro-red hover:bg-mouro-red/90">
-                        <Save className="mr-2 h-4 w-4" />
-                        {isSaving ? "A guardar..." : "Guardar Alterações"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
+                      <FormField
+                        control={feesForm.control}
+                        name="childDiscount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Desconto para Crianças (%)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              Desconto aplicado a sócios crianças.
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+
+                      <Separator className="my-4" />
+
+                      <FormField
+                        control={feesForm.control}
+                        name="exemptHonoraryMembers"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel>Isentar Membros Honorários</FormLabel>
+                              <FormDescription>
+                                Membros honorários não pagam cotas anuais.
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={feesForm.control}
+                        name="exemptAdminMembers"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel>Isentar Membros da Administração</FormLabel>
+                              <FormDescription>
+                                Membros da administração não pagam cotas anuais.
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="pt-2">
+                        <Button type="submit" disabled={isSavingFeesSettings} className="bg-mouro-red hover:bg-mouro-red/90">
+                          <Save className="mr-2 h-4 w-4" />
+                          {isSavingFeesSettings ? "A guardar..." : "Guardar Alterações"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -399,17 +412,75 @@ const Settings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Form {...scaleForm}>
-                  <form onSubmit={scaleForm.handleSubmit(handleScaleSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {isLoadingScaleSettings ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mouro-red"></div>
+                  </div>
+                ) : (
+                  <Form {...scaleForm}>
+                    <form onSubmit={scaleForm.handleSubmit(handleScaleSubmit)} className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={scaleForm.control}
+                          name="defaultStartTime"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Horário de Início Padrão</FormLabel>
+                              <FormControl>
+                                <Input type="time" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={scaleForm.control}
+                          name="defaultEndTime"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Horário de Fim Padrão</FormLabel>
+                              <FormControl>
+                                <Input type="time" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                       <FormField
                         control={scaleForm.control}
-                        name="defaultStartTime"
+                        name="notifyMembersBeforeDays"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Horário de Início Padrão</FormLabel>
+                            <FormLabel>Notificar Membros com Antecedência (dias)</FormLabel>
                             <FormControl>
-                              <Input type="time" {...field} />
+                              <Input type="number" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              Número de dias de antecedência para notificar os membros escalados.
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+
+                      <Separator className="my-4" />
+
+                      <FormField
+                        control={scaleForm.control}
+                        name="autoCreateMonthlySchedule"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel>Criar Escalas Automaticamente</FormLabel>
+                              <FormDescription>
+                                Gerar automaticamente as escalas para o próximo mês.
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
@@ -417,86 +488,34 @@ const Settings = () => {
 
                       <FormField
                         control={scaleForm.control}
-                        name="defaultEndTime"
+                        name="excludeHolidays"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Horário de Fim Padrão</FormLabel>
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel>Excluir Feriados</FormLabel>
+                              <FormDescription>
+                                Não criar escalas em feriados nacionais.
+                              </FormDescription>
+                            </div>
                             <FormControl>
-                              <Input type="time" {...field} />
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
                       />
-                    </div>
 
-                    <FormField
-                      control={scaleForm.control}
-                      name="notifyMembersBeforeDays"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notificar Membros com Antecedência (dias)</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Número de dias de antecedência para notificar os membros escalados.
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-
-                    <Separator className="my-4" />
-
-                    <FormField
-                      control={scaleForm.control}
-                      name="autoCreateMonthlySchedule"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Criar Escalas Automaticamente</FormLabel>
-                            <FormDescription>
-                              Gerar automaticamente as escalas para o próximo mês.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={scaleForm.control}
-                      name="excludeHolidays"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Excluir Feriados</FormLabel>
-                            <FormDescription>
-                              Não criar escalas em feriados nacionais.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="pt-2">
-                      <Button type="submit" disabled={isSaving} className="bg-mouro-red hover:bg-mouro-red/90">
-                        <Save className="mr-2 h-4 w-4" />
-                        {isSaving ? "A guardar..." : "Guardar Alterações"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
+                      <div className="pt-2">
+                        <Button type="submit" disabled={isSavingScaleSettings} className="bg-mouro-red hover:bg-mouro-red/90">
+                          <Save className="mr-2 h-4 w-4" />
+                          {isSavingScaleSettings ? "A guardar..." : "Guardar Alterações"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -511,71 +530,77 @@ const Settings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Form {...defaultsForm}>
-                  <form onSubmit={defaultsForm.handleSubmit(handleDefaultsSubmit)} className="space-y-4">
-                    <FormField
-                      control={defaultsForm.control}
-                      name="defaultMemberPhoto"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Foto Padrão para Membros (URL)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Imagem padrão para membros sem foto.
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
+                {isLoadingDefaultSettings ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mouro-red"></div>
+                  </div>
+                ) : (
+                  <Form {...defaultsForm}>
+                    <form onSubmit={defaultsForm.handleSubmit(handleDefaultsSubmit)} className="space-y-4">
+                      <FormField
+                        control={defaultsForm.control}
+                        name="defaultMemberPhoto"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Foto Padrão para Membros (URL)</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              Imagem padrão para membros sem foto.
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={defaultsForm.control}
-                      name="defaultMotorcyclePhoto"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Foto Padrão para Motas (URL)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={defaultsForm.control}
+                        name="defaultMotorcyclePhoto"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Foto Padrão para Motas (URL)</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={defaultsForm.control}
-                      name="defaultQuadPhoto"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Foto Padrão para Moto-Quatros (URL)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={defaultsForm.control}
+                        name="defaultQuadPhoto"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Foto Padrão para Moto-Quatros (URL)</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={defaultsForm.control}
-                      name="defaultBuggyPhoto"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Foto Padrão para Buggies (URL)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={defaultsForm.control}
+                        name="defaultBuggyPhoto"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Foto Padrão para Buggies (URL)</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                    <div className="pt-2">
-                      <Button type="submit" disabled={isSaving} className="bg-mouro-red hover:bg-mouro-red/90">
-                        <Save className="mr-2 h-4 w-4" />
-                        {isSaving ? "A guardar..." : "Guardar Alterações"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
+                      <div className="pt-2">
+                        <Button type="submit" disabled={isSavingDefaultSettings} className="bg-mouro-red hover:bg-mouro-red/90">
+                          <Save className="mr-2 h-4 w-4" />
+                          {isSavingDefaultSettings ? "A guardar..." : "Guardar Alterações"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

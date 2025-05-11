@@ -115,6 +115,10 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
                   <p className="text-sm font-medium text-gray-500">Tipo Sanguíneo</p>
                   <p>{member.bloodType || 'Não registado'}</p>
                 </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Nome de Usuário</p>
+                  <p>{member.username || 'Não definido'}</p>
+                </div>
                 <div className="col-span-2">
                   <p className="text-sm font-medium text-gray-500">Morada</p>
                   <p>{formatAddress()}</p>

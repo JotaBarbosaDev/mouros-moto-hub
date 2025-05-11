@@ -1,7 +1,97 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { MemberExtended, MemberDbResponse } from '@/types/member-extended';
-import { BloodType, MemberType, Vehicle } from '@/types/member';
+import { MemberExtended, MemberDbResponse, VehicleData, AddressData, DuesPaymentData } from '@/types/member-extended';
+import { BloodType, MemberType, Vehicle, VehicleType } from '@/types/member';
+import { vehiclesTable, duesPaymentsTable, isUsernameColumnAvailable, addressesTable } from './supabase-helpers';
+import { CustomSupabaseClient, SupabaseQueryResponse } from '@/types/custom-supabase';
+
+// Helper para tipagem de respostas Supabase
+type SupabaseResponse<T> = Promise<{
+  data: T | null;
+  error: {
+    message: string;
+    details?: string;
+    hint?: string;
+    code?: string;
+  } | null;
+}>;
+
+// Tipo para membros retornados do Supabase
+interface SupabaseMemberResponse {
+  id: string;
+  name: string;
+  member_number: string;
+  is_admin: boolean;
+  is_active: boolean;
+  email: string;
+  phone_main: string;
+  phone_alternative?: string;
+  nickname?: string;
+  photo_url?: string;
+  join_date: string;
+  member_type: string;
+  honorary_member: boolean;
+  blood_type?: string;
+  in_whatsapp_group?: boolean;
+  received_member_kit?: boolean;
+  username?: string;
+}
+
+// Tipo para endereços retornados do Supabase
+interface SupabaseAddressResponse {
+  id: string;
+  member_id: string;
+  street: string;
+  number: string;
+  postal_code: string;
+  city: string;
+  district: string;
+  country: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Função utilitária para converter um veículo do formato Supabase para o formato da aplicação
+ */
+export const mapVehicleFromSupabase = (vehicleData: VehicleData): Vehicle => {
+  return {
+    id: vehicleData.id || '',
+    brand: vehicleData.brand,
+    model: vehicleData.model,
+    type: vehicleData.type as VehicleType,
+    displacement: typeof vehicleData.displacement === 'string' 
+      ? parseInt(vehicleData.displacement, 10) 
+      : Number(vehicleData.displacement),
+    nickname: vehicleData.nickname || undefined,
+    photoUrl: vehicleData.photo_url || undefined
+  };
+};
+
+/**
+ * Função utilitária para converter um endereço do formato Supabase para o formato da aplicação
+ */
+export const mapAddressFromSupabase = (addressData: AddressData | null) => {
+  if (!addressData) {
+    return {
+      street: '',
+      number: '',
+      postalCode: '',
+      city: '',
+      district: '',
+      country: ''
+    };
+  }
+  
+  return {
+    street: addressData.street || '',
+    number: addressData.number || '',
+    postalCode: addressData.postal_code || '',
+    city: addressData.city || '',
+    district: addressData.district || '',
+    country: addressData.country || ''
+  };
+};
 
 /**
  * Busca todos os membros do banco de dados com tratamento especial para campo username
@@ -11,48 +101,25 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
   try {
     console.log("Iniciando busca de membros...");
     
-    // Primeiro, tenta buscar com todas as colunas, incluindo username
-    let membersData;
-    let fetchError;
+    // Busca os membros com todas as colunas disponíveis na tabela members
+    // Não incluímos username pois sabemos que a coluna não existe
     
-    try {
-      // @ts-expect-error - Ignorando erros de tipo do Supabase
-      const { data, error } = await supabase
-        .from('members')
-        .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit, username')
-        .order('name');
-        
-      if (!error) {
-        membersData = data;
-      } else {
-        fetchError = error;
-        console.warn("Erro ao tentar buscar membros com username, tentando sem username:", error);
-      }
-    } catch (e) {
-      console.warn("Exceção ao buscar membros com username, tentando sem username:", e);
-    }
-    
-    // Se falhou, tenta buscar sem o campo username
-    if (!membersData) {
-      // @ts-expect-error - Ignorando erros de tipo do Supabase
-      const { data, error } = await supabase
-        .from('members')
-        .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit')
-        .order('name');
+    // Usando asserção de tipo em vez de @ts-expect-error
+    const { data: membersData, error } = await (supabase
+      .from('members')
+      .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit, legacy_member, registration_fee_paid, registration_fee_exempt')
+      .order('name') as unknown as SupabaseResponse<SupabaseMemberResponse[]>);
 
-      if (error) {
-        console.error("Erro ao buscar membros:", error);
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível carregar os membros: ' + error.message,
-          variant: 'destructive',
-        });
-        throw error;
-      }
+    if (error) {
+      console.error("Erro ao buscar membros:", error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os membros: ' + error.message,
+        variant: 'destructive',
+      });
+      throw error;
+    }
       
-      membersData = data;
-    }
-
     if (!membersData || membersData.length === 0) {
       console.log("Nenhum membro encontrado");
       return [];
@@ -64,33 +131,41 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
     const membersWithDetails = await Promise.all(
       membersData.map(async (member: MemberDbResponse) => {
         try {
-          // Get vehicles
-          // @ts-expect-error - Ignorando erros de tipo do Supabase
-          const { data: vehicles } = await supabase
-            .from('vehicles')
-            .select('*')
-            .eq('member_id', member.id);
+          // Get vehicles usando o helper
+          const { data: vehiclesData } = await vehiclesTable.select('*', { 
+            eq: ['member_id', member.id] 
+          });
             
-          // Get dues payments
-          // @ts-expect-error - Ignorando erros de tipo do Supabase
-          const { data: duesPayments } = await supabase
-            .from('dues_payments')
-            .select('*')
-            .eq('member_id', member.id);
+          // Get dues payments usando o helper
+          const { data: duesPaymentsData } = await duesPaymentsTable.select('*', {
+            eq: ['member_id', member.id]
+          });
             
-          // Get address
-          // @ts-expect-error - Ignorando erros de tipo do Supabase
-          const { data: address } = await supabase
-            .from('addresses')
-            .select('*')
-            .eq('member_id', member.id)
-            .single();
+          // Get address - usando tratamento de erro para possíveis erros 406
+          let addressData = null;
+          try {
+            // Usando o helper addressesTable para buscar o endereço
+            const { data: fetchedAddress, error: addressError } = await addressesTable.maybeSingle({ 
+              eq: ['member_id', member.id]
+            });
+              
+            if (!addressError && fetchedAddress) {
+              addressData = fetchedAddress;
+            } else if (addressError) {
+              console.warn(`Erro ao buscar endereço do membro ${member.id}:`, addressError);
+            }
+          } catch (e) {
+            console.warn(`Exceção ao buscar endereço do membro ${member.id}:`, e);
+          }
             
           // Cria variável para username, tentando diferentes abordagens
           let username = '';
           try {
-            // @ts-expect-error - Acessando propriedade que pode não existir
-            username = member.username || '';
+            // Verificação segura para propriedade que pode não existir no tipo
+            const memberObj = member as unknown as Record<string, unknown>;
+            if ('username' in memberObj) {
+              username = String(memberObj.username || '');
+            }
           } catch (e) {
             console.warn("Username não encontrado para o membro:", member.id);
           }
@@ -98,6 +173,21 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
           if (!username && member.email) {
             username = member.email.split('@')[0];
           }
+          
+          // Mapeia veículos usando a função utilitária
+          const vehicles = Array.isArray(vehiclesData) 
+            ? vehiclesData.map((v: VehicleData) => mapVehicleFromSupabase(v)) 
+            : [];
+            
+          // Mapeia pagamentos de cotas
+          const duesPayments = Array.isArray(duesPaymentsData) 
+            ? duesPaymentsData.map((payment: DuesPaymentData) => ({
+                year: payment.year,
+                paid: payment.paid,
+                exempt: payment.exempt,
+                date: payment.payment_date
+              })) 
+            : [];
             
           return {
             id: member.id,
@@ -111,17 +201,10 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
             nickname: member.nickname,
             photoUrl: member.photo_url,
             joinDate: member.join_date,
-            memberType: member.member_type,
+            memberType: member.member_type as MemberType,
             honoraryMember: member.honorary_member,
             // Use actual address data if available, otherwise provide default empty values
-            address: address || {
-              street: '',
-              number: '',
-              postalCode: '',
-              city: '',
-              district: '',
-              country: ''
-            },
+            address: mapAddressFromSupabase(addressData),
             bloodType: member.blood_type as BloodType | undefined,
             legacyMember: false,
             registrationFeePaid: false,
@@ -129,12 +212,10 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
             inWhatsAppGroup: member.in_whatsapp_group || false,
             receivedMemberKit: member.received_member_kit || false,
             username: username, // Username tratado acima
-            // @ts-expect-error - Veículos e pagamentos
-            vehicles: vehicles || [],
-            // @ts-expect-error - Veículos e pagamentos
-            duesPayments: duesPayments || [],
+            vehicles,
+            duesPayments,
           };
-        } catch (memberError) {
+        } catch (memberError: unknown) {
           console.error("Erro ao carregar detalhes do membro:", member.id, memberError);
           // Retorna membro com dados mínimos para evitar quebrar a lista
           return {
@@ -211,19 +292,19 @@ export const createMemberInDb = async (memberData: Omit<MemberExtended, 'id'>): 
 
     // Tentar inserir com username
     try {
-      // @ts-expect-error - Ignorando erros de tipo do Supabase
-      memberToInsert.username = username;
+      // Usar asserção de tipo em vez de @ts-expect-error
+      (memberToInsert as Record<string, unknown>).username = username;
       
-      // @ts-expect-error - Ignorando erros de tipo do Supabase
-      const { data: member, error: memberError } = await supabase
+      // Usar asserção de tipo em vez de @ts-expect-error
+      const { data: member, error: memberError } = await (supabase
         .from('members')
         .insert(memberToInsert)
         .select()
-        .single();
+        .single() as unknown as SupabaseResponse<SupabaseMemberResponse>);
 
       if (!memberError) {
         // Sucesso na inserção com username
-        console.log("Membro criado com username:", member.username);
+        console.log("Membro criado com username:", (member as unknown as Record<string, unknown>).username || 'não definido');
         
         // Continuar com inserção de endereço e veículos
         await insertAdditionalMemberData(member.id, memberData);
@@ -233,22 +314,22 @@ export const createMemberInDb = async (memberData: Omit<MemberExtended, 'id'>): 
           description: 'Membro criado com sucesso.',
         });
         
-        return mapToMemberExtended(member, memberData);
+        return mapToMemberExtended(member as unknown as Record<string, unknown>, memberData);
       }
     } catch (e) {
       console.warn("Erro ao inserir membro com username, tentando sem username:", e);
     }
     
     // Se falhou, tenta inserir sem o campo username
-    // @ts-expect-error - Acessando propriedade
-    delete memberToInsert.username;
+    // Usar cast para objeto de chaves dinâmicas
+    delete (memberToInsert as Record<string, unknown>).username;
     
-    // @ts-expect-error - Ignorando erros de tipo do Supabase
-    const { data: member, error: memberError } = await supabase
+    // Usar asserção de tipo em vez de @ts-expect-error
+    const { data: member, error: memberError } = await (supabase
       .from('members')
       .insert(memberToInsert)
       .select()
-      .single();
+      .single() as unknown as SupabaseResponse<SupabaseMemberResponse>);
 
     if (memberError) {
       toast({
@@ -267,7 +348,7 @@ export const createMemberInDb = async (memberData: Omit<MemberExtended, 'id'>): 
       description: 'Membro criado com sucesso.',
     });
 
-    return mapToMemberExtended(member, memberData);
+    return mapToMemberExtended(member as unknown as Record<string, unknown>, memberData);
   } catch (error) {
     console.error('Erro ao criar membro:', error);
     return {} as MemberExtended;
@@ -288,8 +369,8 @@ const insertAdditionalMemberData = async (memberId: string, memberData: Omit<Mem
     memberData.address.country
   )) {
     try {
-      // @ts-expect-error - Ignorando erros de tipo do Supabase
-      const { error: addressError } = await supabase
+      // Usar asserção de tipo em vez de @ts-expect-error
+      const { error: addressError } = await (supabase
         .from('addresses')
         .insert({
           member_id: memberId,
@@ -299,7 +380,7 @@ const insertAdditionalMemberData = async (memberId: string, memberData: Omit<Mem
           city: memberData.address.city || '',
           district: memberData.address.district || '',
           country: memberData.address.country || ''
-        });
+        }) as unknown as SupabaseResponse<SupabaseAddressResponse>);
       
       if (addressError) {
         console.error('Erro ao salvar endereço:', addressError);
@@ -322,10 +403,8 @@ const insertAdditionalMemberData = async (memberId: string, memberData: Omit<Mem
         photo_url: vehicle.photoUrl || null
       }));
 
-      // @ts-expect-error - Ignorando erros de tipo do Supabase
-      const { error: vehiclesError } = await supabase
-        .from('vehicles')
-        .insert(vehiclesToInsert);
+      // Usando helper para inserir veículos
+      const { error: vehiclesError } = await vehiclesTable.insert(vehiclesToInsert);
       
       if (vehiclesError) {
         console.error('Erro ao salvar veículos:', vehiclesError);
@@ -339,21 +418,52 @@ const insertAdditionalMemberData = async (memberId: string, memberData: Omit<Mem
 /**
  * Função auxiliar para mapear dados do banco para o tipo MemberExtended
  */
-const mapToMemberExtended = (member: any, memberData: any): MemberExtended => {
+/**
+ * Função utilitária para mapear um membro do formato do Supabase para o formato da aplicação
+ */
+const mapToMemberExtended = (member: Record<string, unknown>, memberData: Partial<MemberExtended>): MemberExtended => {
+  // Extrair informações do membro para tipagem mais segura
+  const memberResponse = {
+    id: member.id as string,
+    name: member.name as string,
+    member_number: member.member_number as string,
+    is_admin: member.is_admin as boolean,
+    is_active: member.is_active as boolean,
+    email: member.email as string,
+    phone_main: member.phone_main as string,
+    phone_alternative: member.phone_alternative as string | undefined,
+    nickname: member.nickname as string | undefined,
+    photo_url: member.photo_url as string | undefined,
+    join_date: member.join_date as string,
+    member_type: member.member_type as MemberType,
+    honorary_member: member.honorary_member as boolean,
+    blood_type: member.blood_type as BloodType | undefined,
+    in_whatsapp_group: Boolean(member.in_whatsapp_group),
+    received_member_kit: Boolean(member.received_member_kit),
+    username: member.username as string | undefined
+  };
+  
+  // Determinar username
+  const username = 
+    memberResponse.username || 
+    memberData.username || 
+    (memberResponse.email?.split('@')[0] || '');
+    
+  // Mapear para o formato extendido
   return {
-    id: member.id,
-    name: member.name,
-    memberNumber: member.member_number,
-    isAdmin: member.is_admin,
-    isActive: member.is_active,
-    email: member.email,
-    phoneMain: member.phone_main,
-    phoneAlternative: member.phone_alternative,
-    nickname: member.nickname,
-    photoUrl: member.photo_url,
-    joinDate: member.join_date,
-    memberType: member.member_type,
-    honoraryMember: member.honorary_member,
+    id: memberResponse.id,
+    name: memberResponse.name,
+    memberNumber: memberResponse.member_number,
+    isAdmin: memberResponse.is_admin,
+    isActive: memberResponse.is_active,
+    email: memberResponse.email,
+    phoneMain: memberResponse.phone_main,
+    phoneAlternative: memberResponse.phone_alternative,
+    nickname: memberResponse.nickname,
+    photoUrl: memberResponse.photo_url,
+    joinDate: memberResponse.join_date,
+    memberType: memberResponse.member_type,
+    honoraryMember: memberResponse.honorary_member,
     address: memberData.address || {
       street: '',
       number: '',
@@ -362,13 +472,13 @@ const mapToMemberExtended = (member: any, memberData: any): MemberExtended => {
       district: '',
       country: ''
     },
-    bloodType: member.blood_type as BloodType | undefined,
+    bloodType: memberResponse.blood_type,
     legacyMember: false,
     registrationFeePaid: false,
     registrationFeeExempt: false,
-    inWhatsAppGroup: member.in_whatsapp_group || false,
-    receivedMemberKit: member.received_member_kit || false,
-    username: member.username || memberData.username || member.email?.split('@')[0],
+    inWhatsAppGroup: memberResponse.in_whatsapp_group,
+    receivedMemberKit: memberResponse.received_member_kit,
+    username,
     vehicles: memberData.vehicles || [],
     duesPayments: memberData.duesPayments || [],
   };
@@ -401,14 +511,14 @@ export const updateMemberInDb = async (memberData: MemberExtended): Promise<Memb
     // Tentar atualizar com username
     if (memberData.username) {
       try {
-        // @ts-expect-error - Ignorando erros de tipo do Supabase
-        memberToUpdate.username = memberData.username;
+        // Usar asserção de tipo em vez de @ts-expect-error
+        (memberToUpdate as Record<string, unknown>).username = memberData.username;
         
-        // @ts-expect-error - Ignorando erros de tipo do Supabase
-        const { error } = await supabase
+        // Usar asserção de tipo em vez de @ts-expect-error
+        const { error } = await (supabase
           .from('members')
           .update(memberToUpdate)
-          .eq('id', memberData.id);
+          .eq('id', memberData.id) as unknown as SupabaseResponse<SupabaseMemberResponse>);
 
         if (!error) {
           // Sucesso na atualização com username
@@ -428,14 +538,14 @@ export const updateMemberInDb = async (memberData: MemberExtended): Promise<Memb
     }
     
     // Se falhou, tenta atualizar sem o campo username
-    // @ts-expect-error - Acessando propriedade
-    delete memberToUpdate.username;
+    // Usar cast para objeto de chaves dinâmicas
+    delete (memberToUpdate as Record<string, unknown>).username;
     
-    // @ts-expect-error - Ignorando erros de tipo do Supabase
-    const { error } = await supabase
+    // Usar asserção de tipo em vez de @ts-expect-error
+    const { error } = await (supabase
       .from('members')
       .update(memberToUpdate)
-      .eq('id', memberData.id);
+      .eq('id', memberData.id) as unknown as SupabaseResponse<SupabaseMemberResponse>);
 
     if (error) {
       toast({
@@ -469,18 +579,18 @@ const updateAdditionalMemberData = async (memberData: MemberExtended) => {
   if (memberData.address) {
     try {
       // Check if address exists
-      // @ts-expect-error - Ignorando erros de tipo do Supabase
-      const { data: existingAddress, error: existingAddressError } = await supabase
+      // Usar asserção de tipo em vez de @ts-expect-error
+      const { data: existingAddress, error: existingAddressError } = await (supabase
         .from('addresses')
         .select('id')
         .eq('member_id', memberData.id)
-        .maybeSingle();
+        .maybeSingle() as unknown as SupabaseResponse<{id: string}>);
 
       if (!existingAddressError) {
         if (existingAddress) {
           // Update existing address
-          // @ts-expect-error - Ignorando erros de tipo do Supabase
-          const { error: addressError } = await supabase
+          // Usar asserção de tipo em vez de @ts-expect-error
+          const { error: addressError } = await (supabase
             .from('addresses')
             .update({
               street: memberData.address.street,
@@ -490,15 +600,15 @@ const updateAdditionalMemberData = async (memberData: MemberExtended) => {
               district: memberData.address.district,
               country: memberData.address.country
             })
-            .eq('member_id', memberData.id);
+            .eq('member_id', memberData.id) as unknown as SupabaseResponse<SupabaseAddressResponse>);
 
           if (addressError) {
             console.error('Erro ao atualizar endereço:', addressError);
           }
         } else {
           // Create new address
-          // @ts-expect-error - Ignorando erros de tipo do Supabase
-          const { error: addressError } = await supabase
+          // Usar asserção de tipo em vez de @ts-expect-error
+          const { error: addressError } = await (supabase
             .from('addresses')
             .insert({
               member_id: memberData.id,
@@ -508,7 +618,7 @@ const updateAdditionalMemberData = async (memberData: MemberExtended) => {
               city: memberData.address.city,
               district: memberData.address.district,
               country: memberData.address.country
-            });
+            }) as unknown as SupabaseResponse<SupabaseAddressResponse>);
 
           if (addressError) {
             console.error('Erro ao criar endereço:', addressError);
@@ -526,11 +636,11 @@ const updateAdditionalMemberData = async (memberData: MemberExtended) => {
  */
 export const deleteMemberFromDb = async (memberId: string): Promise<void> => {
   try {
-    // @ts-expect-error - Ignorando erros de tipo do Supabase
-    const { error } = await supabase
+    // Usar asserção de tipo em vez de @ts-expect-error
+    const { error } = await (supabase
       .from('members')
       .delete()
-      .eq('id', memberId);
+      .eq('id', memberId) as unknown as SupabaseResponse<null>);
       
     if (error) {
       toast({
@@ -558,8 +668,10 @@ export const createUserAccount = async (memberData: MemberExtended): Promise<voi
   try {
     const password = memberData.password || memberData.username || memberData.email.split('@')[0];
     
-    // @ts-expect-error - Ignorando erros de tipo do Supabase
-    const { data, error } = await supabase.auth.admin.createUser({
+    // Usar o tipo AuthAdmin definido no custom-supabase.ts
+    const customSupabase = supabase as CustomSupabaseClient;
+    
+    const { data, error } = await customSupabase.auth.admin.createUser({
       email: memberData.email,
       password: password,
       email_confirm: true,

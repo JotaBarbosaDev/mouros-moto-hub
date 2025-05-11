@@ -100,6 +100,12 @@ export function SidebarNav() {
       href: "/historico",
       category: "outros"
     },
+    {
+      title: "API Docs",
+      icon: Package,
+      href: "/api-docs",
+      category: "outros"
+    },
     ...(isAdmin
       ? [
           {

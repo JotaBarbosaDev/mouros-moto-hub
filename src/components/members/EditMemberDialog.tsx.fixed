@@ -17,9 +17,6 @@ import { AddVehicleDialog } from "@/components/garage/AddVehicleDialog";
 import { Vehicle, VehicleType } from "@/types/member";
 import { MemberFormTabs } from "./MemberFormTabs";
 import { EditMemberFormValues, editMemberSchema } from "./MemberFormTypes";
-import { CustomSupabaseClient } from "@/types/custom-supabase";
-// Importamos o serviço diretamente para evitar importação dinâmica
-import { userAuthService } from "@/services/user-auth-service";
 
 interface EditMemberDialogProps {
   member: Member | null;
@@ -56,57 +53,14 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [duesPayments, setDuesPayments] = useState<{year: number, paid: boolean, exempt: boolean}[]>([]);
-  const [memberAddress, setMemberAddress] = useState<{
-    street: string;
-    number: string;
-    postalCode: string;
-    city: string;
-    district: string;
-    country: string;
-  } | null>(null);
-  
-  // Fetch member's address - usando useCallback para evitar recriações desnecessárias
-  const fetchAddress = useCallback(async () => {
-    if (!member) return;
-    
-    try {
-      const customSupabase = supabase as CustomSupabaseClient;
-      // Usando maybeSingle em vez de single para evitar erro 406
-      const { data, error } = await customSupabase
-        .from('addresses')
-        .select('*')
-        .eq('member_id', member.id)
-        .maybeSingle();
-        
-      if (error) {
-        // Apenas registra o erro mas não impede a operação
-        console.warn('Erro ao buscar endereço do membro:', error);
-        return;
-      }
-      
-      if (data) {
-        setMemberAddress({
-          street: data.street || '',
-          number: data.number || '',
-          postalCode: data.postal_code || '',
-          city: data.city || '',
-          district: data.district || '',
-          country: data.country || '',
-        });
-      }
-    } catch (err) {
-      console.error('Error in fetchAddress:', err);
-      // Não exibimos toast de erro para não interromper a experiência do usuário
-    }
-  }, [member]);
   
   // Fetch member's vehicles - usando useCallback para evitar recriações desnecessárias
   const fetchVehicles = useCallback(async () => {
     if (!member) return;
     
     try {
-      const customSupabase = supabase as CustomSupabaseClient;
-      const { data, error } = await customSupabase
+      // @ts-expect-error - Supabase table type issues
+      const { data, error } = await supabase
         .from('vehicles')
         .select('*')
         .eq('member_id', member.id);
@@ -150,8 +104,8 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
     if (!member) return;
     
     try {
-      const customSupabase = supabase as CustomSupabaseClient;
-      const { data, error } = await customSupabase
+      // @ts-expect-error - Supabase table type issues
+      const { data, error } = await supabase
         .from('dues_payments')
         .select('*')
         .eq('member_id', member.id)
@@ -227,26 +181,17 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       
       // Load dues payments or create defaults for the last 3 years
       fetchDuesPayments();
-      
-      // Load member address
-      fetchAddress();
     }
-  }, [member, form, fetchVehicles, fetchDuesPayments, fetchAddress]);
+  }, [member, form, fetchVehicles, fetchDuesPayments]);
   
   // Handle adding new vehicle
   const handleAddVehicle = async (vehicle: Omit<Vehicle, 'id'>) => {
     if (!member) return;
     
     try {
-      // Verifica se a URL da foto é uma string Base64 (data:image/...)
-      // Se for, não envia para o Supabase, pois pode causar erro 400
-      const photoUrl = vehicle.photoUrl && vehicle.photoUrl.startsWith('data:') 
-        ? null // Não envia dados Base64 diretamente
-        : vehicle.photoUrl;
-      
       // Add vehicle to database
-      const customSupabase = supabase as CustomSupabaseClient;
-      const { data, error } = await customSupabase
+      // @ts-expect-error - Supabase table type issues
+      const { data, error } = await supabase
         .from('vehicles')
         .insert({
           brand: vehicle.brand,
@@ -254,7 +199,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
           type: vehicle.type,
           displacement: vehicle.displacement,
           nickname: vehicle.nickname || null,
-          photo_url: photoUrl,
+          photo_url: vehicle.photoUrl || null,
           member_id: member.id
         })
         .select('*')
@@ -262,19 +207,15 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         
       if (error) throw error;
       
-      // Add to local state with proper type assertion
-      const vehicleData = data as unknown as VehicleData;
-      
+      // Add to local state
       const newVehicle: Vehicle = {
-        id: vehicleData.id,
-        brand: vehicleData.brand,
-        model: vehicleData.model,
-        type: vehicleData.type as VehicleType,
-        displacement: typeof vehicleData.displacement === 'string' 
-          ? parseInt(vehicleData.displacement, 10) 
-          : vehicleData.displacement as number,
-        nickname: vehicleData.nickname || undefined,
-        photoUrl: vehicleData.photo_url || undefined,
+        id: data.id,
+        brand: data.brand,
+        model: data.model,
+        type: data.type as VehicleType,
+        displacement: typeof data.displacement === 'string' ? parseInt(data.displacement, 10) : data.displacement as number,
+        nickname: data.nickname || undefined,
+        photoUrl: data.photo_url || undefined,
       };
       
       setVehicles(prev => [...prev, newVehicle]);
@@ -297,8 +238,8 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
   // Handle deleting a vehicle
   const handleDeleteVehicle = async (vehicleId: string) => {
     try {
-      const customSupabase = supabase as CustomSupabaseClient;
-      const { error } = await customSupabase
+      // @ts-expect-error - Supabase table type issues
+      const { error } = await supabase
         .from('vehicles')
         .delete()
         .eq('id', vehicleId);
@@ -328,8 +269,8 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
     
     try {
       // Check if payment record exists
-      const customSupabase = supabase as CustomSupabaseClient;
-      const { data: existingPayment } = await customSupabase
+      // @ts-expect-error - Supabase table type issues
+      const { data: existingPayment } = await supabase
         .from('dues_payments')
         .select('id')
         .eq('member_id', member.id)
@@ -338,8 +279,8 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         
       if (existingPayment) {
         // Update existing record
-        const customSupabase = supabase as CustomSupabaseClient;
-        await customSupabase
+        // @ts-expect-error - Supabase table type issues
+        await supabase
           .from('dues_payments')
           .update({ 
             [field]: value,
@@ -349,8 +290,8 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
           .eq('id', existingPayment.id);
       } else {
         // Create new record
-        const customSupabase = supabase as CustomSupabaseClient;
-        await customSupabase
+        // @ts-expect-error - Supabase table type issues
+        await supabase
           .from('dues_payments')
           .insert({
             member_id: member.id,
@@ -380,209 +321,32 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
     }
   };
 
-  // Verifica se é seguro usar a coluna username
-  // Função melhorada para verificar se a coluna username existe na tabela members
-  const isUsernameColumnAvailable = async () => {
-    try {
-      const customSupabase = supabase as CustomSupabaseClient;
-      
-      // Método mais seguro: verificar nos dados retornados
-      const { data: membersData } = await customSupabase
-        .from('members')
-        .select()
-        .limit(1);
-        
-      // Verifica se retornou algum dado e se o primeiro item tem a propriedade username
-      if (membersData && membersData.length > 0) {
-        return 'username' in membersData[0];
-      }
-      
-      // Se não temos dados, fazemos um teste mais específico
-      try {
-        // Tenta selecionar apenas a coluna username
-        const { error } = await customSupabase
-          .from('members')
-          .select('username')
-          .limit(1);
-          
-        // Se não der erro, a coluna provavelmente existe
-        return !error;
-      } catch (e) {
-        // Se deu erro, provavelmente a coluna não existe
-        console.warn('Erro ao tentar consultar a coluna username:', e);
-        return false;
-      }
-    } catch (error) {
-      console.warn('A coluna username não parece existir:', error);
-      return false;
-    }
-    
-    // Se chegamos aqui, assumimos que a coluna não existe por segurança
-    return false;
-  };
-
   const handleSubmit = async (values: EditMemberFormValues) => {
     if (!member) return;
     setIsSubmitting(true);
     
     try {
-      // Prepara os dados de atualização
-      const updateData: Record<string, unknown> = {
-        name: values.name,
-        email: values.email,
-        phone_main: values.phoneMain,
-        phone_alternative: values.phoneAlternative || null,
-        nickname: values.nickname || null,
-        blood_type: values.bloodType,
-        member_type: values.memberType,
-        in_whatsapp_group: values.inWhatsAppGroup || false,
-        received_member_kit: values.receivedMemberKit || false,
-        photo_url: values.photoUrl && values.photoUrl.startsWith('data:') ? null : values.photoUrl,
-      };
-      
-      // Se temos um username, atualizamos os metadados do usuário na auth
-      if (values.username && values.username !== member.username) {
-        console.info("Atualizando username nos metadados do usuário:", values.username);
-        
-        try {
-          // Atualiza os metadados do usuário com o novo username usando a função Edge
-          const { error: metadataError } = await userAuthService.updateUserMetadata(
-            member.id, 
-            {
-              username: values.username,
-              // Mantém outros metadados que podem existir
-              name: member.name
-            }
-          );
-          
-          if (metadataError) {
-            console.error("Erro ao atualizar username nos metadados:", metadataError);
-            toast({
-              title: "Aviso",
-              description: "Não foi possível atualizar o nome de usuário.",
-              variant: "default",
-            });
-          } else {
-            console.log("Username atualizado com sucesso nos metadados");
-          }
-        } catch (err) {
-          console.warn("Erro ao atualizar username nos metadados:", err);
-          // Continuamos mesmo se falhar a atualização dos metadados
-        }
-      }
-      
-      // Se temos uma senha nova, atualizamos a senha do usuário usando a função Edge
-      if (values.password) {
-        console.info("Senha fornecida, atualizando...");
-        try {
-          // Atualiza a senha do usuário usando a função Edge
-          const { error: resetError } = await userAuthService.updateUserPassword(
-            member.id,
-            values.password
-          );
-          
-          if (resetError) {
-            console.error("Erro ao atualizar senha:", resetError);
-            toast({
-              title: "Aviso",
-              description: "Não foi possível atualizar a senha do usuário.",
-              variant: "default",
-            });
-          } else {
-            toast({
-              title: "Sucesso",
-              description: "Senha atualizada com sucesso.",
-              variant: "default",
-            });
-          }
-        } catch (err) {
-          console.warn("Erro ao atualizar senha:", err);
-        }
-      }
-      
       // Update member in database
-      const customSupabase = supabase as CustomSupabaseClient;
-      const { error } = await customSupabase
+      // @ts-expect-error - Supabase table type issues
+      const { error } = await supabase
         .from('members')
-        .update(updateData)
+        .update({
+          name: values.name,
+          email: values.email,
+          phone_main: values.phoneMain,
+          phone_alternative: values.phoneAlternative || null,
+          nickname: values.nickname || null,
+          username: values.username || null,
+          blood_type: values.bloodType,
+          member_type: values.memberType,
+          in_whatsapp_group: values.inWhatsAppGroup || false,
+          received_member_kit: values.receivedMemberKit || false,
+          photo_url: values.photoUrl || null,
+        })
         .eq('id', member.id);
         
-      if (error) {
-        // Verifica se é um erro de restrição de unicidade (unique constraint)
-        if (error.message && 
-            typeof error.message === 'string' && 
-            error.message.includes('unique constraint') && 
-            error.message.includes('username')) {
-          throw new Error('Este username já está sendo usado por outro membro. Por favor, escolha um username diferente.');
-        }
-        
-        // Se não for erro de username, verifica se é um erro sobre coluna inexistente
-        if (error.message && 
-            typeof error.message === 'string' && 
-            error.message.includes('column') && 
-            error.message.includes('not exist')) {
-          console.warn('Erro de coluna inexistente:', error.message);
-          // Continuamos a execução para não bloquear toda a atualização
-        } else {
-          throw error;
-        }
-      }
-      
-      // Atualiza o endereço se o membro tiver um
-      if (memberAddress) {
-        try {
-          // Verifica se o endereço já existe
-          const { data: existingAddress, error: addressQueryError } = await customSupabase
-            .from('addresses')
-            .select('id')
-            .eq('member_id', member.id)
-            .maybeSingle();
-            
-          if (addressQueryError) {
-            console.warn('Erro ao verificar endereço existente:', addressQueryError);
-          } else {
-            if (existingAddress) {
-              // Atualiza o endereço existente
-              const { error: updateAddressError } = await customSupabase
-                .from('addresses')
-                .update({
-                  street: memberAddress.street,
-                  number: memberAddress.number,
-                  postal_code: memberAddress.postalCode,
-                  city: memberAddress.city,
-                  district: memberAddress.district,
-                  country: memberAddress.country
-                })
-                .eq('id', existingAddress.id);
-                
-              if (updateAddressError) {
-                console.warn('Erro ao atualizar endereço:', updateAddressError);
-              }
-            } else {
-              // Cria um novo endereço
-              const { error: insertAddressError } = await customSupabase
-                .from('addresses')
-                .insert({
-                  member_id: member.id,
-                  street: memberAddress.street,
-                  number: memberAddress.number,
-                  postal_code: memberAddress.postalCode,
-                  city: memberAddress.city,
-                  district: memberAddress.district,
-                  country: memberAddress.country
-                });
-                
-              if (insertAddressError) {
-                console.warn('Erro ao inserir endereço:', insertAddressError);
-              }
-            }
-          }
-        } catch (addressError) {
-          console.error('Exceção ao atualizar endereço:', addressError);
-          // Não interrompe o fluxo principal em caso de erro no endereço
-        }
-      }
-      
+      if (error) throw error;
+    
       // Update only the edited fields
       const editedMember: Member = {
         ...member,
@@ -597,9 +361,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         inWhatsAppGroup: values.inWhatsAppGroup || false,
         receivedMemberKit: values.receivedMemberKit || false,
         photoUrl: values.photoUrl,
-        vehicles: vehicles, // Include updated vehicles
-        // Usar o endereço atualizado se disponível, ou manter o atual
-        address: memberAddress || member.address
+        vehicles: vehicles // Include updated vehicles
       };
   
       onSave(editedMember);
@@ -610,13 +372,9 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       });
     } catch (error) {
       console.error('Error updating member:', error);
-      
-      // Exibe mensagem de erro mais específica se disponível
-      const errorMessage = error instanceof Error ? error.message : "Não foi possível atualizar o membro.";
-      
       toast({
         title: "Erro",
-        description: errorMessage,
+        description: "Não foi possível atualizar o membro.",
         variant: "destructive",
       });
     } finally {

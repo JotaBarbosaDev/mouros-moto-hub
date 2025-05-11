@@ -37,6 +37,7 @@ export function MembersTable({
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Username</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Veículos</TableHead>
               <TableHead>Cota Anual</TableHead>
@@ -62,6 +63,7 @@ export function MembersTable({
                   />
                 </TableCell>
                 <TableCell>{member.email}</TableCell>
+                <TableCell>{member.username || '-'}</TableCell>
                 <TableCell>{member.phoneMain}</TableCell>
                 <TableCell>{member.vehicles.length}</TableCell>
                 <TableCell>

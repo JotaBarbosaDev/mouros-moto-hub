@@ -1,10 +1,15 @@
 
 import { createClient } from "@supabase/supabase-js";
+import { Database } from './types';
 
-const supabaseUrl = "https://jugfkacnlgdjdosstiks.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Z2ZrYWNubGdkamRvc3N0aWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MDkzMzAsImV4cCI6MjA2MTA4NTMzMH0.PL8pg93wAVTl3kUoe-mfK7kGdjW6ytXapAiy-mpxk78";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Credenciais do Supabase não estão configuradas. Por favor, verifique o arquivo .env.local');
+}
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Initialize the storage buckets
 const initializeStorage = async () => {

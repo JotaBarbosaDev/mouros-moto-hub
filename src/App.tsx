@@ -26,6 +26,7 @@ import Products from "./pages/Products";
 import History from "./pages/History";
 import Calendar from "./pages/Calendar";
 import Treasury from "./pages/Treasury";
+import ApiDocs from "./pages/ApiDocs";
 
 const queryClient = new QueryClient();
 
@@ -129,6 +130,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Treasury />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/api-docs" 
+            element={
+              <ProtectedRoute>
+                <ApiDocs />
               </ProtectedRoute>
             } 
           />

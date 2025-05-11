@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +51,8 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
     photoUrl: '',
     inWhatsAppGroup: false,
     receivedMemberKit: false,
+    username: '',
+    password: '',
   });
 
   const [vehicleForm, setVehicleForm] = useState<Partial<Vehicle>>({
@@ -68,7 +69,20 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Verificar se o membro possui username, se não, usa o email como username
+    const updatedFormData = { ...formData };
+    if (!updatedFormData.username) {
+      const emailParts = updatedFormData.email?.split('@') || [];
+      updatedFormData.username = emailParts[0] || `membro${Date.now().toString().substring(7)}`;
+    }
+    
+    // Se password não for fornecido, utiliza o username como password
+    if (!updatedFormData.password) {
+      updatedFormData.password = updatedFormData.username;
+    }
+    
+    onSubmit(updatedFormData);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,6 +272,29 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="username">Nome de Usuário*</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Se vazio, será igual ao nome de usuário"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
               </div>
             </div>
 

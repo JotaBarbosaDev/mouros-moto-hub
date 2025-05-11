@@ -88,6 +88,32 @@ export function MemberBasicInfoTab({ form, member }: FormProps) {
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome de Usuário</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value || ''} />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nova senha (deixe em branco para não alterar)</FormLabel>
+              <FormControl>
+                <Input type="password" {...field} value={field.value || ''} />
+              </FormControl>
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

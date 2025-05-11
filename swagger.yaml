@@ -1,0 +1,1968 @@
+openapi: 3.0.0
+info:
+  title: Mouros Moto Hub API
+  description: |
+    API para o sistema de gestão do Clube de Motociclistas "Os Mouros".
+    Inclui endpoints para gestão de membros, veículos, bar, eventos, tesouraria e administração.
+  version: 1.0.0
+  contact:
+    email: contacto@osmouros.pt
+servers:
+  - url: https://jugfkacnlgdjdosstiks.supabase.co
+    description: Servidor Supabase de produção
+tags:
+  - name: Autenticação
+    description: Endpoints de autenticação de usuários
+  - name: Membros
+    description: Gestão de membros do clube
+  - name: Veículos
+    description: Gestão de veículos dos membros
+  - name: Bar
+    description: Gestão de produtos, vendas e escalas do bar
+  - name: Eventos
+    description: Gestão de eventos do clube
+  - name: Tesouraria
+    description: Gestão financeira e transações
+  - name: Administração
+    description: Gestão da administração do clube
+  - name: Configurações
+    description: Configurações do sistema
+  - name: Inventário
+    description: Gestão do inventário do clube
+paths:
+  # Autenticação
+  /auth/v1/token:
+    post:
+      tags:
+        - Autenticação
+      summary: Login de usuário
+      description: Autentica um usuário no sistema
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Credenciais inválidas
+
+  /auth/v1/signup:
+    post:
+      tags:
+        - Autenticação
+      summary: Registrar novo usuário
+      description: Cria um novo usuário no sistema
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Erro ao criar usuário
+
+  /auth/v1/logout:
+    post:
+      tags:
+        - Autenticação
+      summary: Logout de usuário
+      description: Encerra sessão ativa do usuário
+      operationId: logout
+      responses:
+        '200':
+          description: Logout realizado com sucesso
+        '401':
+          description: Não autorizado
+
+  # Membros
+  /rest/v1/members:
+    get:
+      tags:
+        - Membros
+      summary: Listar todos os membros
+      description: Obtém lista de todos os membros do clube
+      operationId: getMembers
+      responses:
+        '200':
+          description: Lista de membros obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MemberDbResponse'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Membros
+      summary: Criar novo membro
+      description: Cadastra um novo membro no clube
+      operationId: createMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMemberRequest'
+      responses:
+        '201':
+          description: Membro criado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  /rest/v1/members/{memberId}:
+    get:
+      tags:
+        - Membros
+      summary: Obter detalhes de um membro
+      description: Obtém detalhes de um membro específico
+      operationId: getMemberById
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes do membro
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberExtended'
+        '404':
+          description: Membro não encontrado
+    patch:
+      tags:
+        - Membros
+      summary: Atualizar membro
+      description: Atualiza dados de um membro
+      operationId: updateMember
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberRequest'
+      responses:
+        '200':
+          description: Membro atualizado com sucesso
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Membro não encontrado
+    delete:
+      tags:
+        - Membros
+      summary: Excluir membro
+      description: Remove um membro do sistema
+      operationId: deleteMember
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Membro excluído com sucesso
+        '404':
+          description: Membro não encontrado
+
+  # Veículos
+  /rest/v1/vehicles:
+    get:
+      tags:
+        - Veículos
+      summary: Listar todos os veículos
+      description: Obtém lista de todos os veículos cadastrados
+      operationId: getVehicles
+      responses:
+        '200':
+          description: Lista de veículos obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VehicleResponse'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Veículos
+      summary: Registrar novo veículo
+      description: Cadastra um novo veículo para um membro
+      operationId: createVehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVehicleRequest'
+      responses:
+        '201':
+          description: Veículo registrado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  /rest/v1/vehicles/{vehicleId}:
+    get:
+      tags:
+        - Veículos
+      summary: Obter detalhes de um veículo
+      description: Obtém detalhes de um veículo específico
+      operationId: getVehicleById
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes do veículo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleResponse'
+        '404':
+          description: Veículo não encontrado
+    patch:
+      tags:
+        - Veículos
+      summary: Atualizar veículo
+      description: Atualiza dados de um veículo
+      operationId: updateVehicle
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVehicleRequest'
+      responses:
+        '200':
+          description: Veículo atualizado com sucesso
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Veículo não encontrado
+    delete:
+      tags:
+        - Veículos
+      summary: Excluir veículo
+      description: Remove um veículo do sistema
+      operationId: deleteVehicle
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Veículo excluído com sucesso
+        '404':
+          description: Veículo não encontrado
+
+  # Bar - Produtos
+  /rest/v1/bar_products:
+    get:
+      tags:
+        - Bar
+      summary: Listar produtos do bar
+      description: Obtém lista de todos os produtos disponíveis no bar
+      operationId: getBarProducts
+      responses:
+        '200':
+          description: Lista de produtos obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BarProduct'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Bar
+      summary: Cadastrar novo produto
+      description: Adiciona um novo produto ao bar
+      operationId: createBarProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBarProductRequest'
+      responses:
+        '201':
+          description: Produto cadastrado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  /rest/v1/bar_products/{productId}:
+    get:
+      tags:
+        - Bar
+      summary: Obter detalhes de um produto
+      description: Obtém detalhes de um produto específico
+      operationId: getBarProductById
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes do produto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarProduct'
+        '404':
+          description: Produto não encontrado
+    patch:
+      tags:
+        - Bar
+      summary: Atualizar produto
+      description: Atualiza dados de um produto
+      operationId: updateBarProduct
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBarProductRequest'
+      responses:
+        '200':
+          description: Produto atualizado com sucesso
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Produto não encontrado
+    delete:
+      tags:
+        - Bar
+      summary: Excluir produto
+      description: Remove um produto do sistema
+      operationId: deleteBarProduct
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Produto excluído com sucesso
+        '404':
+          description: Produto não encontrado
+
+  # Bar - Vendas
+  /rest/v1/bar_sales:
+    get:
+      tags:
+        - Bar
+      summary: Listar vendas do bar
+      description: Obtém lista de todas as vendas realizadas no bar
+      operationId: getBarSales
+      responses:
+        '200':
+          description: Lista de vendas obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BarSale'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Bar
+      summary: Registrar nova venda
+      description: Registra uma nova venda no bar
+      operationId: createBarSale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBarSaleRequest'
+      responses:
+        '201':
+          description: Venda registrada com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  # Bar - Escalas
+  /rest/v1/bar_shifts:
+    get:
+      tags:
+        - Bar
+      summary: Listar escalas do bar
+      description: Obtém lista de todas as escalas do bar
+      operationId: getBarShifts
+      responses:
+        '200':
+          description: Lista de escalas obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BarShift'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Bar
+      summary: Criar nova escala
+      description: Cria uma nova escala para o bar
+      operationId: createBarShift
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBarShiftRequest'
+      responses:
+        '201':
+          description: Escala criada com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  # Eventos
+  /rest/v1/events:
+    get:
+      tags:
+        - Eventos
+      summary: Listar eventos
+      description: Obtém lista de todos os eventos do clube
+      operationId: getEvents
+      responses:
+        '200':
+          description: Lista de eventos obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Eventos
+      summary: Criar novo evento
+      description: Cria um novo evento para o clube
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Evento criado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  /rest/v1/events/{eventId}:
+    get:
+      tags:
+        - Eventos
+      summary: Obter detalhes de um evento
+      description: Obtém detalhes de um evento específico
+      operationId: getEventById
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes do evento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Evento não encontrado
+    patch:
+      tags:
+        - Eventos
+      summary: Atualizar evento
+      description: Atualiza dados de um evento
+      operationId: updateEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: Evento atualizado com sucesso
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Evento não encontrado
+    delete:
+      tags:
+        - Eventos
+      summary: Excluir evento
+      description: Remove um evento do sistema
+      operationId: deleteEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Evento excluído com sucesso
+        '404':
+          description: Evento não encontrado
+
+  # Tesouraria
+  /rest/v1/transactions:
+    get:
+      tags:
+        - Tesouraria
+      summary: Listar transações
+      description: Obtém lista de todas as transações financeiras
+      operationId: getTransactions
+      responses:
+        '200':
+          description: Lista de transações obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Tesouraria
+      summary: Registrar nova transação
+      description: Registra uma nova transação financeira
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Transação registrada com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  /rest/v1/dues_payments:
+    get:
+      tags:
+        - Tesouraria
+      summary: Listar pagamentos de cotas
+      description: Obtém lista de todos os pagamentos de cotas dos membros
+      operationId: getDuesPayments
+      responses:
+        '200':
+          description: Lista de pagamentos obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DuesPayment'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Tesouraria
+      summary: Registrar pagamento de cota
+      description: Registra um novo pagamento de cota para um membro
+      operationId: createDuesPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDuesPaymentRequest'
+      responses:
+        '201':
+          description: Pagamento registrado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  # Administração
+  /rest/v1/administration:
+    get:
+      tags:
+        - Administração
+      summary: Listar membros da administração
+      description: Obtém lista de todos os membros da administração
+      operationId: getAdministrationMembers
+      responses:
+        '200':
+          description: Lista de membros da administração obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdministrationMember'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Administração
+      summary: Adicionar membro à administração
+      description: Adiciona um membro à administração do clube
+      operationId: createAdministrationMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAdminMemberRequest'
+      responses:
+        '201':
+          description: Membro adicionado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  # Configurações
+  /rest/v1/settings:
+    get:
+      tags:
+        - Configurações
+      summary: Listar configurações
+      description: Obtém todas as configurações do sistema
+      operationId: getSettings
+      responses:
+        '200':
+          description: Configurações obtidas com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Setting'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Configurações
+      summary: Adicionar configuração
+      description: Adiciona uma nova configuração ao sistema
+      operationId: createSetting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSettingRequest'
+      responses:
+        '201':
+          description: Configuração adicionada com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  # Inventário
+  /rest/v1/inventory:
+    get:
+      tags:
+        - Inventário
+      summary: Listar itens do inventário
+      description: Obtém lista de todos os itens do inventário
+      operationId: getInventoryItems
+      responses:
+        '200':
+          description: Lista de itens do inventário obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryItem'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Inventário
+      summary: Adicionar item ao inventário
+      description: Adiciona um novo item ao inventário
+      operationId: createInventoryItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInventoryItemRequest'
+      responses:
+        '201':
+          description: Item adicionado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+  /rest/v1/inventory/{itemId}:
+    get:
+      tags:
+        - Inventário
+      summary: Obter detalhes de um item do inventário
+      description: Obtém detalhes de um item específico do inventário
+      operationId: getInventoryItemById
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes do item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '404':
+          description: Item não encontrado
+    patch:
+      tags:
+        - Inventário
+      summary: Atualizar item do inventário
+      description: Atualiza dados de um item do inventário
+      operationId: updateInventoryItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInventoryItemRequest'
+      responses:
+        '200':
+          description: Item atualizado com sucesso
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Item não encontrado
+    delete:
+      tags:
+        - Inventário
+      summary: Excluir item do inventário
+      description: Remove um item do inventário
+      operationId: deleteInventoryItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Item excluído com sucesso
+        '404':
+          description: Item não encontrado
+
+  /rest/v1/inventory/logs:
+    get:
+      tags:
+        - Inventário
+      summary: Listar logs do inventário
+      description: Obtém lista de todos os logs de movimentação do inventário
+      operationId: getInventoryLogs
+      responses:
+        '200':
+          description: Lista de logs obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryLog'
+        '401':
+          description: Não autorizado
+    post:
+      tags:
+        - Inventário
+      summary: Registrar movimentação no inventário
+      description: Registra uma entrada ou saída no inventário
+      operationId: createInventoryLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInventoryLogRequest'
+      responses:
+        '201':
+          description: Log registrado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+
+components:
+  schemas:
+    # Autenticação
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+        expires_in:
+          type: integer
+        refresh_token:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+
+    # Membros
+    MemberDbResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        member_number:
+          type: string
+        is_admin:
+          type: boolean
+        is_active:
+          type: boolean
+        email:
+          type: string
+          format: email
+        phone_main:
+          type: string
+        phone_alternative:
+          type: string
+        nickname:
+          type: string
+        photo_url:
+          type: string
+        join_date:
+          type: string
+          format: date
+        member_type:
+          type: string
+          enum:
+            - Sócio Adulto
+            - Sócio Criança
+            - Administração
+            - Convidado
+        honorary_member:
+          type: boolean
+        blood_type:
+          type: string
+          enum:
+            - A+
+            - A-
+            - B+
+            - B-
+            - AB+
+            - AB-
+            - O+
+            - O-
+        in_whatsapp_group:
+          type: boolean
+        received_member_kit:
+          type: boolean
+
+    MemberExtended:
+      allOf:
+        - $ref: '#/components/schemas/MemberDbResponse'
+        - type: object
+          properties:
+            vehicles:
+              type: array
+              items:
+                $ref: '#/components/schemas/Vehicle'
+            address:
+              $ref: '#/components/schemas/Address'
+            duesPayments:
+              type: array
+              items:
+                $ref: '#/components/schemas/DuesPayment'
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        number:
+          type: string
+        district:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+
+    CreateMemberRequest:
+      type: object
+      required:
+        - name
+        - memberNumber
+        - email
+        - memberType
+      properties:
+        name:
+          type: string
+        memberNumber:
+          type: string
+        email:
+          type: string
+          format: email
+        phoneMain:
+          type: string
+        phoneAlternative:
+          type: string
+        nickname:
+          type: string
+        photoUrl:
+          type: string
+        joinDate:
+          type: string
+          format: date
+        memberType:
+          type: string
+          enum:
+            - Sócio Adulto
+            - Sócio Criança
+            - Administração
+            - Convidado
+        honoraryMember:
+          type: boolean
+        bloodType:
+          type: string
+          enum:
+            - A+
+            - A-
+            - B+
+            - B-
+            - AB+
+            - AB-
+            - O+
+            - O-
+        inWhatsappGroup:
+          type: boolean
+        receivedMemberKit:
+          type: boolean
+        isActive:
+          type: boolean
+          default: true
+        address:
+          $ref: '#/components/schemas/Address'
+
+    UpdateMemberRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phoneMain:
+          type: string
+        phoneAlternative:
+          type: string
+        nickname:
+          type: string
+        photoUrl:
+          type: string
+        memberType:
+          type: string
+          enum:
+            - Sócio Adulto
+            - Sócio Criança
+            - Administração
+            - Convidado
+        honoraryMember:
+          type: boolean
+        bloodType:
+          type: string
+          enum:
+            - A+
+            - A-
+            - B+
+            - B-
+            - AB+
+            - AB-
+            - O+
+            - O-
+        inWhatsappGroup:
+          type: boolean
+        receivedMemberKit:
+          type: boolean
+        isActive:
+          type: boolean
+        address:
+          $ref: '#/components/schemas/Address'
+
+    # Veículos
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        brand:
+          type: string
+        model:
+          type: string
+        type:
+          type: string
+          enum:
+            - moto
+            - quad
+            - buggy
+        displacement:
+          type: integer
+        nickname:
+          type: string
+        photoUrl:
+          type: string
+        memberId:
+          type: string
+          format: uuid
+
+    VehicleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        brand:
+          type: string
+        model:
+          type: string
+        type:
+          type: string
+          enum:
+            - moto
+            - quad
+            - buggy
+        displacement:
+          type: integer
+        nickname:
+          type: string
+        photo_url:
+          type: string
+        members:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            member_number:
+              type: string
+
+    CreateVehicleRequest:
+      type: object
+      required:
+        - brand
+        - model
+        - type
+        - memberId
+      properties:
+        brand:
+          type: string
+        model:
+          type: string
+        type:
+          type: string
+          enum:
+            - moto
+            - quad
+            - buggy
+        displacement:
+          type: integer
+        nickname:
+          type: string
+        photoUrl:
+          type: string
+        memberId:
+          type: string
+          format: uuid
+
+    UpdateVehicleRequest:
+      type: object
+      properties:
+        brand:
+          type: string
+        model:
+          type: string
+        type:
+          type: string
+          enum:
+            - moto
+            - quad
+            - buggy
+        displacement:
+          type: integer
+        nickname:
+          type: string
+        photoUrl:
+          type: string
+        memberId:
+          type: string
+          format: uuid
+
+    # Bar
+    BarProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Nome do produto
+        price:
+          type: number
+          description: Preço unitário
+        stock:
+          type: number
+          description: Quantidade em estoque
+        unitOfMeasure:
+          type: string
+          description: Unidade de medida (un, ml, etc.)
+        description:
+          type: string
+          description: Descrição do produto
+        category:
+          type: string
+          enum: [bebida, comida, outro]
+          description: Categoria do produto
+        imageUrl:
+          type: string
+          format: uri
+          description: URL da imagem do produto
+        inventoryId:
+          type: string
+          format: uuid
+          description: ID do item no inventário (se aplicável)
+        isActive:
+          type: boolean
+          description: Se o produto está ativo para venda
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        
+    CreateBarProductRequest:
+      type: object
+      required:
+        - name
+        - price
+        - stock
+        - unitOfMeasure
+      properties:
+        name:
+          type: string
+        price:
+          type: number
+        stock:
+          type: number
+        unitOfMeasure:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [bebida, comida, outro]
+          default: bebida
+        imageUrl:
+          type: string
+          format: uri
+        inventoryId:
+          type: string
+          format: uuid
+        isActive:
+          type: boolean
+          default: true
+
+    BarSale:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        memberId:
+          type: string
+          format: uuid
+          description: ID do membro que realizou a compra
+        totalAmount:
+          type: number
+          description: Valor total da venda
+        paymentMethod:
+          type: string
+          enum: [dinheiro, cartao, mb_way, pendente]
+          description: Método de pagamento
+        items:
+          type: array
+          description: Itens vendidos
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantity:
+                type: number
+              price:
+                type: number
+              subtotal:
+                type: number
+        createdBy:
+          type: string
+          format: uuid
+          description: ID do usuário que registrou a venda
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateBarSaleRequest:
+      type: object
+      required:
+        - paymentMethod
+        - items
+      properties:
+        paymentMethod:
+          type: string
+          enum:
+            - dinheiro
+            - mbway
+            - multibanco
+            - transferencia
+            - paypal
+        customerId:
+          type: string
+          format: uuid
+        customerName:
+          type: string
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+              - unitPrice
+            properties:
+              productId:
+                type: string
+                format: uuid
+              productName:
+                type: string
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
+                format: float
+              notes:
+                type: string
+
+    BarShift:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        member_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        schedule_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - agendada
+            - concluida
+            - cancelada
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateBarShiftRequest:
+      type: object
+      required:
+        - memberId
+        - startTime
+        - endTime
+      properties:
+        memberId:
+          type: string
+          format: uuid
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        scheduleId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - agendada
+            - concluida
+            - cancelada
+        notes:
+          type: string
+
+    # Eventos
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          description: Título do evento
+        description:
+          type: string
+          description: Descrição detalhada do evento
+        startDate:
+          type: string
+          format: date-time
+          description: Data e hora de início
+        endDate:
+          type: string
+          format: date-time
+          description: Data e hora de término
+        location:
+          type: string
+          description: Local do evento
+        type:
+          type: string
+          enum: [passeio, reuniao, festa, outro]
+          description: Tipo do evento
+        imageUrl:
+          type: string
+          format: uri
+          description: URL da imagem do evento
+        isPublic:
+          type: boolean
+          description: Se o evento é público ou só para membros
+        createdBy:
+          type: string
+          format: uuid
+          description: ID do usuário que criou o evento
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        
+    CreateEventRequest:
+      type: object
+      required:
+        - title
+        - startDate
+        - location
+        - type
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        location:
+          type: string
+        type:
+          type: string
+          enum: [passeio, reuniao, festa, outro]
+        imageUrl:
+          type: string
+          format: uri
+        isPublic:
+          type: boolean
+          default: false
+
+    UpdateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        location:
+          type: string
+        type:
+          type: string
+          enum: [passeio, reuniao, festa, outro]
+        imageUrl:
+          type: string
+          format: uri
+        isPublic:
+          type: boolean
+          default: false
+
+    # Tesouraria
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        type:
+          type: string
+          enum:
+            - receita
+            - despesa
+        amount:
+          type: number
+          format: float
+        category:
+          type: string
+        payment_method:
+          type: string
+          enum:
+            - dinheiro
+            - mbway
+            - multibanco
+            - transferencia
+            - paypal
+        created_at:
+          type: string
+          format: date-time
+
+    CreateTransactionRequest:
+      type: object
+      required:
+        - date
+        - description
+        - type
+        - amount
+        - category
+      properties:
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        type:
+          type: string
+          enum:
+            - receita
+            - despesa
+        amount:
+          type: number
+          format: float
+        category:
+          type: string
+        payment_method:
+          type: string
+          enum:
+            - dinheiro
+            - mbway
+            - multibanco
+            - transferencia
+            - paypal
+
+    DuesPayment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        member_id:
+          type: string
+          format: uuid
+        year:
+          type: integer
+        amount:
+          type: number
+          format: float
+        payment_date:
+          type: string
+          format: date
+        payment_method:
+          type: string
+          enum:
+            - dinheiro
+            - mbway
+            - multibanco
+            - transferencia
+            - paypal
+        status:
+          type: string
+          enum:
+            - pago
+            - pendente
+            - isento
+        receipt_number:
+          type: string
+        notes:
+          type: string
+
+    CreateDuesPaymentRequest:
+      type: object
+      required:
+        - memberId
+        - year
+        - amount
+        - paymentDate
+        - paymentMethod
+        - status
+      properties:
+        memberId:
+          type: string
+          format: uuid
+        year:
+          type: integer
+        amount:
+          type: number
+          format: float
+        paymentDate:
+          type: string
+          format: date
+        paymentMethod:
+          type: string
+          enum:
+            - dinheiro
+            - mbway
+            - multibanco
+            - transferencia
+            - paypal
+        status:
+          type: string
+          enum:
+            - pago
+            - pendente
+            - isento
+        receiptNumber:
+          type: string
+        notes:
+          type: string
+
+    # Administração
+    AdministrationMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        member_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum:
+            - Presidente
+            - Vice-Presidente
+            - Tesoureiro
+            - Secretária
+            - Dir. Eventos
+            - Dir. Marketing
+            - Dir. Patrimônio
+        status:
+          type: string
+          enum:
+            - Ativo
+            - Inativo
+            - Licença
+        term:
+          type: string
+        term_start:
+          type: string
+          format: date
+        term_end:
+          type: string
+          format: date
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateAdminMemberRequest:
+      type: object
+      required:
+        - memberId
+        - role
+        - term
+        - termStart
+        - termEnd
+      properties:
+        memberId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum:
+            - Presidente
+            - Vice-Presidente
+            - Tesoureiro
+            - Secretária
+            - Dir. Eventos
+            - Dir. Marketing
+            - Dir. Patrimônio
+        status:
+          type: string
+          enum:
+            - Ativo
+            - Inativo
+            - Licença
+          default: Ativo
+        term:
+          type: string
+        termStart:
+          type: string
+          format: date
+        termEnd:
+          type: string
+          format: date
+
+    # Configurações
+    Setting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        value:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateSettingRequest:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+          type: object
+
+    # Inventário
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Nome do item no inventário
+        quantity:
+          type: number
+          description: Quantidade disponível
+        unitOfMeasure:
+          type: string
+          description: Unidade de medida (un, kg, l, etc.)
+        category:
+          type: string
+          enum: [Bebida, Alimento, Limpeza, Manutenção, Evento, Escritório, Outro]
+          description: Categoria do item
+        useType:
+          type: string
+          enum: [Bar, Eventos, Manutenção, Administrativo, Outro]
+          description: Tipo de uso do item
+        imageUrl:
+          type: string
+          format: uri
+          description: URL da imagem do item
+        createdAt:
+          type: string
+          format: date-time
+          description: Data de criação do registro
+        updatedAt:
+          type: string
+          format: date-time
+          description: Data da última atualização
+    
+    CreateInventoryItemRequest:
+      type: object
+      required:
+        - name
+        - quantity
+        - unitOfMeasure
+        - category
+        - useType
+      properties:
+        name:
+          type: string
+          description: Nome do item
+        quantity:
+          type: number
+          description: Quantidade inicial
+        unitOfMeasure:
+          type: string
+          description: Unidade de medida (un, kg, l, etc.)
+        category:
+          type: string
+          enum: [Bebida, Alimento, Limpeza, Manutenção, Evento, Escritório, Outro]
+          description: Categoria do item
+        useType:
+          type: string
+          enum: [Bar, Eventos, Manutenção, Administrativo, Outro]
+          description: Tipo de uso do item
+        imageUrl:
+          type: string
+          format: uri
+          description: URL da imagem do item
+    
+    UpdateInventoryItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nome do item
+        quantity:
+          type: number
+          description: Quantidade atual
+        unitOfMeasure:
+          type: string
+          description: Unidade de medida (un, kg, l, etc.)
+        category:
+          type: string
+          enum: [Bebida, Alimento, Limpeza, Manutenção, Evento, Escritório, Outro]
+          description: Categoria do item
+        useType:
+          type: string
+          enum: [Bar, Eventos, Manutenção, Administrativo, Outro]
+          description: Tipo de uso do item
+        imageUrl:
+          type: string
+          format: uri
+          description: URL da imagem do item
+    
+    InventoryLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        inventoryItemId:
+          type: string
+          format: uuid
+          description: ID do item do inventário
+        quantity:
+          type: number
+          description: Quantidade movimentada
+        type:
+          type: string
+          enum: [entrada, saída]
+          description: Tipo de movimentação
+        reason:
+          type: string
+          description: Motivo da movimentação
+        createdBy:
+          type: string
+          format: uuid
+          description: ID do usuário que criou o registro
+        createdAt:
+          type: string
+          format: date-time
+          description: Data da movimentação
+    
+    CreateInventoryLogRequest:
+      type: object
+      required:
+        - inventoryItemId
+        - quantity
+        - type
+        - reason
+      properties:
+        inventoryItemId:
+          type: string
+          format: uuid
+          description: ID do item do inventário
+        quantity:
+          type: number
+          description: Quantidade a ser movimentada
+        type:
+          type: string
+          enum: [entrada, saída]
+          description: Tipo de movimentação
+        reason:
+          type: string
+          description: Motivo da movimentação
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

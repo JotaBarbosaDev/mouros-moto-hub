@@ -4,10 +4,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LogIn } from 'lucide-react';
+import { toast } from 'sonner';
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isResetPassword, setIsResetPassword] = useState(false);
   const { login, signup, requestPasswordReset } = useAuth();
@@ -15,11 +16,21 @@ const AuthForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isResetPassword) {
-      await requestPasswordReset(email);
+      // Para reset de senha, precisamos de um email válido
+      if (!emailOrUsername.includes('@')) {
+        toast.error('Por favor, forneça um email válido para recuperar a senha.');
+        return;
+      }
+      await requestPasswordReset(emailOrUsername);
     } else if (isLogin) {
-      await login(email, password);
+      await login(emailOrUsername, password);
     } else {
-      await signup(email, password);
+      // Para cadastro, precisamos de um email válido
+      if (!emailOrUsername.includes('@')) {
+        toast.error('Por favor, forneça um email válido para o cadastro.');
+        return;
+      }
+      await signup(emailOrUsername, password);
     }
   };
 
@@ -27,12 +38,15 @@ const AuthForm = () => {
     <div className="bg-card shadow-lg rounded-lg p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+          <label htmlFor="emailOrUsername" className="block text-sm font-medium mb-1">
+            {isLogin ? 'Email ou Nome de Usuário' : 'Email'}
+          </label>
           <Input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type={isLogin ? "text" : "email"}
+            id="emailOrUsername"
+            value={emailOrUsername}
+            onChange={(e) => setEmailOrUsername(e.target.value)}
+            placeholder={isLogin ? "nome@email.com ou usuário" : "nome@email.com"}
             required
           />
         </div>
