@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "swagger": "node swagger-server.js"
+    "swagger": "node swagger-server.js",
+    "api": "node api-server.js",
+    "consult": "open consulta-membros.html"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -45,7 +47,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "cors": "^2.8.5",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.3.0",
     "express": "^5.1.0",
     "input-otp": "^1.2.4",

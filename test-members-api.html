@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de API de Membros</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .button-group {
+            margin: 10px 0;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.secondary {
+            background-color: #2196F3;
+        }
+        button.secondary:hover {
+            background-color: #0b7dda;
+        }
+        button.danger {
+            background-color: #f44336;
+        }
+        button.danger:hover {
+            background-color: #d32f2f;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        textarea {
+            height: 100px;
+            font-family: monospace;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #eee;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #f9f9f9;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Teste de API de Membros</h1>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('basic-tab')">Testes Básicos</div>
+        <div class="tab" onclick="showTab('create-tab')">Criar Membro</div>
+        <div class="tab" onclick="showTab('get-tab')">Buscar Membro</div>
+        <div class="tab" onclick="showTab('update-tab')">Atualizar Membro</div>
+        <div class="tab" onclick="showTab('delete-tab')">Excluir Membro</div>
+        <div class="tab" onclick="showTab('advanced-tab')">Avançado</div>
+    </div>
+
+    <div id="basic-tab" class="tab-content active section">
+        <h2>Testes Básicos</h2>
+        <div class="button-group">
+            <button onclick="testLocalEndpoint()">Listar Todos os Membros (/v1/members)</button>
+            <button onclick="testAlternativeEndpoint()">Rota Alternativa (/api/members)</button>
+            <button onclick="testPingEndpoint()">Testar Ping (/api/ping)</button>
+            <button class="secondary" onclick="testDirectSupabase()">Testar Supabase Direto</button>
+        </div>
+    </div>
+
+    <div id="create-tab" class="tab-content section">
+        <h2>Criar um Novo Membro</h2>
+        <div class="form-group">
+            <label for="create-name">Nome:</label>
+            <input type="text" id="create-name" placeholder="Nome do membro">
+            
+            <label for="create-email">Email:</label>
+            <input type="email" id="create-email" placeholder="email@exemplo.com">
+            
+            <label for="create-phone">Telefone:</label>
+            <input type="text" id="create-phone" placeholder="(00) 00000-0000">
+            
+            <label for="create-address">Endereço:</label>
+            <input type="text" id="create-address" placeholder="Rua, número, bairro, cidade, estado">
+            
+            <label for="create-membership-type">Tipo de Associação:</label>
+            <input type="text" id="create-membership-type" placeholder="Regular, Premium, etc">
+            
+            <label for="create-join-date">Data de Entrada:</label>
+            <input type="date" id="create-join-date">
+            
+            <label for="create-additional">Dados Adicionais (JSON):</label>
+            <textarea id="create-additional" placeholder='{"campo1": "valor1", "campo2": "valor2"}'></textarea>
+        </div>
+        <div class="button-group">
+            <button onclick="createMember()">Criar Membro</button>
+            <button onclick="clearCreateForm()">Limpar Formulário</button>
+        </div>
+    </div>
+
+    <div id="get-tab" class="tab-content section">
+        <h2>Buscar Membro por ID</h2>
+        <div class="form-group">
+            <label for="get-member-id">ID do Membro:</label>
+            <input type="text" id="get-member-id" placeholder="c63cdd7e-1b9e-4121-988b-5682d7fd5a79">
+        </div>
+        <div class="button-group">
+            <button onclick="getMemberById()">Buscar Membro</button>
+        </div>
+    </div>
+
+    <div id="update-tab" class="tab-content section">
+        <h2>Atualizar Membro</h2>
+        <div class="form-group">
+            <label for="update-member-id">ID do Membro:</label>
+            <input type="text" id="update-member-id" placeholder="c63cdd7e-1b9e-4121-988b-5682d7fd5a79">
+            
+            <button onclick="loadMemberForUpdate()">Carregar Dados do Membro</button>
+            
+            <hr>
+            
+            <label for="update-name">Nome:</label>
+            <input type="text" id="update-name" placeholder="Nome do membro">
+            
+            <label for="update-email">Email:</label>
+            <input type="email" id="update-email" placeholder="email@exemplo.com">
+            
+            <label for="update-phone">Telefone:</label>
+            <input type="text" id="update-phone" placeholder="(00) 00000-0000">
+            
+            <label for="update-address">Endereço:</label>
+            <input type="text" id="update-address" placeholder="Rua, número, bairro, cidade, estado">
+            
+            <label for="update-membership-type">Tipo de Associação:</label>
+            <input type="text" id="update-membership-type" placeholder="Regular, Premium, etc">
+            
+            <label for="update-join-date">Data de Entrada:</label>
+            <input type="date" id="update-join-date">
+            
+            <label for="update-additional">Dados Adicionais (JSON):</label>
+            <textarea id="update-additional" placeholder='{"campo1": "valor1", "campo2": "valor2"}'></textarea>
+        </div>
+        <div class="button-group">
+            <button onclick="updateMember('PUT')">Atualizar Completo (PUT)</button>
+            <button onclick="updateMember('PATCH')">Atualizar Parcial (PATCH)</button>
+        </div>
+    </div>
+
+    <div id="delete-tab" class="tab-content section">
+        <h2>Excluir Membro</h2>
+        <div class="form-group">
+            <label for="delete-member-id">ID do Membro:</label>
+            <input type="text" id="delete-member-id" placeholder="c63cdd7e-1b9e-4121-988b-5682d7fd5a79">
+        </div>
+        <div class="button-group">
+            <button class="danger" onclick="deleteMember()">Excluir Membro</button>
+        </div>
+    </div>
+
+    <div id="advanced-tab" class="tab-content section">
+        <h2>Operações Avançadas</h2>
+        <div class="form-group">
+            <label for="custom-endpoint">Endpoint Personalizado:</label>
+            <input type="text" id="custom-endpoint" value="/v1/members" placeholder="Caminho do endpoint">
+            
+            <label for="custom-method">Método HTTP:</label>
+            <select id="custom-method">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+            </select>
+            
+            <label for="custom-body">Corpo da Requisição (JSON):</label>
+            <textarea id="custom-body" placeholder='{"campo1": "valor1", "campo2": "valor2"}'></textarea>
+        </div>
+        <div class="button-group">
+            <button class="secondary" onclick="sendCustomRequest()">Enviar Requisição</button>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Resultado</h2>
+        <pre id="resultado">Clique em um dos botões para testar...</pre>
+    </div>
+    
+    <script>
+        // Função para mostrar uma tab
+        function showTab(tabId) {
+            // Esconder todas as tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar a tab selecionada
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
+        }
+        
+        // Função para exibir resultado
+        function displayResult(result, title = 'Resultado') {
+            const resultElement = document.getElementById('resultado');
+            
+            if (typeof result === 'object') {
+                resultElement.textContent = `=== ${title} ===\n\n${JSON.stringify(result, null, 2)}`;
+            } else {
+                resultElement.textContent = `=== ${title} ===\n\n${result}`;
+            }
+        }
+        
+        // Função para lidar com erros
+        async function handleFetchResponse(response, operation = 'Operação') {
+            const contentType = response.headers.get('content-type');
+            
+            if (!response.ok) {
+                let errorText;
+                try {
+                    if (contentType && contentType.includes('application/json')) {
+                        errorText = await response.json();
+                    } else {
+                        errorText = await response.text();
+                    }
+                } catch (e) {
+                    errorText = `Erro ao processar resposta: ${e.message}`;
+                }
+                
+                displayResult({
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorText
+                }, `Erro: ${operation} (${response.status})`);
+                return null;
+            }
+            
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            } else {
+                return await response.text();
+            }
+        }
+        
+        // === TESTES BÁSICOS ===
+        
+        // Função para testar o endpoint local
+        async function testLocalEndpoint() {
+            displayResult('Consultando endpoint local (/v1/members)...', 'Requisição');
+            
+            try {
+                const response = await fetch('http://localhost:3000/v1/members');
+                const data = await handleFetchResponse(response, 'Listar Membros');
+                
+                if (data) {
+                    displayResult(data, `Membros (${data.length} encontrados)`);
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // Função para testar o endpoint alternativo
+        async function testAlternativeEndpoint() {
+            displayResult('Consultando endpoint alternativo (/api/members)...', 'Requisição');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/members');
+                const data = await handleFetchResponse(response, 'Listar Membros (Alternativo)');
+                
+                if (data) {
+                    displayResult(data, `Membros (${data.length} encontrados)`);
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // Função para testar o endpoint de ping
+        async function testPingEndpoint() {
+            displayResult('Consultando endpoint de ping (/api/ping)...', 'Requisição');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/ping');
+                const data = await handleFetchResponse(response, 'Ping');
+                
+                if (data) {
+                    displayResult(data, 'Ping');
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // Função para testar o Supabase diretamente
+        async function testDirectSupabase() {
+            displayResult('Consultando Supabase diretamente...', 'Requisição');
+            
+            // Estas chaves devem ser substituídas em um ambiente de produção
+            const supabaseUrl = 'https://jugfkacnlgdjdosstiks.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Z2ZrYWNubGdkamRvc3N0aWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MDkzMzAsImV4cCI6MjA2MTA4NTMzMH0.PL8pg93wAVTl3kUoe-mfK7kGdjW6ytXapAiy-mpxk78';
+            
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/members?select=*`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await handleFetchResponse(response, 'Consulta Direta Supabase');
+                
+                if (data) {
+                    displayResult(data, `Membros Direto (${data.length} encontrados)`);
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // === CRIAR MEMBRO ===
+        
+        // Função para criar um novo membro
+        async function createMember() {
+            const name = document.getElementById('create-name').value;
+            const email = document.getElementById('create-email').value;
+            
+            if (!name || !email) {
+                return displayResult('Nome e email são obrigatórios!', 'Erro de Validação');
+            }
+            
+            const phone = document.getElementById('create-phone').value;
+            const address = document.getElementById('create-address').value;
+            const membershipType = document.getElementById('create-membership-type').value;
+            const joinDate = document.getElementById('create-join-date').value;
+            
+            let additionalData = {};
+            try {
+                const additionalText = document.getElementById('create-additional').value;
+                if (additionalText.trim()) {
+                    additionalData = JSON.parse(additionalText);
+                }
+            } catch (e) {
+                return displayResult(`Erro ao processar dados adicionais: ${e.message}`, 'Erro JSON');
+            }
+            
+            const memberData = {
+                name,
+                email,
+                phone: phone || null,
+                address: address || null,
+                membership_type: membershipType || 'Regular',
+                join_date: joinDate || new Date().toISOString().split('T')[0],
+                ...additionalData
+            };
+            
+            displayResult(`Criando novo membro: ${name}...`, 'Requisição');
+            
+            try {
+                const response = await fetch('http://localhost:3000/v1/members', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(memberData)
+                });
+                
+                const data = await handleFetchResponse(response, 'Criar Membro');
+                
+                if (data) {
+                    displayResult(data, 'Membro Criado');
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // Função para limpar o formulário de criação
+        function clearCreateForm() {
+            document.getElementById('create-name').value = '';
+            document.getElementById('create-email').value = '';
+            document.getElementById('create-phone').value = '';
+            document.getElementById('create-address').value = '';
+            document.getElementById('create-membership-type').value = '';
+            document.getElementById('create-join-date').value = '';
+            document.getElementById('create-additional').value = '';
+        }
+        
+        // === BUSCAR MEMBRO ===
+        
+        // Função para buscar membro por ID
+        async function getMemberById() {
+            const memberId = document.getElementById('get-member-id').value;
+            
+            if (!memberId) {
+                return displayResult('ID do membro é obrigatório!', 'Erro de Validação');
+            }
+            
+            displayResult(`Buscando membro com ID: ${memberId}...`, 'Requisição');
+            
+            try {
+                const response = await fetch(`http://localhost:3000/v1/members/${memberId}`);
+                const data = await handleFetchResponse(response, 'Buscar Membro');
+                
+                if (data) {
+                    displayResult(data, 'Membro Encontrado');
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // === ATUALIZAR MEMBRO ===
+        
+        // Função para carregar dados do membro para atualização
+        async function loadMemberForUpdate() {
+            const memberId = document.getElementById('update-member-id').value;
+            
+            if (!memberId) {
+                return displayResult('ID do membro é obrigatório!', 'Erro de Validação');
+            }
+            
+            displayResult(`Carregando dados do membro ${memberId}...`, 'Requisição');
+            
+            try {
+                const response = await fetch(`http://localhost:3000/v1/members/${memberId}`);
+                const data = await handleFetchResponse(response, 'Carregar Membro');
+                
+                if (data) {
+                    // Preencher o formulário com os dados do membro
+                    document.getElementById('update-name').value = data.name || '';
+                    document.getElementById('update-email').value = data.email || '';
+                    document.getElementById('update-phone').value = data.phone || '';
+                    document.getElementById('update-address').value = data.address || '';
+                    document.getElementById('update-membership-type').value = data.membership_type || '';
+                    
+                    if (data.join_date) {
+                        const joinDate = new Date(data.join_date);
+                        document.getElementById('update-join-date').value = joinDate.toISOString().split('T')[0];
+                    }
+                    
+                    // Remover campos que não devem ser editados para os dados adicionais
+                    const additionalData = {...data};
+                    delete additionalData.id;
+                    delete additionalData.name;
+                    delete additionalData.email;
+                    delete additionalData.phone;
+                    delete additionalData.address;
+                    delete additionalData.membership_type;
+                    delete additionalData.join_date;
+                    delete additionalData.created_at;
+                    delete additionalData.updated_at;
+                    
+                    document.getElementById('update-additional').value = JSON.stringify(additionalData, null, 2);
+                    
+                    displayResult(data, 'Dados Carregados');
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // Função para atualizar membro
+        async function updateMember(method) {
+            const memberId = document.getElementById('update-member-id').value;
+            
+            if (!memberId) {
+                return displayResult('ID do membro é obrigatório!', 'Erro de Validação');
+            }
+            
+            const name = document.getElementById('update-name').value;
+            const email = document.getElementById('update-email').value;
+            
+            if (method === 'PUT' && (!name || !email)) {
+                return displayResult('Nome e email são obrigatórios para atualização completa!', 'Erro de Validação');
+            }
+            
+            const phone = document.getElementById('update-phone').value;
+            const address = document.getElementById('update-address').value;
+            const membershipType = document.getElementById('update-membership-type').value;
+            const joinDate = document.getElementById('update-join-date').value;
+            
+            let additionalData = {};
+            try {
+                const additionalText = document.getElementById('update-additional').value;
+                if (additionalText.trim()) {
+                    additionalData = JSON.parse(additionalText);
+                }
+            } catch (e) {
+                return displayResult(`Erro ao processar dados adicionais: ${e.message}`, 'Erro JSON');
+            }
+            
+            // Construir objeto de dados com base no método
+            let memberData = {};
+            
+            if (method === 'PUT') {
+                // Atualização completa - todos os campos são necessários
+                memberData = {
+                    name,
+                    email,
+                    phone: phone || null,
+                    address: address || null,
+                    membership_type: membershipType || 'Regular',
+                    join_date: joinDate || new Date().toISOString().split('T')[0],
+                    ...additionalData
+                };
+            } else {
+                // Atualização parcial - apenas campos fornecidos
+                if (name) memberData.name = name;
+                if (email) memberData.email = email;
+                if (phone) memberData.phone = phone;
+                if (address) memberData.address = address;
+                if (membershipType) memberData.membership_type = membershipType;
+                if (joinDate) memberData.join_date = joinDate;
+                
+                // Adicionar campos extras
+                Object.assign(memberData, additionalData);
+            }
+            
+            displayResult(`${method === 'PUT' ? 'Atualizando' : 'Atualizando parcialmente'} membro ${memberId}...`, 'Requisição');
+            
+            try {
+                const response = await fetch(`http://localhost:3000/v1/members/${memberId}`, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(memberData)
+                });
+                
+                const data = await handleFetchResponse(response, `${method === 'PUT' ? 'Atualização' : 'Atualização Parcial'}`);
+                
+                if (data) {
+                    displayResult(data, 'Membro Atualizado');
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // === EXCLUIR MEMBRO ===
+        
+        // Função para excluir membro
+        async function deleteMember() {
+            const memberId = document.getElementById('delete-member-id').value;
+            
+            if (!memberId) {
+                return displayResult('ID do membro é obrigatório!', 'Erro de Validação');
+            }
+            
+            if (!confirm(`Tem certeza que deseja excluir o membro com ID ${memberId}?`)) {
+                return;
+            }
+            
+            displayResult(`Excluindo membro ${memberId}...`, 'Requisição');
+            
+            try {
+                const response = await fetch(`http://localhost:3000/v1/members/${memberId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await handleFetchResponse(response, 'Excluir Membro');
+                
+                if (data) {
+                    displayResult(data, 'Membro Excluído');
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+        
+        // === REQUISIÇÃO PERSONALIZADA ===
+        
+        // Função para enviar uma requisição personalizada
+        async function sendCustomRequest() {
+            const endpoint = document.getElementById('custom-endpoint').value;
+            const method = document.getElementById('custom-method').value;
+            const bodyText = document.getElementById('custom-body').value;
+            
+            let body = null;
+            let hasBody = method !== 'GET' && method !== 'DELETE';
+            
+            if (hasBody && bodyText.trim()) {
+                try {
+                    body = JSON.parse(bodyText);
+                } catch (e) {
+                    return displayResult(`Erro ao processar corpo da requisição: ${e.message}`, 'Erro JSON');
+                }
+            }
+            
+            displayResult(`Enviando requisição ${method} para ${endpoint}...`, 'Requisição Personalizada');
+            
+            try {
+                const options = {
+                    method: method,
+                    headers: {}
+                };
+                
+                if (hasBody) {
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(body);
+                }
+                
+                const response = await fetch(`http://localhost:3000${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`, options);
+                const data = await handleFetchResponse(response, `${method} ${endpoint}`);
+                
+                if (data) {
+                    displayResult(data, 'Resposta Personalizada');
+                }
+            } catch (error) {
+                displayResult(`Erro: ${error.message}`, 'Exceção');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -35,6 +35,13 @@ interface SupabaseMemberResponse {
   in_whatsapp_group?: boolean;
   received_member_kit?: boolean;
   username?: string;
+  legacy_member?: boolean;
+  registration_fee_paid?: boolean;
+  registration_fee_exempt?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  // Campos adicionais que possam existir no banco de dados
+  [key: string]: any;
 }
 
 // Tipo para endereços retornados do Supabase
@@ -104,10 +111,10 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
     // Busca os membros com todas as colunas disponíveis na tabela members
     // Não incluímos username pois sabemos que a coluna não existe
     
-    // Usando asserção de tipo em vez de @ts-expect-error
+    // Usando select * para obter todas as colunas, incluindo username e quaisquer outras que possam ser adicionadas no futuro
     const { data: membersData, error } = await (supabase
       .from('members')
-      .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit, legacy_member, registration_fee_paid, registration_fee_exempt')
+      .select('*')
       .order('name') as unknown as SupabaseResponse<SupabaseMemberResponse[]>);
 
     if (error) {
@@ -160,18 +167,17 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
             
           // Cria variável para username, tentando diferentes abordagens
           let username = '';
-          try {
-            // Verificação segura para propriedade que pode não existir no tipo
-            const memberObj = member as unknown as Record<string, unknown>;
-            if ('username' in memberObj) {
-              username = String(memberObj.username || '');
-            }
-          } catch (e) {
+          // Com select * o campo username estará disponível se existir na tabela
+          if (member.username) {
+            username = String(member.username);
+            console.log(`Username encontrado no banco: ${username}`);
+          } else {
             console.warn("Username não encontrado para o membro:", member.id);
-          }
-
-          if (!username && member.email) {
-            username = member.email.split('@')[0];
+            
+            if (member.email) {
+              username = member.email.split('@')[0];
+              console.log(`Username derivado do email: ${username}`);
+            }
           }
           
           // Mapeia veículos usando a função utilitária
@@ -206,9 +212,9 @@ export const getMembersFromDb = async (): Promise<MemberExtended[]> => {
             // Use actual address data if available, otherwise provide default empty values
             address: mapAddressFromSupabase(addressData),
             bloodType: member.blood_type as BloodType | undefined,
-            legacyMember: false,
-            registrationFeePaid: false,
-            registrationFeeExempt: false,
+            legacyMember: member.legacy_member || false,
+            registrationFeePaid: member.registration_fee_paid || false,
+            registrationFeeExempt: member.registration_fee_exempt || false,
             inWhatsAppGroup: member.in_whatsapp_group || false,
             receivedMemberKit: member.received_member_kit || false,
             username: username, // Username tratado acima
@@ -443,11 +449,19 @@ const mapToMemberExtended = (member: Record<string, unknown>, memberData: Partia
     username: member.username as string | undefined
   };
   
-  // Determinar username
-  const username = 
-    memberResponse.username || 
-    memberData.username || 
-    (memberResponse.email?.split('@')[0] || '');
+  // Determinar username, priorizando o valor do banco de dados
+  let username = '';
+  
+  if (memberResponse.username) {
+    username = memberResponse.username;
+    console.log(`Usando username do banco: ${username}`);
+  } else if (memberData.username) {
+    username = memberData.username;
+    console.log(`Usando username fornecido: ${username}`);
+  } else if (memberResponse.email) {
+    username = memberResponse.email.split('@')[0];
+    console.log(`Username derivado do email: ${username}`);
+  }
     
   // Mapear para o formato extendido
   return {

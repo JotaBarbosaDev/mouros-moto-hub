@@ -2,42 +2,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.29.0';
 
-// Definição de tipo TypeScript para o cliente Supabase
-// Isso ajuda a resolver problemas de tipo com as funções Edge
-type SupabaseAdmin = {
-  auth: {
-    getUser: (token: string) => Promise<{ 
-      data: { user: { id: string; email: string; user_metadata: Record<string, unknown> } | null };
-      error: Error | null;
-    }>;
-    admin: {
-      getUserById: (id: string) => Promise<{
-        data: { user: { id: string; email: string; user_metadata: Record<string, unknown> } | null };
-        error: Error | null;
-      }>;
-      updateUserById: (id: string, attrs: Record<string, unknown>) => Promise<{
-        data: unknown;
-        error: Error | null;
-      }>;
-    };
-  };
-  from: (table: string) => {
-    select: (columns?: string) => any;
-    insert: (data: Record<string, unknown>) => any;
-    update: (data: Record<string, unknown>) => any;
-    delete: () => any;
-    eq: (column: string, value: string) => any;
-    single: () => Promise<{ data: any; error: Error | null }>;
-  };
-  postgres: {
-    query: (query: string, params?: any[]) => Promise<{
-      data: any[] | null;
-      error: Error | null;
-      count?: number;
-    }>;
-  };
-}
-
 // Esse arquivo define funções Edge que podem ser chamadas pelo frontend
 // com segurança, uma vez que vão rodar com as permissões de SERVICE_ROLE
 // e não com as permissões limitadas do cliente anônimo
@@ -275,15 +239,6 @@ async function updateUserPassword(supabase, { userId, password }) {
       return { error: { message: 'Usuário não encontrado com este ID' } };
     }
     
-    // Log para diagnóstico (sem mostrar a senha em si)
-    console.log('Características da senha:', { 
-      length: password.length,
-      hasSpecialChars: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-      hasUppercase: /[A-Z]/.test(password),
-      hasNumbers: /[0-9]/.test(password)
-    });
-    
-    // Usar a senha exatamente como fornecida, sem qualquer modificação
     const { data, error } = await supabase.auth.admin.updateUserById(userId, {
       password
     });
@@ -315,10 +270,8 @@ async function updateUserMetadata(supabase, { userId, metadata }) {
       console.log("- Username recebido:", JSON.stringify(metadata.username));
       console.log("- Tipo de dado:", typeof metadata.username);
       console.log("- Comprimento:", metadata.username.length);
-      console.log("- Contém caracteres especiais?", /[!@#$%^&*(),.?":{}|<>]/.test(metadata.username));
-      console.log("- Contém maiúsculas?", /[A-Z]/.test(metadata.username));
-      console.log("- Contém números?", /[0-9]/.test(metadata.username));
-      console.log("- Caracteres (para diagnóstico):", [...metadata.username].map(c => c.charCodeAt(0)).join(", "));
+      console.log("- Contém pontos?", metadata.username.includes("."));
+      console.log("- Caracteres:", [...metadata.username].map(c => c.charCodeAt(0)).join(", "));
     }
     
     // Verificar se o usuário existe antes de tentar atualizar
@@ -341,20 +294,23 @@ async function updateUserMetadata(supabase, { userId, metadata }) {
     // Cria uma cópia segura dos metadados para não modificar o objeto original
     const metadataCopy = { ...metadata };
     
-    // Garantir que o username está preservado exatamente como foi enviado
+    // Garantir que o username está no formato correto
     if (metadataCopy.username) {
-      // Obtém o username original - sem aplicar transformações
+      // Verifica se o username está sendo transformado incorretamente
       const originalUsername = String(metadataCopy.username);
       
-      // Log para verificação da preservação
-      console.log("Username recebido (será preservado sem modificações):", originalUsername);
+      // Log para preservação do formato original
+      console.log("Username antes do filtro:", originalUsername);
       
-      // Chama filterUsername apenas para registrar informações de diagnóstico, 
-      // mas usa o valor original
-      filterUsername(originalUsername);
+      // ⭐ NOVO: Aplicar filtro para corrigir transformações incorretas
+      metadataCopy.username = filterUsername(originalUsername);
       
-      // Garante que usamos o username exatamente como foi recebido
-      metadataCopy.username = originalUsername;
+      console.log("Username após filtro:", metadataCopy.username);
+      
+      // Se houve mudança, significa que detectamos e corrigimos uma transformação incorreta
+      if (metadataCopy.username !== originalUsername) {
+        console.log("⚠️ Transformação incorreta detectada e corrigida!");
+      }
     }
     
     const mergedMetadata = { ...existingMetadata, ...metadataCopy };

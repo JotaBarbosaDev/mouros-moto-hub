@@ -20,6 +20,7 @@ import { EditMemberFormValues, editMemberSchema } from "./MemberFormTypes";
 import { CustomSupabaseClient } from "@/types/custom-supabase";
 // Importamos o serviço diretamente para evitar importação dinâmica
 import { userAuthService } from "@/services/user-auth-service";
+import { UsernameDebugger } from '../debug/UsernameDebugger';
 
 interface EditMemberDialogProps {
   member: Member | null;
@@ -442,31 +443,57 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       
       // Se temos um username, atualizamos os metadados do usuário na auth
       if (values.username && values.username !== member.username) {
-        console.info("Atualizando username nos metadados do usuário:", values.username);
+        console.info("Username original:", member.username);
+        console.info("Novo username fornecido:", values.username);
+        console.info("Comparação:", { original: member.username, novo: values.username, sãoIguais: values.username === member.username });
         
         try {
-          // Atualiza os metadados do usuário com o novo username usando a função Edge
-          const { error: metadataError } = await userAuthService.updateUserMetadata(
-            member.id, 
-            {
-              username: values.username,
-              // Mantém outros metadados que podem existir
-              name: member.name
-            }
-          );
+          // Log detalhado para verificação do formato
+          console.log("DIAGNÓSTICO DE USERNAME:");
+          console.log("- Username original:", JSON.stringify(member.username));
+          console.log("- Novo username:", JSON.stringify(values.username));
+          console.log("- Contém pontos?", values.username.includes("."));
+          console.log("- Caracteres:", [...values.username].join(", "));
           
-          if (metadataError) {
-            console.error("Erro ao atualizar username nos metadados:", metadataError);
-            toast({
-              title: "Aviso",
-              description: "Não foi possível atualizar o nome de usuário.",
-              variant: "default",
-            });
-          } else {
-            console.log("Username atualizado com sucesso nos metadados");
+          // Tenta até 3 vezes atualizar os metadados do usuário
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            console.log(`Tentativa ${attempt} de atualizar username nos metadados...`);
+            
+            const { error: metadataError } = await userAuthService.updateUserMetadata(
+              member.id, 
+              {
+                username: values.username,
+                // Mantém outros metadados que podem existir
+                name: member.name
+              }
+            );
+            
+            if (!metadataError) {
+              console.log("Username atualizado com sucesso nos metadados");
+              break; // Se não houve erro, sai do loop
+            } else {
+              console.error(`Erro na tentativa ${attempt} de atualizar username:`, metadataError);
+              
+              // Se foi a última tentativa, avisa o usuário
+              if (attempt === 3) {
+                toast({
+                  title: "Aviso",
+                  description: "Não foi possível atualizar o nome de usuário após várias tentativas.",
+                  variant: "destructive",
+                });
+              } else {
+                // Espera um segundo antes da próxima tentativa
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
           }
         } catch (err) {
           console.warn("Erro ao atualizar username nos metadados:", err);
+          toast({
+            title: "Erro",
+            description: "Ocorreu um erro ao tentar atualizar o nome de usuário.",
+            variant: "destructive",
+          });
           // Continuamos mesmo se falhar a atualização dos metadados
         }
       }
@@ -475,28 +502,45 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       if (values.password) {
         console.info("Senha fornecida, atualizando...");
         try {
-          // Atualiza a senha do usuário usando a função Edge
-          const { error: resetError } = await userAuthService.updateUserPassword(
-            member.id,
-            values.password
-          );
-          
-          if (resetError) {
-            console.error("Erro ao atualizar senha:", resetError);
-            toast({
-              title: "Aviso",
-              description: "Não foi possível atualizar a senha do usuário.",
-              variant: "default",
-            });
-          } else {
-            toast({
-              title: "Sucesso",
-              description: "Senha atualizada com sucesso.",
-              variant: "default",
-            });
+          // Tenta até 3 vezes atualizar a senha do usuário
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            console.log(`Tentativa ${attempt} de atualizar a senha...`);
+            
+            const { error: resetError } = await userAuthService.updateUserPassword(
+              member.id,
+              values.password
+            );
+            
+            if (!resetError) {
+              toast({
+                title: "Sucesso",
+                description: "Senha atualizada com sucesso.",
+                variant: "default",
+              });
+              break; // Se não houve erro, sai do loop
+            } else {
+              console.error(`Erro na tentativa ${attempt} de atualizar senha:`, resetError);
+              
+              // Se foi a última tentativa, avisa o usuário
+              if (attempt === 3) {
+                toast({
+                  title: "Erro",
+                  description: "Não foi possível atualizar a senha após várias tentativas.",
+                  variant: "destructive",
+                });
+              } else {
+                // Espera um segundo antes da próxima tentativa
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
           }
         } catch (err) {
           console.warn("Erro ao atualizar senha:", err);
+          toast({
+            title: "Erro",
+            description: "Ocorreu um erro ao tentar atualizar a senha.",
+            variant: "destructive",
+          });
         }
       }
       
@@ -650,32 +694,21 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
               handleDuesPaymentChange={handleDuesPaymentChange}
             />
             
-            <DialogFooter>
+            <div className="flex justify-end mt-6">
               <Button 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                type="button"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit"
+                type="submit" 
                 disabled={isSubmitting}
+                className="min-w-24"
               >
-                {isSubmitting ? "A guardar..." : "Guardar"}
+                {isSubmitting ? "Salvando..." : "Salvar"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
+        
+        {/* Componente de Debug de Username */}
+        <UsernameDebugger userId={member.id} originalUsername={member.username || ''} />
       </DialogContent>
-      
-      {isAddVehicleOpen && (
-        <AddVehicleDialog
-          open={isAddVehicleOpen}
-          onOpenChange={setIsAddVehicleOpen}
-          onSave={handleAddVehicle}
-        />
-      )}
-    </Dialog>
-  );
-}
+      </Dialog>
+    );
+  };

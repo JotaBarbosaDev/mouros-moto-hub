@@ -19,6 +19,7 @@ Plataforma completa de gerenciamento para o moto clube "Os Mouros", oferecendo f
 - [⚙️ Instalação e Uso](#️-instalação-e-uso)
 - [📊 Estrutura do Projeto](#-estrutura-do-projeto)
 - [🔒 Autenticação](#-autenticação)
+- [🔍 Consultando Membros](#-consultando-membros)
 - [📷 Screenshots](#-screenshots)
 - [👥 Contribuidores](#-contribuidores)
 - [📄 Licença](#-licença)
@@ -72,6 +73,7 @@ O projeto é construído com um stack moderno de tecnologias:
 
 - **Backend**:
   - [Supabase](https://supabase.io/) - Backend-as-a-Service com autenticação e banco de dados
+  - [Express](https://expressjs.com/) - Framework para APIs REST
 
 ## ⚙️ Instalação e Uso
 
@@ -81,62 +83,138 @@ O projeto é construído com um stack moderno de tecnologias:
 
 ### Instalação
 
-1. Clone o repositório
+1. **Clone o repositório**
    ```bash
    git clone https://github.com/seuusuario/mouros-moto-hub.git
    cd mouros-moto-hub
    ```
 
-2. Instale as dependências
+2. **Instale as dependências**
    ```bash
-   # Usando npm
    npm install
-   
-   # Usando bun
-   bun install
    ```
 
-3. Configure as variáveis de ambiente
-   ```bash
-   cp .env.example .env.local
-   # Edite o arquivo .env.local com suas credenciais do Supabase
+3. **Configure as variáveis de ambiente**
+   Edite o arquivo `.env` com suas credenciais:
+   ```env
+   VITE_SUPABASE_URL=https://jugfkacnlgdjdosstiks.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Z2ZrYWNubGdkamRvc3N0aWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MDkzMzAsImV4cCI6MjA2MTA4NTMzMH0.PL8pg93wAVTl3kUoe-mfK7kGdjW6ytXapAiy-mpxk78
+   VITE_SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Z2ZrYWNubGdkamRvc3N0aWtzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTUwOTMzMCwiZXhwIjoyMDYxMDg1MzMwfQ.C2HRez4LljpctZPwLVTJUBvHjEaT79byefQRAb0MYwE
    ```
 
-4. Inicie o servidor de desenvolvimento
+4. **Execute o projeto em desenvolvimento**
    ```bash
    npm run dev
-   # ou
-   bun dev
    ```
 
-5. Acesse o site em `http://localhost:5173`
+5. **Iniciar o servidor de API**
+   ```bash
+   npm run api
+   ```
+
+6. **Consultar dados dos membros via navegador**
+   ```bash
+   npm run consult
+   ```
+
+7. **Build para produção**
+   ```bash
+   npm run build
+   ```
+
+## 🔍 Consultando Membros
+
+A aplicação fornece várias maneiras de consultar os dados de membros:
+
+### Interface HTML (consulta-membros.html)
+
+Uma interface web simples para consultar membros através da API Supabase:
+
+1. Execute `npm run consult` para abrir no navegador
+2. Os dados de conexão já estão pré-configurados
+3. Use os botões para testar diferentes consultas:
+   - **Buscar Membros**: Lista os primeiros 5 membros
+   - **Dados Brutos**: Mostra a estrutura completa da tabela
+   - **Dados Processados**: Mostra o objeto MemberExtended processado
+
+### API REST (api-server.js)
+
+Um servidor Express que fornece endpoints para consulta de membros:
+
+1. Execute `npm run api` para iniciar o servidor
+2. Acesse os endpoints:
+   - `GET http://localhost:3000/api/members` - Retorna membros brutos
+   - `GET http://localhost:3000/api/members-extended` - Retorna membros processados
+
+### Programaticamente
+
+Você pode consultar membros diretamente através do Supabase em seu código:
+
+```typescript
+import { supabase } from '@/integrations/supabase/client';
+
+// Buscar membros
+const { data, error } = await supabase
+  .from('members')
+  .select('*')
+  .limit(10);
+```
 
 ## 📊 Estrutura do Projeto
 
 ```
 mouros-moto-hub/
-├── public/                # Arquivos estáticos
+├── public/               # Arquivos estáticos e placeholders
 ├── src/
-│   ├── components/        # Componentes React reutilizáveis
-│   ├── pages/             # Páginas da aplicação
-│   ├── hooks/             # Custom hooks React
-│   ├── data/              # Dados estáticos/mock
-│   ├── integrations/      # Integração com serviços externos
-│   ├── utils/             # Funções utilitárias
-│   ├── lib/               # Bibliotecas e configurações
-│   ├── types/             # Definições de tipos TypeScript
-│   ├── App.tsx            # Componente principal da aplicação
-│   └── main.tsx           # Ponto de entrada da aplicação
-├── supabase/              # Configurações do Supabase
-└── ...                    # Arquivos de configuração
+│   ├── components/       # Componentes React reutilizáveis
+│   ├── pages/            # Páginas da aplicação
+│   ├── hooks/            # Custom hooks React
+│   │   ├── use-members.ts # Hook para acessar dados de membros
+│   │   └── _backups/     # Versões antigas de hooks (para referência)
+│   ├── integrations/     # Integração com serviços externos
+│   │   └── supabase/     # Cliente e configurações do Supabase
+│   ├── services/         # Serviços para lógica de negócios
+│   │   ├── member-service-robust.ts # Serviço robusto para gerenciamento de membros
+│   │   └── _backups/     # Versões antigas de serviços (para referência)
+│   └── types/            # Definições de tipos TypeScript
+│       └── member-extended.ts # Tipo para membros com relações
+├── supabase/             # Código do backend Supabase
+│   ├── functions/        # Funções Edge (serverless)
+│   │   ├── user-management/ # Função para gerenciamento de usuários
+│   │   ├── list-users/   # Função para listar usuários
+│   │   └── _backups/     # Versões antigas de funções (para referência)
+│   └── migrations/       # Migrações SQL para o banco de dados
+├── _tests/               # Scripts de teste e utilitários
+│   ├── teste-api-membros.js      # Teste básico da API de membros
+│   ├── verificar-username.js     # Verifica se o campo username está sendo retornado
+│   └── README.md                 # Documentação dos scripts de teste
+├── swagger-server.js     # Servidor API para testes locais
+├── swagger.yaml          # Documentação OpenAPI
+├── test-members-api.html # Interface web para testar a API de membros
+├── testar-api-membros.sh # Script para iniciar servidor e testes
+├── STATUS_API_MEMBROS.md # Status atual da API de membros
+├── ORGANIZACAO_PROJETO.md # Documentação da organização do projeto
+└── .env                  # Configurações de ambiente
+```
+
+## 🧪 Testes
+
+Para testar a API de membros localmente:
+
+```bash
+# Inicia o servidor de API e abre a interface de teste
+./testar-api-membros.sh
+
+# Para verificar se o campo username está sendo retornado corretamente
+node _tests/verificar-username.js
 ```
 
 ## 🔒 Autenticação
 
-O sistema utiliza o Supabase para autenticação, permitindo os seguintes métodos:
+O sistema utiliza o Supabase para autenticação:
 - Login com e-mail/senha
-- Login com redes sociais (opcional)
-- Sistema de recuperação de senha
+- Controle de permissões baseado em papéis
+- Token JWT para autenticação de API
 
 ## 📷 Screenshots
 

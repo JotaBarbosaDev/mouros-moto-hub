@@ -8,8 +8,10 @@ info:
   contact:
     email: contacto@osmouros.pt
 servers:
+  - url: http://localhost:3000
+    description: Servidor local (proxy para Supabase)
   - url: https://jugfkacnlgdjdosstiks.supabase.co
-    description: Servidor Supabase de produção
+    description: Servidor Supabase de produção (requer apikey)
 tags:
   - name: Autenticação
     description: Endpoints de autenticação de usuários
@@ -102,22 +104,31 @@ paths:
       tags:
         - Autenticação
       summary: Logout de usuário
-      description: Encerra sessão ativa do usuário
+      description: Encerra a sessão do usuário
       operationId: logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
       responses:
         '200':
           description: Logout realizado com sucesso
         '401':
           description: Não autorizado
 
-  # Membros
-  /rest/v1/members:
+  # Membros - Endpoints principais (v1)
+  /v1/members:
     get:
       tags:
         - Membros
       summary: Listar todos os membros
       description: Obtém lista de todos os membros do clube
-      operationId: getMembers
+      operationId: getAllMembers
       responses:
         '200':
           description: Lista de membros obtida com sucesso
@@ -129,6 +140,8 @@ paths:
                   $ref: '#/components/schemas/MemberDbResponse'
         '401':
           description: Não autorizado
+        '500':
+          description: Erro interno do servidor
     post:
       tags:
         - Membros
@@ -144,43 +157,55 @@ paths:
       responses:
         '201':
           description: Membro criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDbResponse'
         '400':
           description: Dados inválidos
         '401':
           description: Não autorizado
+        '500':
+          description: Erro interno do servidor
 
-  /rest/v1/members/{memberId}:
+  /v1/members/{id}:
     get:
       tags:
         - Membros
-      summary: Obter detalhes de um membro
-      description: Obtém detalhes de um membro específico
+      summary: Buscar membro por ID
+      description: Obtém um membro específico pelo seu ID
       operationId: getMemberById
       parameters:
-        - name: memberId
+        - name: id
           in: path
+          description: ID do membro
           required: true
           schema:
             type: string
             format: uuid
       responses:
         '200':
-          description: Detalhes do membro
+          description: Membro encontrado com sucesso
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MemberExtended'
+                $ref: '#/components/schemas/MemberDbResponse'
         '404':
           description: Membro não encontrado
-    patch:
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
+    put:
       tags:
         - Membros
       summary: Atualizar membro
-      description: Atualiza dados de um membro
+      description: Atualiza completamente os dados de um membro
       operationId: updateMember
       parameters:
-        - name: memberId
+        - name: id
           in: path
+          description: ID do membro
           required: true
           schema:
             type: string
@@ -194,29 +219,269 @@ paths:
       responses:
         '200':
           description: Membro atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDbResponse'
         '400':
           description: Dados inválidos
         '404':
           description: Membro não encontrado
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
+    patch:
+      tags:
+        - Membros
+      summary: Atualizar membro parcialmente
+      description: Atualiza parcialmente os dados de um membro
+      operationId: patchMember
+      parameters:
+        - name: id
+          in: path
+          description: ID do membro
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchMemberRequest'
+      responses:
+        '200':
+          description: Membro atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDbResponse'
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Membro não encontrado
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
     delete:
       tags:
         - Membros
-      summary: Excluir membro
+      summary: Remover membro
       description: Remove um membro do sistema
       operationId: deleteMember
       parameters:
-        - name: memberId
+        - name: id
           in: path
+          description: ID do membro
           required: true
           schema:
             type: string
             format: uuid
       responses:
         '200':
-          description: Membro excluído com sucesso
+          description: Membro removido com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
         '404':
           description: Membro não encontrado
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
 
+  # Membros - Endpoints alternativos (api/members)
+  /api/members:
+    get:
+      tags:
+        - Membros
+      summary: Listar todos os membros (endpoint alternativo)
+      description: Obtém lista de todos os membros do clube
+      operationId: getAllMembersAlt
+      deprecated: false
+      responses:
+        '200':
+          description: Lista de membros obtida com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MemberDbResponse'
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
+    post:
+      tags:
+        - Membros
+      summary: Criar novo membro (endpoint alternativo)
+      description: Cadastra um novo membro no clube
+      operationId: createMemberAlt
+      deprecated: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMemberRequest'
+      responses:
+        '201':
+          description: Membro criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDbResponse'
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
+
+  /api/members/{id}:
+    get:
+      tags:
+        - Membros
+      summary: Buscar membro por ID (endpoint alternativo)
+      description: Obtém um membro específico pelo seu ID
+      operationId: getMemberByIdAlt
+      deprecated: false
+      parameters:
+        - name: id
+          in: path
+          description: ID do membro
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Membro encontrado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDbResponse'
+        '404':
+          description: Membro não encontrado
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
+    put:
+      tags:
+        - Membros
+      summary: Atualizar membro (endpoint alternativo)
+      description: Atualiza completamente os dados de um membro
+      operationId: updateMemberAlt
+      deprecated: false
+      parameters:
+        - name: id
+          in: path
+          description: ID do membro
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberRequest'
+      responses:
+        '200':
+          description: Membro atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDbResponse'
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Membro não encontrado
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
+    patch:
+      tags:
+        - Membros
+      summary: Atualizar membro parcialmente (endpoint alternativo)
+      description: Atualiza parcialmente os dados de um membro
+      operationId: patchMemberAlt
+      deprecated: false
+      parameters:
+        - name: id
+          in: path
+          description: ID do membro
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchMemberRequest'
+      responses:
+        '200':
+          description: Membro atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDbResponse'
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Membro não encontrado
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
+    delete:
+      tags:
+        - Membros
+      summary: Remover membro (endpoint alternativo)
+      description: Remove um membro do sistema
+      operationId: deleteMemberAlt
+      deprecated: false
+      parameters:
+        - name: id
+          in: path
+          description: ID do membro
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Membro removido com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: Membro não encontrado
+        '401':
+          description: Não autorizado
+        '500':
+          description: Erro interno do servidor
   # Veículos
   /rest/v1/vehicles:
     get:
@@ -947,37 +1212,26 @@ components:
         id:
           type: string
           format: uuid
-        name:
-          type: string
+          description: Identificador único do membro
         member_number:
           type: string
-        is_admin:
-          type: boolean
-        is_active:
-          type: boolean
+          description: Número de associado
+        name:
+          type: string
+          description: Nome completo do membro
+        nickname:
+          type: string
+          description: Apelido do membro
         email:
           type: string
           format: email
+          description: Email de contato
         phone_main:
           type: string
+          description: Telefone principal
         phone_alternative:
           type: string
-        nickname:
-          type: string
-        photo_url:
-          type: string
-        join_date:
-          type: string
-          format: date
-        member_type:
-          type: string
-          enum:
-            - Sócio Adulto
-            - Sócio Criança
-            - Administração
-            - Convidado
-        honorary_member:
-          type: boolean
+          description: Telefone alternativo
         blood_type:
           type: string
           enum:
@@ -989,10 +1243,57 @@ components:
             - AB-
             - O+
             - O-
+          description: Tipo sanguíneo
+        member_type:
+          type: string
+          enum:
+            - Sócio Adulto
+            - Sócio Criança
+            - Administração
+            - Convidado
+          description: Tipo de associado
+        join_date:
+          type: string
+          format: date
+          description: Data de adesão ao clube
+        legacy_member:
+          type: boolean
+          description: Se é um membro legado do clube
+        honorary_member:
+          type: boolean
+          description: Se é um membro honorário
+        registration_fee_paid:
+          type: boolean
+          description: Se pagou a joia de inscrição
+        registration_fee_exempt:
+          type: boolean
+          description: Se está isento da joia de inscrição
         in_whatsapp_group:
           type: boolean
+          description: Se está incluído no grupo do WhatsApp
         received_member_kit:
           type: boolean
+          description: Se recebeu o kit de membro
+        photo_url:
+          type: string
+          description: URL da foto do membro
+        is_active:
+          type: boolean
+          description: Se é um membro ativo
+        created_at:
+          type: string
+          format: date-time
+          description: Data e hora de criação do registro
+        updated_at:
+          type: string
+          format: date-time
+          description: Data e hora da última atualização
+        is_admin:
+          type: boolean
+          description: Se tem privilégios de administrador
+        username:
+          type: string
+          description: Nome de usuário no sistema
 
     MemberExtended:
       allOf:
@@ -1030,38 +1331,28 @@ components:
       type: object
       required:
         - name
-        - memberNumber
         - email
-        - memberType
       properties:
+        member_number:
+          type: string
+          description: Número de associado
         name:
           type: string
-        memberNumber:
+          description: Nome completo do membro
+        nickname:
           type: string
+          description: Apelido do membro
         email:
           type: string
           format: email
-        phoneMain:
+          description: Email de contato
+        phone_main:
           type: string
-        phoneAlternative:
+          description: Telefone principal
+        phone_alternative:
           type: string
-        nickname:
-          type: string
-        photoUrl:
-          type: string
-        joinDate:
-          type: string
-          format: date
-        memberType:
-          type: string
-          enum:
-            - Sócio Adulto
-            - Sócio Criança
-            - Administração
-            - Convidado
-        honoraryMember:
-          type: boolean
-        bloodType:
+          description: Telefone alternativo
+        blood_type:
           type: string
           enum:
             - A+
@@ -1072,42 +1363,76 @@ components:
             - AB-
             - O+
             - O-
-        inWhatsappGroup:
+          description: Tipo sanguíneo
+        member_type:
+          type: string
+          enum:
+            - Sócio Adulto
+            - Sócio Criança
+            - Administração
+            - Convidado
+          description: Tipo de associado
+        join_date:
+          type: string
+          format: date
+          description: Data de adesão ao clube
+        legacy_member:
           type: boolean
-        receivedMemberKit:
+          description: Se é um membro legado do clube
+        honorary_member:
           type: boolean
-        isActive:
+          description: Se é um membro honorário
+        registration_fee_paid:
+          type: boolean
+          description: Se pagou a joia de inscrição
+        registration_fee_exempt:
+          type: boolean
+          description: Se está isento da joia de inscrição
+        in_whatsapp_group:
+          type: boolean
+          description: Se está incluído no grupo do WhatsApp
+        received_member_kit:
+          type: boolean
+          description: Se recebeu o kit de membro
+        photo_url:
+          type: string
+          description: URL da foto do membro
+        is_active:
           type: boolean
           default: true
+          description: Se é um membro ativo
+        is_admin:
+          type: boolean
+          description: Se tem privilégios de administrador
+        username:
+          type: string
+          description: Nome de usuário no sistema
         address:
           $ref: '#/components/schemas/Address'
 
     UpdateMemberRequest:
       type: object
       properties:
+        member_number:
+          type: string
+          description: Número de associado
         name:
           type: string
+          description: Nome completo do membro
+        nickname:
+          type: string
+          description: Apelido do membro
         email:
           type: string
           format: email
-        phoneMain:
+          description: Email de contato
+        phone_main:
           type: string
-        phoneAlternative:
+          description: Telefone principal
+        phone_alternative:
           type: string
-        nickname:
-          type: string
-        photoUrl:
-          type: string
-        memberType:
-          type: string
-          enum:
-            - Sócio Adulto
-            - Sócio Criança
-            - Administração
-            - Convidado
-        honoraryMember:
-          type: boolean
-        bloodType:
+          description: Telefone alternativo
+        blood_type:
           type: string
           enum:
             - A+
@@ -1118,12 +1443,128 @@ components:
             - AB-
             - O+
             - O-
-        inWhatsappGroup:
+          description: Tipo sanguíneo
+        member_type:
+          type: string
+          enum:
+            - Sócio Adulto
+            - Sócio Criança
+            - Administração
+            - Convidado
+          description: Tipo de associado
+        join_date:
+          type: string
+          format: date
+          description: Data de adesão ao clube
+        legacy_member:
           type: boolean
-        receivedMemberKit:
+          description: Se é um membro legado do clube
+        honorary_member:
           type: boolean
-        isActive:
+          description: Se é um membro honorário
+        registration_fee_paid:
           type: boolean
+          description: Se pagou a joia de inscrição
+        registration_fee_exempt:
+          type: boolean
+          description: Se está isento da joia de inscrição
+        in_whatsapp_group:
+          type: boolean
+          description: Se está incluído no grupo do WhatsApp
+        received_member_kit:
+          type: boolean
+          description: Se recebeu o kit de membro
+        photo_url:
+          type: string
+          description: URL da foto do membro
+        is_active:
+          type: boolean
+          description: Se é um membro ativo
+        is_admin:
+          type: boolean
+          description: Se tem privilégios de administrador
+        username:
+          type: string
+          description: Nome de usuário no sistema
+        address:
+          $ref: '#/components/schemas/Address'
+
+    PatchMemberRequest:
+      type: object
+      properties:
+        member_number:
+          type: string
+          description: Número de associado
+        name:
+          type: string
+          description: Nome completo do membro
+        nickname:
+          type: string
+          description: Apelido do membro
+        email:
+          type: string
+          format: email
+          description: Email de contato
+        phone_main:
+          type: string
+          description: Telefone principal
+        phone_alternative:
+          type: string
+          description: Telefone alternativo
+        blood_type:
+          type: string
+          enum:
+            - A+
+            - A-
+            - B+
+            - B-
+            - AB+
+            - AB-
+            - O+
+            - O-
+          description: Tipo sanguíneo
+        member_type:
+          type: string
+          enum:
+            - Sócio Adulto
+            - Sócio Criança
+            - Administração
+            - Convidado
+          description: Tipo de associado
+        join_date:
+          type: string
+          format: date
+          description: Data de adesão ao clube
+        legacy_member:
+          type: boolean
+          description: Se é um membro legado do clube
+        honorary_member:
+          type: boolean
+          description: Se é um membro honorário
+        registration_fee_paid:
+          type: boolean
+          description: Se pagou a joia de inscrição
+        registration_fee_exempt:
+          type: boolean
+          description: Se está isento da joia de inscrição
+        in_whatsapp_group:
+          type: boolean
+          description: Se está incluído no grupo do WhatsApp
+        received_member_kit:
+          type: boolean
+          description: Se recebeu o kit de membro
+        photo_url:
+          type: string
+          description: URL da foto do membro
+        is_active:
+          type: boolean
+          description: Se é um membro ativo
+        is_admin:
+          type: boolean
+          description: Se tem privilégios de administrador
+        username:
+          type: string
+          description: Nome de usuário no sistema
         address:
           $ref: '#/components/schemas/Address'
 
@@ -1963,6 +2404,12 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
+      description: Chave anônima do Supabase para acesso à API
 
 security:
   - BearerAuth: []
+  - ApiKeyAuth: []
