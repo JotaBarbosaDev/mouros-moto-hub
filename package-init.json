@@ -1,0 +1,14 @@
+{
+  "name": "supabase-initializer",
+  "version": "1.0.0",
+  "description": "Script para inicialização das tabelas do Supabase",
+  "main": "initialize-supabase-tables.js",
+  "type": "module",
+  "scripts": {
+    "start": "node initialize-supabase-tables.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7",
+    "dotenv": "^16.4.5"
+  }
+}

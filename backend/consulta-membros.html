@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Membros - Mouros Moto Hub</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #a33;
+            margin-top: 0;
+        }
+        .config-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        input[type="text"] {
+            padding: 8px 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #a33;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 0 5px;
+        }
+        button:hover {
+            background-color: #922;
+        }
+        .data-section {
+            margin-top: 20px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab.active {
+            background-color: #a33;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        .json-view {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            overflow-x: auto;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .error {
+            background-color: #fff0f0;
+            color: #a33;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #fcc;
+            margin-top: 15px;
+        }
+        .success {
+            background-color: #f0fff0;
+            color: #383;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #cfc;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Consulta de Membros - Mouros Moto Hub</h1>
+        
+        <div class="config-section">
+            <h2>Configuração da API</h2>
+            <div>
+                <label for="apiUrl">URL do Supabase:</label><br>
+                <input type="text" id="apiUrl" value="https://jugfkacnlgdjdosstiks.supabase.co" />
+            </div>
+            <div style="margin-top: 10px;">
+                <label for="apiKey">Chave API (anônima):</label><br>
+                <input type="text" id="apiKey" value="SUA_CHAVE_ANONIMA_SUPABASE" />
+            </div>
+            <div style="margin-top: 15px;">
+                <button id="testConnection">Testar Conexão</button>
+            </div>
+        </div>
+        
+        <div class="data-section">
+            <h2>Dados dos Membros</h2>
+            <div>
+                <button id="fetchMembers">Buscar Membros</button>
+                <button id="fetchRawData">Dados Brutos (BD)</button>
+                <button id="fetchExtendedData">Dados Processados (App)</button>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="raw-data">Dados Brutos</div>
+                <div class="tab" data-tab="columns">Colunas</div>
+                <div class="tab" data-tab="table-view">Tabela</div>
+                <div class="tab" data-tab="json-view">JSON</div>
+            </div>
+            
+            <div id="raw-data" class="tab-content active">
+                <div id="rawDataContent">
+                    <p>Clique em "Buscar Membros" para ver os dados brutos retornados pelo banco de dados.</p>
+                </div>
+            </div>
+            
+            <div id="columns" class="tab-content">
+                <div id="columnsContent">
+                    <p>As colunas da tabela aparecerão aqui após carregar os dados.</p>
+                </div>
+            </div>
+            
+            <div id="table-view" class="tab-content">
+                <div id="tableContent">
+                    <p>Os dados em formato de tabela aparecerão aqui.</p>
+                </div>
+            </div>
+            
+            <div id="json-view" class="tab-content">
+                <pre id="jsonContent" class="json-view">Os dados JSON aparecerão aqui.</pre>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Seleção de abas
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remover classe ativa de todas as abas
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Esconder todos os conteúdos de aba
+                    const tabContents = document.querySelectorAll('.tab-content');
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    // Mostrar o conteúdo da aba selecionada
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // Testar conexão
+            document.getElementById('testConnection').addEventListener('click', function() {
+                const apiUrl = document.getElementById('apiUrl').value.trim();
+                const apiKey = document.getElementById('apiKey').value.trim();
+                
+                if (!apiUrl || !apiKey) {
+                    alert('Por favor, preencha a URL e a Chave API');
+                    return;
+                }
+                
+                testApiConnection(apiUrl, apiKey);
+            });
+            
+            // Buscar membros
+            document.getElementById('fetchMembers').addEventListener('click', function() {
+                const apiUrl = document.getElementById('apiUrl').value.trim();
+                const apiKey = document.getElementById('apiKey').value.trim();
+                
+                if (!apiUrl || !apiKey) {
+                    alert('Por favor, preencha a URL e a Chave API');
+                    return;
+                }
+                
+                fetchMembers(apiUrl, apiKey);
+            });
+            
+            // Buscar dados brutos
+            document.getElementById('fetchRawData').addEventListener('click', function() {
+                const apiUrl = document.getElementById('apiUrl').value.trim();
+                const apiKey = document.getElementById('apiKey').value.trim();
+                
+                if (!apiUrl || !apiKey) {
+                    alert('Por favor, preencha a URL e a Chave API');
+                    return;
+                }
+                
+                fetchRawData(apiUrl, apiKey);
+            });
+            
+            // Buscar dados processados
+            document.getElementById('fetchExtendedData').addEventListener('click', function() {
+                const apiUrl = document.getElementById('apiUrl').value.trim();
+                const apiKey = document.getElementById('apiKey').value.trim();
+                
+                if (!apiUrl || !apiKey) {
+                    alert('Por favor, preencha a URL e a Chave API');
+                    return;
+                }
+                
+                fetchExtendedData(apiUrl, apiKey);
+            });
+        });
+        
+        async function testApiConnection(apiUrl, apiKey) {
+            const rawDataContent = document.getElementById('rawDataContent');
+            rawDataContent.innerHTML = '<div class="loading">Testando conexão...</div>';
+            
+            try {
+                const response = await fetch(`${apiUrl}/rest/v1/`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`
+                    }
+                });
+                
+                if (response.ok) {
+                    rawDataContent.innerHTML = '<div class="success">Conexão estabelecida com sucesso!</div>';
+                } else {
+                    const errorData = await response.text();
+                    rawDataContent.innerHTML = `
+                        <div class="error">
+                            <strong>Erro na conexão:</strong> 
+                            <p>Status: ${response.status} ${response.statusText}</p>
+                            <p>${errorData}</p>
+                        </div>`;
+                }
+            } catch (error) {
+                rawDataContent.innerHTML = `
+                    <div class="error">
+                        <strong>Erro na conexão:</strong> 
+                        <p>${error.message}</p>
+                    </div>`;
+            }
+        }
+        
+        async function fetchMembers(apiUrl, apiKey) {
+            const rawDataContent = document.getElementById('rawDataContent');
+            const columnsContent = document.getElementById('columnsContent');
+            const tableContent = document.getElementById('tableContent');
+            const jsonContent = document.getElementById('jsonContent');
+            
+            rawDataContent.innerHTML = '<div class="loading">Carregando dados...</div>';
+            
+            try {
+                const response = await fetch(`${apiUrl}/rest/v1/members?select=*&limit=5`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data && data.length > 0) {
+                        // Mostrar dados brutos
+                        rawDataContent.innerHTML = `
+                            <p>Dados brutos obtidos com sucesso!</p>
+                            <p><strong>${data.length}</strong> membros retornados do banco de dados.</p>
+                        `;
+                        
+                        // Mostrar colunas disponíveis
+                        const columns = Object.keys(data[0]);
+                        let columnsHtml = '<h3>Colunas disponíveis na tabela "members":</h3><ul>';
+                        columns.forEach(column => {
+                            const value = data[0][column];
+                            const type = value !== null ? typeof value : 'null';
+                            columnsHtml += `<li><strong>${column}</strong>: ${type}</li>`;
+                        });
+                        columnsHtml += '</ul>';
+                        columnsContent.innerHTML = columnsHtml;
+                        
+                        // Mostrar dados em tabela
+                        let tableHtml = '<table><thead><tr>';
+                        columns.forEach(column => {
+                            tableHtml += `<th>${column}</th>`;
+                        });
+                        tableHtml += '</tr></thead><tbody>';
+                        
+                        data.forEach(member => {
+                            tableHtml += '<tr>';
+                            columns.forEach(column => {
+                                const value = member[column] !== null ? member[column] : '';
+                                tableHtml += `<td>${value}</td>`;
+                            });
+                            tableHtml += '</tr>';
+                        });
+                        tableHtml += '</tbody></table>';
+                        tableContent.innerHTML = tableHtml;
+                        
+                        // Mostrar JSON formatado
+                        jsonContent.textContent = JSON.stringify(data, null, 2);
+                    } else {
+                        rawDataContent.innerHTML = '<p>Nenhum membro encontrado.</p>';
+                        columnsContent.innerHTML = '<p>Sem dados para mostrar.</p>';
+                        tableContent.innerHTML = '<p>Sem dados para mostrar.</p>';
+                        jsonContent.textContent = 'Sem dados para mostrar.';
+                    }
+                } else {
+                    const errorData = await response.text();
+                    rawDataContent.innerHTML = `
+                        <div class="error">
+                            <strong>Erro ao buscar dados:</strong> 
+                            <p>Status: ${response.status} ${response.statusText}</p>
+                            <p>${errorData}</p>
+                        </div>`;
+                }
+            } catch (error) {
+                rawDataContent.innerHTML = `
+                    <div class="error">
+                        <strong>Erro ao buscar dados:</strong> 
+                        <p>${error.message}</p>
+                    </div>`;
+            }
+        }
+        
+        async function fetchRawData(apiUrl, apiKey) {
+            const rawDataContent = document.getElementById('rawDataContent');
+            rawDataContent.innerHTML = '<div class="loading">Carregando dados brutos...</div>';
+            
+            try {
+                const response = await fetch(`${apiUrl}/rest/v1/members?select=*&limit=1`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data && data.length > 0) {
+                        const member = data[0];
+                        const columns = Object.keys(member).sort();
+                        
+                        let html = '<h3>Estrutura da tabela "members" no banco de dados:</h3>';
+                        html += '<table>';
+                        html += '<thead><tr><th>Coluna</th><th>Tipo</th><th>Valor</th></tr></thead>';
+                        html += '<tbody>';
+                        
+                        columns.forEach(column => {
+                            const value = member[column];
+                            const type = value !== null ? typeof value : 'null';
+                            const displayValue = value !== null ? 
+                                (typeof value === 'object' ? JSON.stringify(value) : String(value)) : 
+                                'null';
+                                
+                            html += `
+                                <tr>
+                                    <td><strong>${column}</strong></td>
+                                    <td>${type}</td>
+                                    <td>${displayValue}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        html += '</tbody></table>';
+                        html += '<p><strong>Nota:</strong> Estes são os dados brutos da tabela "members", sem processamento adicional.</p>';
+                        
+                        rawDataContent.innerHTML = html;
+                    } else {
+                        rawDataContent.innerHTML = '<p>Nenhum membro encontrado.</p>';
+                    }
+                } else {
+                    const errorData = await response.text();
+                    rawDataContent.innerHTML = `
+                        <div class="error">
+                            <strong>Erro ao buscar dados brutos:</strong> 
+                            <p>Status: ${response.status} ${response.statusText}</p>
+                            <p>${errorData}</p>
+                        </div>`;
+                }
+            } catch (error) {
+                rawDataContent.innerHTML = `
+                    <div class="error">
+                        <strong>Erro ao buscar dados brutos:</strong> 
+                        <p>${error.message}</p>
+                    </div>`;
+            }
+        }
+        
+        async function fetchExtendedData(apiUrl, apiKey) {
+            const rawDataContent = document.getElementById('rawDataContent');
+            const columnsContent = document.getElementById('columnsContent');
+            const tableContent = document.getElementById('tableContent');
+            const jsonContent = document.getElementById('jsonContent');
+            
+            rawDataContent.innerHTML = '<div class="loading">Carregando dados processados...</div>';
+            
+            try {
+                // Buscar um membro
+                const memberResponse = await fetch(`${apiUrl}/rest/v1/members?select=*&limit=1`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!memberResponse.ok) {
+                    throw new Error(`Erro ao buscar membro: ${memberResponse.status} ${memberResponse.statusText}`);
+                }
+                
+                const memberData = await memberResponse.json();
+                
+                if (!memberData || memberData.length === 0) {
+                    rawDataContent.innerHTML = '<p>Nenhum membro encontrado.</p>';
+                    return;
+                }
+                
+                const member = memberData[0];
+                
+                // Buscar veículos do membro
+                const vehiclesResponse = await fetch(`${apiUrl}/rest/v1/vehicles?select=*&member_id=eq.${member.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!vehiclesResponse.ok) {
+                    throw new Error(`Erro ao buscar veículos: ${vehiclesResponse.status} ${vehiclesResponse.statusText}`);
+                }
+                
+                const vehicles = await vehiclesResponse.json();
+                
+                // Buscar pagamentos de cotas do membro
+                const duesResponse = await fetch(`${apiUrl}/rest/v1/dues_payments?select=*&member_id=eq.${member.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!duesResponse.ok) {
+                    throw new Error(`Erro ao buscar pagamentos: ${duesResponse.status} ${duesResponse.statusText}`);
+                }
+                
+                const duesPayments = await duesResponse.json();
+                
+                // Buscar endereço do membro
+                const addressResponse = await fetch(`${apiUrl}/rest/v1/addresses?select=*&member_id=eq.${member.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!addressResponse.ok) {
+                    throw new Error(`Erro ao buscar endereço: ${addressResponse.status} ${addressResponse.statusText}`);
+                }
+                
+                const addresses = await addressResponse.json();
+                const address = addresses.length > 0 ? addresses[0] : null;
+                
+                // Criar objeto MemberExtended (processado como na aplicação)
+                const memberExtended = {
+                    id: member.id,
+                    name: member.name,
+                    memberNumber: member.member_number,
+                    isAdmin: member.is_admin,
+                    isActive: member.is_active,
+                    email: member.email,
+                    phoneMain: member.phone_main,
+                    phoneAlternative: member.phone_alternative,
+                    nickname: member.nickname,
+                    photoUrl: member.photo_url,
+                    joinDate: member.join_date,
+                    memberType: member.member_type,
+                    honoraryMember: member.honorary_member,
+                    address: address ? {
+                        street: address.street || '',
+                        number: address.number || '',
+                        postalCode: address.postal_code || '',
+                        city: address.city || '',
+                        district: address.district || '',
+                        country: address.country || ''
+                    } : {
+                        street: '',
+                        number: '',
+                        postalCode: '',
+                        city: '',
+                        district: '',
+                        country: ''
+                    },
+                    bloodType: member.blood_type,
+                    legacyMember: member.legacy_member || false,
+                    registrationFeePaid: member.registration_fee_paid || false,
+                    registrationFeeExempt: member.registration_fee_exempt || false,
+                    inWhatsAppGroup: member.in_whatsapp_group || false,
+                    receivedMemberKit: member.received_member_kit || false,
+                    username: member.username || member.email?.split('@')[0] || '',
+                    vehicles: vehicles.map(v => ({
+                        id: v.id,
+                        brand: v.brand,
+                        model: v.model,
+                        type: v.type,
+                        displacement: v.displacement,
+                        nickname: v.nickname || null,
+                        photoUrl: v.photo_url || null
+                    })),
+                    duesPayments: duesPayments.map(p => ({
+                        id: p.id,
+                        year: p.year,
+                        paid: p.paid,
+                        exempt: p.exempt,
+                        paymentDate: p.payment_date
+                    }))
+                };
+                
+                // Gerar saída para os dados processados
+                rawDataContent.innerHTML = `
+                    <h3>Dados processados do membro:</h3>
+                    <p>O objeto MemberExtended é gerado a partir de consultas em várias tabelas (members, vehicles, dues_payments, addresses).</p>
+                    <p>Note como os nomes de campos snake_case são convertidos para camelCase e como os dados são organizados em sub-objetos.</p>
+                `;
+                
+                // Mostrar colunas disponíveis
+                const extendedColumns = Object.keys(memberExtended).sort();
+                let columnsHtml = '<h3>Propriedades do objeto MemberExtended:</h3><ul>';
+                extendedColumns.forEach(column => {
+                    const value = memberExtended[column];
+                    const type = value !== null ? typeof value : 'null';
+                    columnsHtml += `<li><strong>${column}</strong>: ${type}</li>`;
+                });
+                columnsHtml += '</ul>';
+                columnsContent.innerHTML = columnsHtml;
+                
+                // Mostrar comparação em tabela
+                let tableHtml = '<h3>Comparação Banco de Dados vs Objeto Processado:</h3>';
+                tableHtml += '<table>';
+                tableHtml += '<thead><tr><th>Banco de Dados</th><th>Objeto Processado</th><th>Observação</th></tr></thead>';
+                tableHtml += '<tbody>';
+                
+                // Colunas básicas
+                tableHtml += `
+                    <tr>
+                        <td>id</td>
+                        <td>id</td>
+                        <td>Mantido igual</td>
+                    </tr>
+                    <tr>
+                        <td>name</td>
+                        <td>name</td>
+                        <td>Mantido igual</td>
+                    </tr>
+                    <tr>
+                        <td>member_number</td>
+                        <td>memberNumber</td>
+                        <td>Convertido de snake_case para camelCase</td>
+                    </tr>
+                    <tr>
+                        <td>is_admin</td>
+                        <td>isAdmin</td>
+                        <td>Convertido de snake_case para camelCase</td>
+                    </tr>
+                    <tr>
+                        <td>vehicles (tabela separada)</td>
+                        <td>vehicles (array de objetos)</td>
+                        <td>Relação um-para-muitos processada em array</td>
+                    </tr>
+                    <tr>
+                        <td>addresses (tabela separada)</td>
+                        <td>address (objeto único)</td>
+                        <td>Relação um-para-um processada em objeto</td>
+                    </tr>
+                    <tr>
+                        <td>dues_payments (tabela separada)</td>
+                        <td>duesPayments (array de objetos)</td>
+                        <td>Relação um-para-muitos processada em array</td>
+                    </tr>
+                `;
+                
+                tableHtml += '</tbody></table>';
+                tableContent.innerHTML = tableHtml;
+                
+                // Mostrar JSON formatado
+                jsonContent.textContent = JSON.stringify(memberExtended, null, 2);
+                
+            } catch (error) {
+                rawDataContent.innerHTML = `
+                    <div class="error">
+                        <strong>Erro ao buscar dados processados:</strong> 
+                        <p>${error.message}</p>
+                    </div>`;
+            }
+        }
+    </script>
+</body>
+</html>
