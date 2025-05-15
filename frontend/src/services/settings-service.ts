@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ClubSettings, MemberFeeSettings, FeePayment } from '@/types/settings';
+import { camelToSnakeCase } from './utils';
 
 const SETTINGS_TABLE = 'club_settings';
 const MEMBER_FEE_SETTINGS_TABLE = 'member_fee_settings';
@@ -30,6 +31,37 @@ const DEFAULT_SETTINGS: ClubSettings = {
   welcomeMessage: 'Bem-vindo ao Mouros Moto Hub! Junte-se a nós nesta viagem.'
 };
 
+// Funções utilitárias para conversão de formato
+function snakeToCamelCase(data) {
+  if (!data) return {};
+  
+  return {
+    name: data.name,
+    shortName: data.short_name,
+    foundingDate: data.founding_date,
+    logoUrl: data.logo_url,
+    bannerUrl: data.banner_url,
+    primaryColor: data.primary_color,
+    secondaryColor: data.secondary_color,
+    accentColor: data.accent_color,
+    textColor: data.text_color,
+    annualFee: data.annual_fee,
+    feeStartDate: data.fee_start_date,
+    address: data.address,
+    email: data.email,
+    phone: data.phone,
+    description: data.description,
+    welcomeMessage: data.welcome_message,
+    inactivePeriods: Array.isArray(data.inactive_periods) 
+      ? data.inactive_periods.map(period => ({      startDate: period.start_date || period.startDate || '',
+      endDate: period.end_date || period.endDate || '',
+      reason: period.reason || ''
+        }))
+      : [],
+    socialMedia: data.social_media
+  };
+}
+
 /**
  * Serviço para gerenciar configurações do clube
  */
@@ -37,7 +69,7 @@ export const settingsService = {
   /**
    * Obtém as configurações atuais do clube
    */
-  async getClubSettings(): Promise<ClubSettings> {
+  async getClubSettings() {
     try {
       const { data, error } = await supabase
         .from(SETTINGS_TABLE)
@@ -49,7 +81,15 @@ export const settingsService = {
         return DEFAULT_SETTINGS;
       }
       
-      return data || DEFAULT_SETTINGS;
+      if (!data) {
+        return DEFAULT_SETTINGS;
+      }
+      
+      // Converter de snake_case para camelCase
+      const convertedData = snakeToCamelCase(data);
+      
+      // Mesclar com valores padrão para garantir que todos os campos estejam presentes
+      return { ...DEFAULT_SETTINGS, ...convertedData };
     } catch (error) {
       console.error('Erro ao processar configurações:', error);
       return DEFAULT_SETTINGS;
@@ -59,7 +99,7 @@ export const settingsService = {
   /**
    * Atualiza as configurações do clube
    */
-  async updateClubSettings(settings: Partial<ClubSettings>): Promise<ClubSettings> {
+  async updateClubSettings(settings: any) {
     try {
       // Verificar se já existem configurações
       const { data: existingData } = await supabase
@@ -67,27 +107,58 @@ export const settingsService = {
         .select('*')
         .single();
       
+      // Converter manualmente para o formato esperado pelo Supabase (snake_case)
+      const snakeSettings: any = {};
+      
+      // Mapeamento direto dos campos
+      if (settings.name !== undefined) snakeSettings.name = settings.name;
+      if (settings.shortName !== undefined) snakeSettings.short_name = settings.shortName;
+      if (settings.foundingDate !== undefined) snakeSettings.founding_date = settings.foundingDate;
+      if (settings.logoUrl !== undefined) snakeSettings.logo_url = settings.logoUrl;
+      if (settings.bannerUrl !== undefined) snakeSettings.banner_url = settings.bannerUrl;
+      if (settings.primaryColor !== undefined) snakeSettings.primary_color = settings.primaryColor;
+      if (settings.secondaryColor !== undefined) snakeSettings.secondary_color = settings.secondaryColor;
+      if (settings.accentColor !== undefined) snakeSettings.accent_color = settings.accentColor;
+      if (settings.textColor !== undefined) snakeSettings.text_color = settings.textColor;
+      if (settings.annualFee !== undefined) snakeSettings.annual_fee = settings.annualFee;
+      if (settings.feeStartDate !== undefined) snakeSettings.fee_start_date = settings.feeStartDate;
+      if (settings.address !== undefined) snakeSettings.address = settings.address;
+      if (settings.email !== undefined) snakeSettings.email = settings.email;
+      if (settings.phone !== undefined) snakeSettings.phone = settings.phone;
+      if (settings.description !== undefined) snakeSettings.description = settings.description;
+      if (settings.welcomeMessage !== undefined) snakeSettings.welcome_message = settings.welcomeMessage;
+      if (settings.socialMedia !== undefined) snakeSettings.social_media = settings.socialMedia;
+      
+      // Tratamento específico para arrays
+      if (settings.inactivePeriods && Array.isArray(settings.inactivePeriods)) {
+        snakeSettings.inactive_periods = settings.inactivePeriods.map((p: any) => ({
+          start_date: p.startDate,
+          end_date: p.endDate,
+          reason: p.reason
+        }));
+      }
+      
       if (existingData) {
         // Atualizar configurações existentes
         const { data, error } = await supabase
           .from(SETTINGS_TABLE)
-          .update(settings)
+          .update(snakeSettings)
           .eq('id', existingData.id)
           .select()
           .single();
         
         if (error) throw error;
-        return data;
+        return snakeToCamelCase(data);
       } else {
-        // Criar novas configurações
+        // Criar novas configurações com os valores padrão        
         const { data, error } = await supabase
           .from(SETTINGS_TABLE)
-          .insert({ ...DEFAULT_SETTINGS, ...settings })
+          .insert(snakeSettings)
           .select()
           .single();
-        
+          
         if (error) throw error;
-        return data;
+        return snakeToCamelCase(data);
       }
     } catch (error) {
       console.error('Erro ao atualizar configurações:', error);
@@ -98,12 +169,12 @@ export const settingsService = {
   /**
    * Obtém configurações de cotas de um membro específico
    */
-  async getMemberFeeSettings(memberId: string): Promise<MemberFeeSettings | null> {
+  async getMemberFeeSettings(memberId) {
     try {
       const { data, error } = await supabase
         .from(MEMBER_FEE_SETTINGS_TABLE)
         .select('*')
-        .eq('memberId', memberId)
+        .eq('member_id', memberId)
         .single();
       
       if (error) {
@@ -113,7 +184,24 @@ export const settingsService = {
         throw error;
       }
       
-      return data;
+      if (!data) return null;
+      
+      // Converter de snake_case para camelCase
+      return {
+        memberId: data.member_id,
+        joinDate: data.join_date,
+        exemptPeriods: Array.isArray(data.exempt_periods) 
+          ? data.exempt_periods.map(p => {
+              // Garantir que p é um objeto, mesmo se vier como JSON
+              const period = typeof p === 'string' ? JSON.parse(p) : p;
+              return {
+                startDate: period.start_date || period.startDate || '',
+                endDate: period.end_date || period.endDate || '',
+                reason: period.reason || ''
+              };
+            })
+          : []
+      };
     } catch (error) {
       console.error(`Erro ao buscar configurações de cota para o membro ${memberId}:`, error);
       throw error;
@@ -123,31 +211,42 @@ export const settingsService = {
   /**
    * Define ou atualiza as configurações de cotas de um membro
    */
-  async setMemberFeeSettings(settings: MemberFeeSettings): Promise<MemberFeeSettings> {
+  async setMemberFeeSettings(settings) {
     try {
+      // Converter de camelCase para snake_case
+      const snakeSettings = {
+        member_id: settings.memberId,
+        join_date: settings.joinDate,
+        exempt_periods: settings.exemptPeriods.map(p => ({
+          start_date: p.startDate,
+          end_date: p.endDate,
+          reason: p.reason
+        }))
+      };
+      
       const existing = await this.getMemberFeeSettings(settings.memberId);
       
       if (existing) {
         // Atualizar configuração existente
         const { data, error } = await supabase
           .from(MEMBER_FEE_SETTINGS_TABLE)
-          .update(settings)
-          .eq('memberId', settings.memberId)
+          .update(snakeSettings)
+          .eq('member_id', settings.memberId)
           .select()
           .single();
         
         if (error) throw error;
-        return data;
+        return this.getMemberFeeSettings(settings.memberId);
       } else {
         // Criar nova configuração
         const { data, error } = await supabase
           .from(MEMBER_FEE_SETTINGS_TABLE)
-          .insert(settings)
+          .insert(snakeSettings)
           .select()
           .single();
         
         if (error) throw error;
-        return data;
+        return this.getMemberFeeSettings(settings.memberId);
       }
     } catch (error) {
       console.error(`Erro ao atualizar configurações de cota para o membro ${settings.memberId}:`, error);
@@ -158,17 +257,28 @@ export const settingsService = {
   /**
    * Obtém pagamentos de cotas de um membro
    */
-  async getMemberFeePayments(memberId: string): Promise<FeePayment[]> {
+  async getMemberFeePayments(memberId) {
     try {
       const { data, error } = await supabase
         .from(FEE_PAYMENTS_TABLE)
         .select('*')
-        .eq('memberId', memberId)
+        .eq('member_id', memberId)
         .order('year', { ascending: true });
       
       if (error) throw error;
       
-      return data || [];
+      if (!data || !Array.isArray(data)) return [];
+      
+      // Converter de snake_case para camelCase
+      return data.map(payment => ({
+        memberId: payment.member_id,
+        year: payment.year,
+        paid: true, // Presumimos que se há registro, está pago
+        paidDate: payment.payment_date,
+        amount: payment.amount,
+        receiptNumber: payment.receipt_url || '',
+        notes: payment.notes
+      }));
     } catch (error) {
       console.error(`Erro ao buscar pagamentos de cotas do membro ${memberId}:`, error);
       throw error;
@@ -178,13 +288,24 @@ export const settingsService = {
   /**
    * Registra ou atualiza o pagamento de cota de um membro para um ano específico
    */
-  async updateFeePayment(payment: FeePayment): Promise<FeePayment> {
+  async updateFeePayment(payment) {
     try {
+      // Converter de camelCase para snake_case
+      const snakePayment = {
+        member_id: payment.memberId,
+        year: payment.year,
+        payment_date: payment.paidDate,
+        amount: payment.amount,
+        payment_method: 'Transferência', // Valor padrão se não fornecido
+        notes: payment.notes,
+        receipt_url: payment.receiptNumber
+      };
+      
       // Verificar se já existe um pagamento para este membro/ano
       const { data: existingPayment } = await supabase
         .from(FEE_PAYMENTS_TABLE)
         .select('*')
-        .eq('memberId', payment.memberId)
+        .eq('member_id', payment.memberId)
         .eq('year', payment.year)
         .single();
       
@@ -192,23 +313,41 @@ export const settingsService = {
         // Atualizar pagamento existente
         const { data, error } = await supabase
           .from(FEE_PAYMENTS_TABLE)
-          .update(payment)
+          .update(snakePayment)
           .eq('id', existingPayment.id)
           .select()
           .single();
         
         if (error) throw error;
-        return data;
+        
+        return {
+          memberId: data.member_id,
+          year: data.year,
+          paid: true,
+          paidDate: data.payment_date,
+          amount: data.amount,
+          receiptNumber: data.receipt_url || '',
+          notes: data.notes
+        };
       } else {
         // Criar novo registro de pagamento
         const { data, error } = await supabase
           .from(FEE_PAYMENTS_TABLE)
-          .insert(payment)
+          .insert(snakePayment)
           .select()
           .single();
         
         if (error) throw error;
-        return data;
+        
+        return {
+          memberId: data.member_id,
+          year: data.year,
+          paid: true,
+          paidDate: data.payment_date,
+          amount: data.amount,
+          receiptNumber: data.receipt_url || '',
+          notes: data.notes
+        };
       }
     } catch (error) {
       console.error(`Erro ao atualizar pagamento de cota do membro ${payment.memberId} para o ano ${payment.year}:`, error);
@@ -220,14 +359,7 @@ export const settingsService = {
    * Calcula todos os anos de cotas devidos para um membro
    * Considera data de fundação do clube, períodos inativos e isenções do membro
    */
-  async calculateMemberDueYears(memberId: string): Promise<{ 
-    year: number; 
-    shouldPay: boolean; 
-    exempt: boolean;
-    exemptReason?: string;
-    clubInactive?: boolean;
-    clubInactiveReason?: string;
-  }[]> {
+  async calculateMemberDueYears(memberId) {
     try {
       // Obter configurações do clube
       const clubSettings = await this.getClubSettings();
@@ -243,19 +375,19 @@ export const settingsService = {
       const startYear = clubStartDate.getFullYear();
       
       // Data de ingresso do membro
-      let memberJoinDate: Date;
+      let memberJoinDate;
       if (memberSettings?.joinDate) {
         memberJoinDate = new Date(memberSettings.joinDate);
       } else {
         // Buscar informações do membro na tabela de membros
         const { data: memberData } = await supabase
           .from('members')
-          .select('joinDate')
+          .select('join_date')
           .eq('id', memberId)
           .single();
         
-        memberJoinDate = memberData?.joinDate 
-          ? new Date(memberData.joinDate) 
+        memberJoinDate = memberData?.join_date 
+          ? new Date(memberData.join_date) 
           : new Date(); // Fallback para data atual
       }
       
@@ -304,7 +436,7 @@ export const settingsService = {
           shouldPay,
           exempt: memberExempt,
           exemptReason: exemptPeriod?.reason,
-          clubInactive: clubInactive,
+          clubInactive,
           clubInactiveReason: clubInactivePeriod?.reason
         });
       }

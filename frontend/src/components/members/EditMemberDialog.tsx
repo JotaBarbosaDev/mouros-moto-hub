@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -732,6 +733,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Editar Membro</DialogTitle>
+          <DialogDescription>Edite as informações do membro selecionado</DialogDescription>
         </DialogHeader>
         
         <Form {...form}>

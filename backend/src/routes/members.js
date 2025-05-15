@@ -2,6 +2,7 @@
 const express = require('express');
 const membersController = require('../controllers/members');
 const authMiddleware = require('../middlewares/auth');
+const { logActivity } = require('../middleware/activity-logger');
 
 const router = express.Router();
 
@@ -12,21 +13,41 @@ protectedRoutes.forEach(route => {
 });
 
 // Obter todos os membros
-router.get('/', membersController.getAllMembers);
+router.get('/', 
+  logActivity({ entityType: 'MEMBER' }),
+  membersController.getAllMembers
+);
 
 // Obter membro específico por ID
-router.get('/:id', membersController.getMemberById);
+router.get('/:id', 
+  logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.id }),
+  membersController.getMemberById
+);
 
 // Criar novo membro (apenas administradores)
-router.post('/', authMiddleware.isAdmin, membersController.createMember);
+router.post('/', 
+  authMiddleware.isAdmin,
+  logActivity({ entityType: 'MEMBER' }),
+  membersController.createMember
+);
 
 // Atualizar membro existente
-router.put('/:id', membersController.updateMember);
+router.put('/:id', 
+  logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.id }),
+  membersController.updateMember
+);
 
 // Atualização parcial (PATCH)
-router.patch('/:id', membersController.updateMember);
+router.patch('/:id', 
+  logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.id }),
+  membersController.updateMember
+);
 
 // Excluir membro (apenas administradores)
-router.delete('/:id', authMiddleware.isAdmin, membersController.deleteMember);
+router.delete('/:id', 
+  authMiddleware.isAdmin,
+  logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.id }),
+  membersController.deleteMember
+);
 
 module.exports = router;

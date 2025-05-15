@@ -3,6 +3,9 @@
  * Este script pode ser executado diretamente para garantir que as tabelas existam.
  * 
  * Para executar: node init-tables.js
+ * 
+ * Nota: Este arquivo usa ES Modules. Para executar com Node.js diretamente,
+ * adicione "type": "module" no package.json ou use a extensão .mjs
  */
 
 import { createClient } from '@supabase/supabase-js';

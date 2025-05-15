@@ -1,16 +1,18 @@
-
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MemberAvatar } from "./MemberAvatar";
 import { MemberTypeBadge } from "./MemberTypeBadge";
 import { TabsList, TabsTrigger, TabsContent, Tabs } from "@/components/ui/tabs";
 import { MemberVehiclesTab } from "./tabs/MemberVehiclesTab";
+import { MemberActivityHistory } from "@/components/MemberActivityHistory";
 import { Member } from "@/hooks/use-members";
+import { Vehicle, VehicleType } from "@/types/member";
 
 interface ViewMemberDialogProps {
   member: Member | null;
@@ -50,12 +52,51 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
     
     return parts.length > 0 ? parts.join(', ') : 'Morada incompleta';
   };
+  
+  // Adaptar veículos para o tipo Vehicle correto
+  const adaptVehicles = (): Vehicle[] => {
+    if (!member.vehicles) return [];
+    
+    return member.vehicles.map(v => {
+      // Garantir que o tipo é uma string válida do tipo VehicleType
+      let validType: VehicleType;
+      
+      // Verificar se já é um tipo válido do VehicleType
+      if (v.type === 'Mota' || v.type === 'Moto-quatro' || v.type === 'Buggy') {
+        validType = v.type;
+      } else {
+        // Mapeamento dos tipos possíveis para os valores aceitos pelo tipo VehicleType
+        switch(v.type?.toUpperCase()) {
+          case 'MOTORCYCLE':
+          case 'CUSTOM':
+          case 'CRUISER':
+          case 'SPORT':
+          case 'TOURING':
+          case 'TRAIL':
+            validType = 'Mota';
+            break;
+          case 'QUAD':
+          case 'SCOOTER':
+            validType = 'Moto-quatro';
+            break;
+          default:
+            validType = 'Buggy';
+        }
+      }
+      
+      return {
+        ...v,
+        type: validType
+      };
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Detalhes do Membro</DialogTitle>
+          <DialogDescription>Informações completas do membro selecionado</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -81,7 +122,7 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
           </div>
           
           <Tabs defaultValue="info">
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-4 w-full">
               <TabsTrigger value="info">Informações</TabsTrigger>
               <TabsTrigger value="vehicles">
                 Veículos
@@ -92,6 +133,7 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
                 )}
               </TabsTrigger>
               <TabsTrigger value="dues">Quotas</TabsTrigger>
+              <TabsTrigger value="history">Histórico</TabsTrigger>
             </TabsList>
             
             <TabsContent value="info" className="space-y-4 pt-4">
@@ -140,7 +182,7 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
             
             <TabsContent value="vehicles" className="pt-4">
               <MemberVehiclesTab 
-                vehicles={member.vehicles || []}
+                vehicles={adaptVehicles()}
                 setIsAddVehicleOpen={() => {}}
                 handleDeleteVehicle={() => {}}
               />
@@ -150,6 +192,12 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
               <p className="text-center text-gray-500 py-4">
                 Informações sobre quotas estarão disponíveis em breve.
               </p>
+            </TabsContent>
+            
+            <TabsContent value="history" className="pt-4">
+              <MemberActivityHistory 
+                memberId={member.id}
+              />
             </TabsContent>
           </Tabs>
 

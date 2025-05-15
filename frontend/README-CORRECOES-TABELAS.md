@@ -1,14 +1,24 @@
-# Correções para a Criação de Tabelas no Supabase
+# README: Correções nas Tabelas do Supabase
 
-## Problemas Corrigidos
+## Reorganização Implementada
 
-1. **Correção do arquivo SystemInitializer.tsx**
-   - Foi criado um novo arquivo `SystemInitializerFixed.tsx` com as seguintes melhorias:
-     - Adicionadas definições de tipo corretas para os estados do componente
-     - Verificação automática da existência da extensão UUID no Postgres
-     - Verificação mais robusta da existência de tabelas
-     - Tratamento adequado de erros na inicialização
-     - Melhorias na formatação e escape de strings SQL
+A estrutura do código para inicialização das tabelas no Supabase foi reorganizada para eliminar duplicações e simplificar a manutenção. As principais mudanças incluem:
+
+1. **Consolidação de scripts**:
+   - Arquivos redundantes foram movidos para `frontend/backup-files/`
+   - Apenas uma versão de cada script foi mantida
+
+2. **Arquivos ativos**:
+   - `frontend/src/components/system/SystemInitializer.tsx` - Componente React para inicialização automática
+   - `frontend/src/init-tables.js` - Script Node.js para inicialização manual
+   - `frontend/init-tables.sh` - Shell script para execução facilitada
+
+3. **Problemas corrigidos no SystemInitializer.tsx**:
+   - Adicionadas definições de tipo corretas para os estados do componente
+   - Verificação automática da existência da extensão UUID no Postgres
+   - Verificação mais robusta da existência de tabelas
+   - Tratamento adequado de erros na inicialização
+   - Melhorias na formatação e escape de strings SQL
      - Verificação de todas as tabelas necessárias
 
 2. **Script independente para inicialização de tabelas**

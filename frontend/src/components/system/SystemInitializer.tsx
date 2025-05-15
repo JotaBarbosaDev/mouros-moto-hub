@@ -16,6 +16,66 @@ export function SystemInitializer() {
       try {
         console.log("Verificando tabelas do sistema...");
         
+        // Primeiro, verificar se a função exec_sql existe no banco de dados
+        try {
+          const { error: execSqlError } = await supabase.rpc('exec_sql', {
+            sql: "SELECT 1 as teste"
+          });
+          
+          if (execSqlError) {
+            console.error("Erro na função exec_sql:", execSqlError);
+            setError(`Erro ao verificar tabelas: ${execSqlError.message}
+
+A função exec_sql não foi encontrada no banco de dados do Supabase.
+Para resolver este problema:
+
+1. Execute o script create-exec-sql.sh na pasta raiz do frontend, ou 
+2. Acesse o painel do Supabase > SQL Editor e execute o seguinte SQL:
+
+CREATE OR REPLACE FUNCTION public.exec_sql(sql text)
+RETURNS SETOF json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE sql;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.exec_sql(text) TO anon, authenticated;
+`);
+            setIsChecking(false);
+            return;
+          }
+        } catch (error) {
+          console.error("Erro ao verificar função exec_sql:", error);
+          setError(`Erro ao verificar tabelas: Could not find the function public.exec_sql(sql) in the schema cache
+
+Execute o script create-exec-sql.sh na pasta raiz do frontend para resolver este problema.`);
+          setIsChecking(false);
+          return;
+        }
+        
+        // Primeiro verificar se a função exec_sql existe
+        try {
+          const { error } = await supabase.rpc('exec_sql', {
+            sql: "SELECT 1"
+          });
+          
+          if (error) {
+            setError(`A função exec_sql não foi encontrada no banco de dados. ${error.message}. 
+              Por favor, execute o script create-exec-sql.sh para criar esta função.`);
+            setIsChecking(false);
+            return;
+          }
+        } catch (execSqlError) {
+          console.error("Erro ao verificar função exec_sql:", execSqlError);
+          setError(`A função exec_sql não foi encontrada no banco de dados. 
+            Por favor, execute o script create-exec-sql.sh para criar esta função.`);
+          setIsChecking(false);
+          return;
+        }
+        
         // Primeiro, verificamos se a função uuid_generate_v4 existe no banco de dados
         const checkUuidFunction = `
           SELECT EXISTS (
@@ -82,6 +142,7 @@ export function SystemInitializer() {
         
         // Verifica se todas as tabelas existem
         const allTablesExist = tablesCheck && 
+                            Array.isArray(tablesCheck) &&
                             tablesCheck.length > 0 &&
                             tablesCheck[0].club_settings_exists &&
                             tablesCheck[0].settings_exists &&
@@ -126,7 +187,10 @@ export function SystemInitializer() {
           return;
         }
         
-        const isEmpty = !countResult || countResult.length === 0 || parseInt(countResult[0].count) === 0;
+        const isEmpty = !countResult || 
+                       !Array.isArray(countResult) || 
+                       countResult.length === 0 || 
+                       parseInt(countResult[0].count) === 0;
         
         if (isEmpty) {
           console.log("Tabela club_settings está vazia. Inicializando configurações...");
@@ -136,7 +200,7 @@ export function SystemInitializer() {
         }
         
         setIsInitialized(true);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Erro durante inicialização:', err);
         setError(err instanceof Error ? err.message : 'Erro desconhecido');
       } finally {
@@ -415,7 +479,7 @@ export function SystemInitializer() {
     return (
       <div className="text-red-500 p-4 bg-red-50 rounded-md">
         <h3 className="font-bold">Erro de inicialização do sistema</h3>
-        <p>{error}</p>
+        <p style={{ whiteSpace: 'pre-line' }}>{error}</p>
         <p>Tente recarregar a página ou contate o administrador do sistema.</p>
       </div>
     );

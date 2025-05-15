@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,14 +25,15 @@ import MemberCotas from "./pages/MemberCotas";
 import BarManagement from "./pages/Bar";
 import MemberStore from "./pages/MemberStore";
 import Products from "./pages/Products";
-import History from "./pages/History";
+import ActivityHistoryPage from "./pages/ActivityHistoryPage";
+import LogsSetup from "./pages/LogsSetup";
 import Calendar from "./pages/Calendar";
 import Treasury from "./pages/Treasury";
 import ApiDocs from "./pages/ApiDocs";
 
 const queryClient = new QueryClient();
 
-import { SystemInitializer } from './components/system/SystemInitializer';
+import { SystemInitializerBasic } from './components/system/SystemInitializerBasic';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -41,7 +41,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SystemInitializer />
+        <SystemInitializerBasic />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/sobre" element={<About />} />
@@ -135,8 +135,16 @@ const App = () => (
             path="/historico" 
             element={
               <ProtectedRoute>
-                <History />
+                <ActivityHistoryPage />
               </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/logs-setup" 
+            element={
+              <AdminRoute>
+                <LogsSetup />
+              </AdminRoute>
             } 
           />
           <Route 

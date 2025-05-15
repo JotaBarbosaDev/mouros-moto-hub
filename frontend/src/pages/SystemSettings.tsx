@@ -17,6 +17,7 @@ import { ClubSettings, InactivePeriod } from "@/types/settings";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
+import { safeDateUtils } from '@/utils/date-utils';
 import {
   Popover,
   PopoverContent,
@@ -94,10 +95,17 @@ const SystemSettings = () => {
       name: "",
       shortName: "",
       foundingDate: new Date(),
+      logoUrl: "", // Inicializa com string vazia em vez de undefined
+      bannerUrl: "", // Inicializa com string vazia em vez de undefined
       primaryColor: "#e11d48",
       secondaryColor: "#27272a",
       accentColor: "#f59e0b",
       textColor: "#27272a",
+      address: "", // Inicializa campos opcionais
+      email: "",
+      phone: "",
+      description: "",
+      welcomeMessage: "",
     },
   });
   
@@ -114,40 +122,76 @@ const SystemSettings = () => {
     defaultValues: {
       startDate: new Date(),
       endDate: new Date(),
-      reason: "",
+      reason: "", // Já está inicializado corretamente
     },
   });
   
+  // Função para converter string de data para objeto Date de forma segura
+  const safeParseDate = (dateString: string | Date | null | undefined): Date | null => {
+    if (!dateString) return null;
+    
+    try {
+      // Se já for um objeto Date, retorna o próprio
+      if (dateString instanceof Date) return dateString;
+      
+      // Tenta converter para Date
+      const parsedDate = new Date(dateString);
+      
+      // Verifica se é uma data válida
+      if (isNaN(parsedDate.getTime())) {
+        console.error("Data inválida:", dateString);
+        return null;
+      }
+      
+      return parsedDate;
+    } catch (error) {
+      console.error("Erro ao converter data:", error);
+      return null;
+    }
+  };
+
   // Update forms when data is loaded
   useEffect(() => {
     if (clubSettings) {
+      console.log("Dados originais recebidos:", clubSettings);
+      
+      // Tenta obter foundingDate com segurança
+      const foundingDate = safeParseDate(clubSettings.foundingDate);
+      console.log("FoundingDate convertida:", foundingDate);
+      
       clubIdentityForm.reset({
-        name: clubSettings.name,
-        shortName: clubSettings.shortName,
-        foundingDate: new Date(clubSettings.foundingDate),
-        logoUrl: clubSettings.logoUrl,
-        bannerUrl: clubSettings.bannerUrl,
-        primaryColor: clubSettings.primaryColor,
-        secondaryColor: clubSettings.secondaryColor,
-        accentColor: clubSettings.accentColor,
-        textColor: clubSettings.textColor,
-        address: clubSettings.address,
-        email: clubSettings.email,
-        phone: clubSettings.phone,
-        description: clubSettings.description,
-        welcomeMessage: clubSettings.welcomeMessage,
+        name: clubSettings.name || "",
+        shortName: clubSettings.shortName || "",
+        foundingDate: foundingDate || new Date('2015-01-01'), // Valor padrão como fallback
+        logoUrl: clubSettings.logoUrl || "",
+        bannerUrl: clubSettings.bannerUrl || "",
+        primaryColor: clubSettings.primaryColor || "#e11d48",
+        secondaryColor: clubSettings.secondaryColor || "#27272a",
+        accentColor: clubSettings.accentColor || "#f59e0b",
+        textColor: clubSettings.textColor || "#27272a",
+        address: clubSettings.address || "",
+        email: clubSettings.email || "",
+        phone: clubSettings.phone || "",
+        description: clubSettings.description || "",
+        welcomeMessage: clubSettings.welcomeMessage || "",
       });
+      
+      // Tenta obter feeStartDate com segurança
+      const feeStartDate = safeParseDate(clubSettings.feeStartDate);
+      console.log("FeeStartDate convertida:", feeStartDate);
       
       membershipFeesForm.reset({
         annualFee: clubSettings.annualFee,
-        feeStartDate: new Date(clubSettings.feeStartDate),
+        feeStartDate: feeStartDate || new Date('2015-01-01'), // Valor padrão como fallback
       });
       
       if (clubSettings.inactivePeriods) {
-        const formattedPeriods = clubSettings.inactivePeriods.map(period => ({
-          ...period,
-          startDate: new Date(period.startDate),
-          endDate: new Date(period.endDate),
+        // Garantindo que temos uma lista de períodos válidos
+        // e que os dados são strings ISO, conforme esperado pela interface
+        const formattedPeriods: InactivePeriod[] = clubSettings.inactivePeriods.map(period => ({
+          startDate: safeDateUtils.ensureISOString(period.startDate),
+          endDate: safeDateUtils.ensureISOString(period.endDate),
+          reason: period.reason,
         }));
         setInactivePeriods(formattedPeriods);
       }
@@ -155,40 +199,42 @@ const SystemSettings = () => {
       setLogoPreview(clubSettings.logoUrl);
       setBannerPreview(clubSettings.bannerUrl);
     }
-  }, [clubSettings]);
+  }, [clubSettings, clubIdentityForm, membershipFeesForm]);
   
   // Handle form submissions
   const onSubmitIdentity = (data: z.infer<typeof clubIdentitySchema>) => {
+    // Converter camelCase para snake_case e enviar os dados
     updateClubSettings({
       name: data.name,
-      shortName: data.shortName,
-      foundingDate: data.foundingDate.toISOString(),
-      logoUrl: data.logoUrl,
-      bannerUrl: data.bannerUrl,
-      primaryColor: data.primaryColor,
-      secondaryColor: data.secondaryColor,
-      accentColor: data.accentColor,
-      textColor: data.textColor,
+      short_name: data.shortName,                    // Corrigido: shortName -> short_name
+      founding_date: safeDateUtils.toISOString(data.foundingDate) || '2015-01-01T00:00:00Z',  // Corrigido: foundingDate -> founding_date
+      logo_url: data.logoUrl,                        // Corrigido: logoUrl -> logo_url
+      banner_url: data.bannerUrl,                    // Corrigido: bannerUrl -> banner_url
+      primary_color: data.primaryColor,              // Corrigido: primaryColor -> primary_color
+      secondary_color: data.secondaryColor,          // Corrigido: secondaryColor -> secondary_color
+      accent_color: data.accentColor,                // Corrigido: accentColor -> accent_color
+      text_color: data.textColor,                    // Corrigido: textColor -> text_color
       address: data.address,
       email: data.email,
       phone: data.phone,
       description: data.description,
-      welcomeMessage: data.welcomeMessage,
+      welcome_message: data.welcomeMessage,          // Corrigido: welcomeMessage -> welcome_message
     });
   };
   
   const onSubmitMembershipFees = (data: z.infer<typeof membershipFeesSchema>) => {
     updateClubSettings({
-      annualFee: data.annualFee,
-      feeStartDate: data.feeStartDate.toISOString(),
+      annual_fee: data.annualFee,                   // Corrigido: annualFee -> annual_fee
+      fee_start_date: safeDateUtils.toISOString(data.feeStartDate) || '2015-01-01T00:00:00Z', // Corrigido: feeStartDate -> fee_start_date
     });
   };
   
   // Handle inactive periods
   const addInactivePeriod = (data: z.infer<typeof inactivePeriodSchema>) => {
-    const newInactivePeriod: InactivePeriod = {
-      startDate: data.startDate.toISOString(),
-      endDate: data.endDate.toISOString(),
+    // Garantir que as datas sejam convertidas para strings ISO antes de atribuir
+    const newInactivePeriod = {
+      start_date: safeDateUtils.ensureISOString(data.startDate),  // Corrigido: startDate -> start_date
+      end_date: safeDateUtils.ensureISOString(data.endDate),      // Corrigido: endDate -> end_date
       reason: data.reason,
     };
     
@@ -197,7 +243,7 @@ const SystemSettings = () => {
     
     // Update club settings with new inactive periods
     updateClubSettings({
-      inactivePeriods: updatedPeriods,
+      inactive_periods: updatedPeriods,  // Corrigido: inactivePeriods -> inactive_periods
     });
     
     setIsAddingInactivePeriod(false);
@@ -211,7 +257,7 @@ const SystemSettings = () => {
     
     // Update club settings with updated inactive periods
     updateClubSettings({
-      inactivePeriods: updatedPeriods,
+      inactive_periods: updatedPeriods,  // Corrigido: inactivePeriods -> inactive_periods
     });
   };
   
@@ -223,9 +269,13 @@ const SystemSettings = () => {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setLogoPreview(base64String);
-        clubIdentityForm.setValue("logoUrl", base64String);
+        // Garante que o valor nunca será undefined
+        clubIdentityForm.setValue("logoUrl", base64String || "");
       };
       reader.readAsDataURL(file);
+    } else {
+      // Se o input for limpo, define um valor vazio em vez de undefined
+      clubIdentityForm.setValue("logoUrl", "");
     }
   };
   
@@ -236,14 +286,34 @@ const SystemSettings = () => {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setBannerPreview(base64String);
-        clubIdentityForm.setValue("bannerUrl", base64String);
+        // Garante que o valor nunca será undefined
+        clubIdentityForm.setValue("bannerUrl", base64String || "");
       };
       reader.readAsDataURL(file);
+    } else {
+      // Se o input for limpo, define um valor vazio em vez de undefined
+      clubIdentityForm.setValue("bannerUrl", "");
     }
   };
   
-  const formatDate = (date: Date) => {
-    return format(date, "dd/MM/yyyy", { locale: ptBR });
+  const formatDate = (date: Date | string | null | undefined) => {
+    if (!date) return "";
+    
+    try {
+      // Se for uma string, converte para objeto Date
+      const dateObject = typeof date === 'string' ? new Date(date) : date;
+      
+      // Verifica se é uma data válida
+      if (isNaN(dateObject.getTime())) {
+        console.error("Data inválida:", date);
+        return "Data inválida";
+      }
+      
+      return format(dateObject, "dd/MM/yyyy", { locale: ptBR });
+    } catch (error) {
+      console.error("Erro ao formatar data:", error);
+      return "Data inválida";
+    }
   };
   
   if (isLoadingClubSettings) {

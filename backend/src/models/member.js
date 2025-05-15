@@ -85,9 +85,67 @@ const findById = async (id) => {
 };
 
 const create = async (memberData) => {
+  // Adaptar campos entre formatos de frontend e backend
+  const adaptedData = {};
+  
+  // Mapeamento direto
+  if (memberData.name !== undefined) adaptedData.name = memberData.name;
+  if (memberData.email !== undefined) adaptedData.email = memberData.email;
+  
+  // Garantir que campos obrigatórios não sejam nulos
+  console.log('phoneMain recebido:', memberData.phoneMain);
+  
+  // Garantir que member_number seja válido (nunca nulo)
+  // Usando um formato padronizado: ANO-TIMESTAMP para garantir exclusividade
+  const currentYear = new Date().getFullYear();
+  const uniqueSuffix = String(Date.now()).substring(8);
+  adaptedData.member_number = memberData.memberNumber || memberData.member_number || 
+    `${currentYear}-${uniqueSuffix}`;
+  
+  if (memberData.isAdmin !== undefined) adaptedData.is_admin = memberData.isAdmin;
+  if (memberData.isActive !== undefined) adaptedData.is_active = memberData.isActive;
+  
+  // Campos de telefone
+  if (memberData.phone !== undefined) adaptedData.phone = memberData.phone;
+  if (memberData.phoneMain !== undefined) adaptedData.phone_main = memberData.phoneMain;
+  // Garantir que phone_main nunca seja nulo (é um requisito do banco de dados)
+  if (adaptedData.phone_main === undefined) {
+    adaptedData.phone_main = memberData.phone || 'Não informado';
+    console.log('Definindo phone_main padrão:', adaptedData.phone_main);
+  }
+  
+  if (memberData.phoneAlternative !== undefined) adaptedData.phone_alternative = memberData.phoneAlternative;
+  
+  // Campos de datas
+  if (memberData.birthdate !== undefined) adaptedData.birthdate = memberData.birthdate;
+  if (memberData.joinDate !== undefined) adaptedData.member_since = memberData.joinDate;
+  
+  // Campos de tipo
+  if (memberData.memberType !== undefined) adaptedData.member_type = memberData.memberType;
+  if (memberData.honoraryMember !== undefined) adaptedData.honorary_member = memberData.honoraryMember;
+  if (memberData.bloodType !== undefined) adaptedData.blood_type = memberData.bloodType;
+  
+  // Campos adicionais
+  if (memberData.inWhatsappGroup !== undefined) adaptedData.in_whatsapp_group = memberData.inWhatsappGroup;
+  if (memberData.receivedMemberKit !== undefined) adaptedData.received_member_kit = memberData.receivedMemberKit;
+  if (memberData.username !== undefined) adaptedData.username = memberData.username;
+  if (memberData.legacyMember !== undefined) adaptedData.legacy_member = memberData.legacyMember;
+  if (memberData.registrationFeePaid !== undefined) adaptedData.registration_fee_paid = memberData.registrationFeePaid;
+  if (memberData.registrationFeeExempt !== undefined) adaptedData.registration_fee_exempt = memberData.registrationFeeExempt;
+  if (memberData.nickname !== undefined) adaptedData.nickname = memberData.nickname;
+  if (memberData.photoUrl !== undefined) adaptedData.photo_url = memberData.photoUrl;
+  
+  // Logs para debug
+  console.log(`Criando membro: ${memberData.name} (${adaptedData.member_number})`);
+  console.log("Dados recebidos:", JSON.stringify({
+    nome: memberData.name,
+    email: memberData.email,
+    memberNumber: memberData.memberNumber || memberData.member_number || 'não fornecido'
+  }));
+  
   const { data, error } = await supabaseAdmin
     .from('members')
-    .insert(memberData)
+    .insert(adaptedData)
     .select();
   
   if (error) throw error;
@@ -96,9 +154,47 @@ const create = async (memberData) => {
 };
 
 const update = async (id, memberData) => {
+  // Adaptar campos entre formatos de frontend e backend
+  const adaptedData = {};
+  
+  // Mapeamento direto
+  if (memberData.name !== undefined) adaptedData.name = memberData.name;
+  if (memberData.email !== undefined) adaptedData.email = memberData.email;
+  if (memberData.memberNumber !== undefined) adaptedData.member_number = memberData.memberNumber;
+  if (memberData.isAdmin !== undefined) adaptedData.is_admin = memberData.isAdmin;
+  if (memberData.isActive !== undefined) adaptedData.is_active = memberData.isActive;
+  
+  // Campos de telefone
+  if (memberData.phone !== undefined) adaptedData.phone = memberData.phone;
+  if (memberData.phoneMain !== undefined) adaptedData.phone_main = memberData.phoneMain;
+  if (memberData.phoneAlternative !== undefined) adaptedData.phone_alternative = memberData.phoneAlternative;
+  
+  // Campos de datas
+  if (memberData.birthdate !== undefined) adaptedData.birthdate = memberData.birthdate;
+  if (memberData.joinDate !== undefined) adaptedData.member_since = memberData.joinDate;
+  
+  // Campos de tipo
+  if (memberData.memberType !== undefined) adaptedData.member_type = memberData.memberType;
+  if (memberData.honoraryMember !== undefined) adaptedData.honorary_member = memberData.honoraryMember;
+  if (memberData.bloodType !== undefined) adaptedData.blood_type = memberData.bloodType;
+  
+  // Campos adicionais
+  if (memberData.inWhatsappGroup !== undefined) adaptedData.in_whatsapp_group = memberData.inWhatsappGroup;
+  if (memberData.receivedMemberKit !== undefined) adaptedData.received_member_kit = memberData.receivedMemberKit;
+  if (memberData.username !== undefined) adaptedData.username = memberData.username;
+  if (memberData.legacyMember !== undefined) adaptedData.legacy_member = memberData.legacyMember;
+  if (memberData.registrationFeePaid !== undefined) adaptedData.registration_fee_paid = memberData.registrationFeePaid;
+  if (memberData.registrationFeeExempt !== undefined) adaptedData.registration_fee_exempt = memberData.registrationFeeExempt;
+  if (memberData.nickname !== undefined) adaptedData.nickname = memberData.nickname;
+  if (memberData.photoUrl !== undefined) adaptedData.photo_url = memberData.photoUrl;
+  
+  // Logs para debug
+  console.log("Dados recebidos para atualização de membro:", memberData);
+  console.log("Dados adaptados para salvar no banco:", adaptedData);
+  
   const { data, error } = await supabaseAdmin
     .from('members')
-    .update(memberData)
+    .update(adaptedData)
     .eq('id', id)
     .select();
   

@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "start": "node src/index.js",
+    "predev": "../clean-port.sh",
     "dev": "nodemon src/index.js --watch src",
     "swagger": "node src/swagger-server.js",
     "lint": "eslint ."

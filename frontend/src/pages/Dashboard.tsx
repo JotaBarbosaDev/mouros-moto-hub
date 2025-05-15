@@ -12,6 +12,7 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { useBarSales } from '@/hooks/use-bar-sales';
 import { useTreasury } from '@/hooks/use-treasury';
 import { useInventory } from '@/hooks/use-inventory';
+import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
 import {
   Calendar,
   Clock,
@@ -26,7 +27,8 @@ import {
   Package,
   PlusCircle,
   MinusCircle,
-  Bike
+  Bike,
+  Activity
 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isAfter, isBefore, addDays } from 'date-fns';
@@ -320,6 +322,11 @@ const Dashboard = () => {
             </CardFooter>
           </Card>
           
+          {/* Card de Histórico de Atividades */}
+          <Card className="hover:border-mouro-red/50 transition-colors col-span-1 lg:col-span-2">
+            <RecentActivityCard limit={5} />
+          </Card>
+
           {/* Card de Eventos */}
           <Card className="hover:border-mouro-red/50 transition-colors">
             <CardHeader className="pb-2">
@@ -471,6 +478,16 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+        
+        {/* ATIVIDADES RECENTES */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-display mb-4">
+            Atividades <span className="text-mouro-red">Recentes</span>
+          </h2>
+          <div className="grid grid-cols-1 gap-4">
+            <RecentActivityCard limit={8} />
+          </div>
         </div>
         
         {/* DADOS DOS PRINCIPAIS MÓDULOS */}

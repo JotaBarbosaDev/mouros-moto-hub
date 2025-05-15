@@ -1,10 +1,24 @@
 // Controller para gerenciamento de veículos
 const VehicleModel = require('../models/vehicle');
+const activityLogService = require('../services/activity-log-service');
 
 // Obter todos os veículos
 exports.getAllVehicles = async (req, res) => {
   try {
     const vehicles = await VehicleModel.findAll();
+    
+    // Registrar a atividade de visualização
+    const user = req.user || {};
+    activityLogService.log({
+      userId: user.id,
+      username: user.email || user.username || 'anônimo',
+      action: 'VIEW',
+      entityType: 'VEHICLE',
+      entityId: null,
+      details: { count: vehicles.length },
+      ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+    }).catch(err => console.error('Erro ao registrar log:', err));
+    
     res.status(200).json(vehicles);
   } catch (error) {
     console.error('Erro ao buscar veículos:', error);
@@ -21,6 +35,21 @@ exports.getVehicleById = async (req, res) => {
     if (!vehicle) {
       return res.status(404).json({ error: 'Veículo não encontrado' });
     }
+    
+    // Registrar atividade de visualização de veículo específico
+    const user = req.user || {};
+    activityLogService.log({
+      userId: user.id,
+      username: user.email || user.username || 'anônimo',
+      action: 'VIEW',
+      entityType: 'VEHICLE',
+      entityId: id,
+      details: { 
+        vehicleInfo: `${vehicle.brand} ${vehicle.model} ${vehicle.year || ''}`,
+        licensePlate: vehicle.license_plate || vehicle.licensePlate || 'N/A'
+      },
+      ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+    }).catch(err => console.error('Erro ao registrar log:', err));
     
     res.status(200).json(vehicle);
   } catch (error) {
@@ -72,6 +101,23 @@ exports.createVehicle = async (req, res) => {
     };
 
     const newVehicle = await VehicleModel.create(vehicleData);
+    
+    // Registrar a atividade de criação de veículo
+    const user = req.user || {};
+    activityLogService.log({
+      userId: user.id,
+      username: user.email || user.username || 'anônimo',
+      action: 'CREATE',
+      entityType: 'VEHICLE',
+      entityId: newVehicle.id,
+      details: { 
+        vehicleInfo: `${newVehicle.brand} ${newVehicle.model} ${newVehicle.year || ''}`,
+        licensePlate: newVehicle.license_plate || newVehicle.licensePlate || 'N/A',
+        memberId: newVehicle.member_id
+      },
+      ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+    }).catch(err => console.error('Erro ao registrar log:', err));
+    
     res.status(201).json(newVehicle);
   } catch (error) {
     console.error('Erro ao criar veículo:', error);
@@ -91,6 +137,29 @@ exports.updateVehicle = async (req, res) => {
     }
     
     const updatedVehicle = await VehicleModel.update(id, req.body);
+    
+    // Registrar a atividade de atualização de veículo
+    const user = req.user || {};
+    activityLogService.log({
+      userId: user.id,
+      username: user.email || user.username || 'anônimo',
+      action: 'UPDATE',
+      entityType: 'VEHICLE',
+      entityId: id,
+      details: { 
+        vehicleInfo: `${updatedVehicle.brand} ${updatedVehicle.model} ${updatedVehicle.year || ''}`,
+        licensePlate: updatedVehicle.license_plate || updatedVehicle.licensePlate || 'N/A',
+        changedFields: Object.keys(req.body),
+        previousState: {
+          brand: existingVehicle.brand,
+          model: existingVehicle.model,
+          year: existingVehicle.year,
+          licensePlate: existingVehicle.license_plate || existingVehicle.licensePlate
+        }
+      },
+      ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+    }).catch(err => console.error('Erro ao registrar log:', err));
+    
     res.status(200).json(updatedVehicle);
   } catch (error) {
     console.error(`Erro ao atualizar veículo com ID ${req.params.id}:`, error);
@@ -108,6 +177,22 @@ exports.deleteVehicle = async (req, res) => {
     if (!existingVehicle) {
       return res.status(404).json({ error: 'Veículo não encontrado' });
     }
+    
+    // Registrar a atividade de exclusão de veículo
+    const user = req.user || {};
+    activityLogService.log({
+      userId: user.id,
+      username: user.email || user.username || 'anônimo',
+      action: 'DELETE',
+      entityType: 'VEHICLE',
+      entityId: id,
+      details: { 
+        vehicleInfo: `${existingVehicle.brand} ${existingVehicle.model} ${existingVehicle.year || ''}`,
+        licensePlate: existingVehicle.license_plate || existingVehicle.licensePlate || 'N/A',
+        memberId: existingVehicle.member_id
+      },
+      ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+    }).catch(err => console.error('Erro ao registrar log:', err));
     
     await VehicleModel.remove(id);
     res.status(200).json({ message: 'Veículo removido com sucesso' });

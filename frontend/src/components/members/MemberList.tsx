@@ -48,8 +48,12 @@ export function MemberList() {
         username = emailParts[0] || `membro${Date.now().toString().substring(7)}`;
       }
       
-      // Se não foi fornecida senha, usar o username como senha
-      const password = member.password || username;
+      // Se não foi fornecida senha, gerar uma senha segura com pelo menos 6 caracteres
+      let password = member.password;
+      if (!password || password.length < 6) {
+        // Gerar senha aleatória com pelo menos 6 caracteres se não fornecida ou muito curta
+        password = username + Math.floor(Math.random() * 1000000).toString();
+      }
       
       // Tenta criar o usuário na autenticação do Supabase
       try {
@@ -75,14 +79,19 @@ export function MemberList() {
         // Continua mesmo com erro
       }
       
-      // Criar o membro no banco
       // Criar o membro no banco usando a interface MemberExtended
+      // Gerar um memberNumber para garantir que o campo obrigatório seja preenchido
+      const currentYear = new Date().getFullYear();
+      const uniqueSuffix = Date.now().toString().substring(8);
+      const memberNumber = member.memberNumber || `${currentYear}-${uniqueSuffix}`;
+
       await createMember({
         ...member,
         name: member.name || '', // Nome é obrigatório
         email: member.email || '', // Email é obrigatório
-        phoneMain: member.phoneMain || '', // Telefone principal é obrigatório
-        memberNumber: member.memberNumber || String(Date.now()).substring(7), // Generate a unique number if not provided
+        phoneMain: member.phoneMain || 'Não informado', // Garante valor não-nulo para telefone
+        memberNumber: memberNumber, // Garante que memberNumber seja fornecido
+        memberType: member.memberType || 'Sócio Adulto', // Garante que memberType nunca seja undefined
         isActive: true,
         isAdmin: member.memberType === "Administração",
         joinDate: member.joinDate || new Date().toISOString(),
@@ -94,7 +103,16 @@ export function MemberList() {
         receivedMemberKit: member.receivedMemberKit || false,
         username: username,
         duesPayments: [], // Inicializa com array vazio em vez de any
-        vehicles: member.vehicles || [] // Usa os veículos do membro ou array vazio
+        vehicles: member.vehicles || [], // Usa os veículos do membro ou array vazio
+        // Garante que o endereço não seja nulo (é obrigatório no tipo MemberExtended)
+        address: member.address || {
+          street: '',
+          number: '',
+          postalCode: '',
+          city: '',
+          district: '',
+          country: 'Portugal'
+        }
       });
     } finally {
       setIsSubmitting(false);

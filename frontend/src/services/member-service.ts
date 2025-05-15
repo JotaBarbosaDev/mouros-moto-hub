@@ -1,161 +1,231 @@
-import { fetchWithAuth, getApiBaseUrl } from '@/utils/api';
-import { MemberExtended } from '@/types/member-extended';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
+import { MemberExtended, MemberDbResponse } from '@/types/member-extended';
+import { BloodType, MemberType, Vehicle } from '@/types/member';
 
-/**
- * Serviço para gerenciamento de membros
- */
-export const memberService = {
-  /**
-   * Busca todos os membros
-   */
-  getAll: async (): Promise<MemberExtended[]> => {
-    const apiUrl = `${getApiBaseUrl()}/members`;
-    const response = await fetchWithAuth(apiUrl);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+// Função para obter todos os membros
+const getAll = async (): Promise<MemberExtended[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('members')
+      .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit, username, legacy_member, registration_fee_paid, registration_fee_exempt')
+      .order('name');
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os membros.',
+        variant: 'destructive',
+      });
+      throw error;
     }
-    
-    return response.json();
-  },
-  
-  /**
-   * Busca um membro pelo ID
-   */
-  getById: async (id: string): Promise<MemberExtended> => {
-    const apiUrl = `${getApiBaseUrl()}/members/${id}`;
-    const response = await fetchWithAuth(apiUrl);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    
-    return response.json();
-  },
-  
-  /**
-   * Cria um novo membro
-   */
-  create: async (member: Omit<MemberExtended, 'id'>): Promise<MemberExtended> => {
-    const apiUrl = `${getApiBaseUrl()}/members`;
-    
-    // Garantir que campos importantes não sejam undefined
-    const validatedMember = {
-      ...member,
-      phoneMain: member.phoneMain || "",
-      phoneAlternative: member.phoneAlternative || null,
-      email: member.email || "",
-      name: member.name || "",
-    };
-    
-    // Adaptar os dados para o formato esperado pelo backend
-    const adaptedMember = {
-      name: validatedMember.name,
-      email: validatedMember.email,
-      phone_main: validatedMember.phoneMain,
-      phone_alternative: validatedMember.phoneAlternative,
-      nickname: validatedMember.nickname,
-      photo_url: validatedMember.photoUrl,
-      join_date: validatedMember.joinDate,
-      member_type: validatedMember.memberType,
-      blood_type: validatedMember.bloodType,
-      honorary_member: validatedMember.honoraryMember,
-      in_whatsapp_group: validatedMember.inWhatsAppGroup || false,
-      received_member_kit: validatedMember.receivedMemberKit,
-      is_admin: validatedMember.isAdmin,
-      is_active: validatedMember.isActive,
-      // Dados adicionais
-      address: member.address ? {
-        street: member.address.street,
-        number: member.address.number,
-        postal_code: member.address.postalCode,
-        city: member.address.city,
-        district: member.address.district,
-        country: member.address.country
-      } : undefined,
-      vehicles: member.vehicles,
-      dues_payments: member.duesPayments
-    };
-    
-    const response = await fetchWithAuth(apiUrl, {
-      method: 'POST',
-      body: JSON.stringify(adaptedMember)
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Falha ao criar membro: ${response.status} - ${JSON.stringify(errorData)}`);
-    }
-    
-    return response.json();
-  },
-  
-  /**
-   * Atualiza um membro existente
-   */
-  update: async (id: string, member: MemberExtended): Promise<MemberExtended> => {
-    const apiUrl = `${getApiBaseUrl()}/members/${id}`;
-    
-    // Garantir que campos importantes não sejam undefined
-    const validatedMember = {
-      ...member,
-      phoneMain: member.phoneMain || "",
-      phoneAlternative: member.phoneAlternative || null,
-      email: member.email || "",
-      name: member.name || "",
-    };
-    
-    // Adaptar os dados para o formato esperado pelo backend
-    const adaptedMember = {
-      name: validatedMember.name,
-      email: validatedMember.email,
-      phone_main: validatedMember.phoneMain,
-      phone_alternative: validatedMember.phoneAlternative,
-      nickname: validatedMember.nickname,
-      photo_url: validatedMember.photoUrl,
-      join_date: validatedMember.joinDate,
-      member_type: validatedMember.memberType,
-      blood_type: validatedMember.bloodType,
-      honorary_member: validatedMember.honoraryMember,
-      in_whatsapp_group: validatedMember.inWhatsAppGroup || false,
-      received_member_kit: validatedMember.receivedMemberKit || false,
-      is_admin: validatedMember.isAdmin,
-      is_active: validatedMember.isActive,
-      // Dados adicionais
-      address: validatedMember.address ? {
-        street: validatedMember.address.street,
-        number: validatedMember.address.number,
-        postal_code: validatedMember.address.postalCode,
-        city: validatedMember.address.city,
-        district: validatedMember.address.district,
-        country: validatedMember.address.country
-      } : undefined
-    };
-    
-    const response = await fetchWithAuth(apiUrl, {
-      method: 'PUT',
-      body: JSON.stringify(adaptedMember)
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Falha ao atualizar membro: ${response.status} - ${JSON.stringify(errorData)}`);
-    }
-    
-    return response.json();
-  },
-  
-  /**
-   * Remove um membro
-   */
-  delete: async (id: string): Promise<void> => {
-    const apiUrl = `${getApiBaseUrl()}/members/${id}`;
-    const response = await fetchWithAuth(apiUrl, {
-      method: 'DELETE'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
+
+    return Array.isArray(data) ? data.map(member => mapMemberFromDb(member as MemberDbResponse)) : [];
+  } catch (error) {
+    console.error('Erro ao carregar membros:', error);
+    return [];
   }
+};
+
+// Função para obter um membro pelo ID
+const getById = async (id: string): Promise<MemberExtended | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('members')
+      .select('id, name, member_number, is_admin, is_active, email, phone_main, phone_alternative, nickname, photo_url, join_date, member_type, honorary_member, blood_type, in_whatsapp_group, received_member_kit, username, legacy_member, registration_fee_paid, registration_fee_exempt')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar o membro.',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+
+    return data ? mapMemberFromDb(data as MemberDbResponse) : null;
+  } catch (error) {
+    console.error('Erro ao carregar membro:', error);
+    return null;
+  }
+};
+
+// Função para mapear um membro do banco de dados para o formato utilizado no frontend
+const mapMemberFromDb = (member: MemberDbResponse): MemberExtended => {
+  return {
+    id: member.id,
+    name: member.name,
+    memberNumber: member.member_number,
+    isAdmin: member.is_admin,
+    isActive: member.is_active,
+    email: member.email,
+    phoneMain: member.phone_main,
+    phoneAlternative: member.phone_alternative,
+    nickname: member.nickname,
+    photoUrl: member.photo_url,
+    joinDate: member.join_date,
+    memberType: member.member_type as MemberType,
+    honoraryMember: member.honorary_member,
+    bloodType: member.blood_type as BloodType,
+    inWhatsAppGroup: member.in_whatsapp_group,
+    receivedMemberKit: member.received_member_kit,
+    username: member.username,
+    legacyMember: member.legacy_member,
+    registrationFeePaid: member.registration_fee_paid,
+    registrationFeeExempt: member.registration_fee_exempt,
+    // Campos obrigatórios com valores padrão
+    address: {
+      street: '',
+      number: '',
+      postalCode: '',
+      city: '',
+      district: '',
+      country: 'Portugal'
+    },
+    vehicles: [],
+    duesPayments: []
+  };
+};
+
+// Função para criar um membro
+const create = async (member: Omit<MemberExtended, 'id'>): Promise<MemberExtended> => {
+  try {
+    // Mapear o membro para o formato esperado pelo Supabase
+    const memberToCreate = {
+      name: member.name,
+      member_number: member.memberNumber,
+      is_admin: member.isAdmin,
+      is_active: member.isActive,
+      email: member.email,
+      phone_main: member.phoneMain,
+      phone_alternative: member.phoneAlternative,
+      nickname: member.nickname,
+      photo_url: member.photoUrl,
+      join_date: member.joinDate,
+      member_type: member.memberType,
+      honorary_member: member.honoraryMember,
+      in_whatsapp_group: member.inWhatsAppGroup,
+      received_member_kit: member.receivedMemberKit,
+      username: member.username,
+      legacy_member: member.legacyMember,
+      registration_fee_paid: member.registrationFeePaid,
+      registration_fee_exempt: member.registrationFeeExempt
+    };
+
+    const { data, error } = await supabase
+      .from('members')
+      .insert(memberToCreate)
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível criar o membro.',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+
+    toast({
+      title: 'Sucesso',
+      description: 'Membro criado com sucesso.',
+    });
+
+    return data ? mapMemberFromDb(data as MemberDbResponse) : {} as MemberExtended;
+  } catch (error) {
+    console.error('Erro ao criar membro:', error);
+    throw error;
+  }
+};
+
+// Função para atualizar um membro
+const update = async (id: string, member: MemberExtended): Promise<MemberExtended> => {
+  try {
+    // Mapear o membro para o formato esperado pelo Supabase
+    const memberToUpdate = {
+      name: member.name,
+      member_number: member.memberNumber,
+      is_admin: member.isAdmin,
+      is_active: member.isActive,
+      email: member.email,
+      phone_main: member.phoneMain,
+      phone_alternative: member.phoneAlternative,
+      nickname: member.nickname,
+      photo_url: member.photoUrl,
+      join_date: member.joinDate,
+      member_type: member.memberType,
+      honorary_member: member.honoraryMember,
+      in_whatsapp_group: member.inWhatsAppGroup,
+      received_member_kit: member.receivedMemberKit,
+      username: member.username,
+      legacy_member: member.legacyMember,
+      registration_fee_paid: member.registrationFeePaid,
+      registration_fee_exempt: member.registrationFeeExempt
+    };
+
+    const { data, error } = await supabase
+      .from('members')
+      .update(memberToUpdate)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o membro.',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+
+    toast({
+      title: 'Sucesso',
+      description: 'Membro atualizado com sucesso.',
+    });
+
+    return data ? mapMemberFromDb(data as MemberDbResponse) : {} as MemberExtended;
+  } catch (error) {
+    console.error('Erro ao atualizar membro:', error);
+    throw error;
+  }
+};
+
+// Função para excluir um membro
+const deleteMember = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('members')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o membro.',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+
+    toast({
+      title: 'Sucesso',
+      description: 'Membro excluído com sucesso.',
+    });
+  } catch (error) {
+    console.error('Erro ao excluir membro:', error);
+    throw error;
+  }
+};
+
+// Exportando o serviço de membros
+export const memberService = {
+  getAll,
+  getById,
+  create,
+  update,
+  delete: deleteMember
 };

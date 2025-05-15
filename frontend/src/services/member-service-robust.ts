@@ -284,7 +284,7 @@ export const createMemberInDb = async (memberData: Omit<MemberExtended, 'id'>): 
       is_admin: memberData.memberType === "Administração" ? true : false,
       is_active: memberData.isActive || true,
       email: memberData.email,
-      phone_main: memberData.phoneMain,
+      phone_main: memberData.phoneMain || "Não informado",
       phone_alternative: memberData.phoneAlternative,
       nickname: memberData.nickname,
       photo_url: memberData.photoUrl,

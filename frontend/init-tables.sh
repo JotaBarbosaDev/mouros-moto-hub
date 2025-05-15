@@ -19,7 +19,15 @@ fi
 
 # Executa o script de inicialização
 echo "Inicializando tabelas no Supabase..."
-node --experimental-specifier-resolution=node --loader ts-node/esm ./src/init-tables.js
+
+# Verifica se o Node.js está instalado
+if ! command -v node &> /dev/null; then
+  echo "Node.js não está instalado. Por favor, instale o Node.js para continuar."
+  exit 1
+fi
+
+echo "Executando script de inicialização de tabelas..."
+node --experimental-specifier-resolution=node ./src/init-tables.js
 
 # Verifica o resultado
 if [ $? -eq 0 ]; then

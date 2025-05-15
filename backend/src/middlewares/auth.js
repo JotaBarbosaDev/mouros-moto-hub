@@ -86,6 +86,15 @@ const authenticate = async (req, res, next) => {
 
 // Middleware para verificar se o usuário é administrador
 const isAdmin = async (req, res, next) => {
+  console.log('Verificando privilégios de administrador para:', req.user);
+  
+  // Modo de desenvolvimento: permitir acesso de admin se variável de ambiente estiver definida
+  if (process.env.ALLOW_DEV_ADMIN === 'true') {
+    console.log('Modo de desenvolvimento ativo: concedendo privilégios de administrador');
+    req.user = req.user || { id: 'dev-admin', email: 'dev@admin.com', isAdmin: true };
+    return next();
+  }
+  
   // authenticate deve ter sido executado primeiro
   if (!req.user) {
     return res.status(401).json({ 
@@ -96,6 +105,7 @@ const isAdmin = async (req, res, next) => {
   
   // Se já validamos o admin no middleware authenticate
   if (req.user.isAdmin === true) {
+    console.log('Usuário já validado como admin');
     return next();
   }
   
