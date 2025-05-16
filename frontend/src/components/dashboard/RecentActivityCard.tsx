@@ -157,6 +157,16 @@ export function RecentActivityCard({ limit = 5 }: RecentActivityCardProps) {
                     </span>
                     {getEntityIcon(log)}
                   </div>
+                  {(log.details?.updatedBy || 
+                    log.details?.createdBy || 
+                    log.details?.deletedBy) && 
+                    (log.details?.updatedBy !== log.username || 
+                     log.details?.createdBy !== log.username || 
+                     log.details?.deletedBy !== log.username) && (
+                    <span className="text-xs text-gray-500 italic">
+                      por {log.details?.updatedBy || log.details?.createdBy || log.details?.deletedBy}
+                    </span>
+                  )}
                   <span className="text-xs text-gray-500">
                     {formatDate(log.created_at)}
                   </span>

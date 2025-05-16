@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { MemberExtended, MemberDbResponse } from '@/types/member-extended';
 import { BloodType, MemberType, Vehicle } from '@/types/member';
+import { activityLogService } from './activity-log-service';
 
 // Função para obter todos os membros
 const getAll = async (): Promise<MemberExtended[]> => {
@@ -20,7 +21,19 @@ const getAll = async (): Promise<MemberExtended[]> => {
       throw error;
     }
 
-    return Array.isArray(data) ? data.map(member => mapMemberFromDb(member as MemberDbResponse)) : [];
+    // Garantir que os dados são do tipo esperado antes de mapear
+    return Array.isArray(data) 
+      ? data.map(member => {
+          // Verificar se o objeto tem a estrutura esperada antes de fazer o cast
+          if (typeof member === 'object' && member !== null) {
+            return mapMemberFromDb(member as unknown as MemberDbResponse);
+          }
+          // Se o objeto não tiver a estrutura esperada, retornar um objeto vazio
+          console.warn('Objeto de membro inválido encontrado:', member);
+          // Retornar um objeto com ID para que possa ser identificado e filtrado corretamente
+          return { id: '' } as MemberExtended;
+        }).filter(member => !!member?.id) // Verificação segura com operador opcional
+      : [];
   } catch (error) {
     console.error('Erro ao carregar membros:', error);
     return [];
@@ -45,7 +58,11 @@ const getById = async (id: string): Promise<MemberExtended | null> => {
       throw error;
     }
 
-    return data ? mapMemberFromDb(data as MemberDbResponse) : null;
+    // Verificar se os dados têm a estrutura esperada antes de fazer o cast
+    if (data && typeof data === 'object' && data !== null) {
+      return mapMemberFromDb(data as unknown as MemberDbResponse);
+    }
+    return null;
   } catch (error) {
     console.error('Erro ao carregar membro:', error);
     return null;
@@ -134,7 +151,44 @@ const create = async (member: Omit<MemberExtended, 'id'>): Promise<MemberExtende
       description: 'Membro criado com sucesso.',
     });
 
-    return data ? mapMemberFromDb(data as MemberDbResponse) : {} as MemberExtended;
+    // Verificar se os dados têm a estrutura esperada antes de fazer o cast
+    if (data && typeof data === 'object' && data !== null && 'id' in data) {
+      // Registrar a criação do membro no histórico
+      try {
+        const userDetails = await supabase.auth.getUser();
+        const user = userDetails?.data?.user;
+        
+        // Obter o nome de usuário de forma mais detalhada, priorizando informações disponíveis
+        const username = user?.user_metadata?.name || 
+                         user?.user_metadata?.username || 
+                         user?.email || 
+                         'sistema';
+        
+        await activityLogService.createLog({
+          userId: user?.id || null,
+          username: username,
+          action: 'CREATE',
+          entityType: 'MEMBER',
+          entityId: data.id,
+          details: {
+            memberName: data.name,
+            memberNumber: data.member_number,
+            memberEmail: data.email,
+            createdBy: username,
+            createdAt: new Date().toISOString()
+          }
+        });
+        console.log(`Log de criação de membro registrado com sucesso por ${username}.`);
+      } catch (logError) {
+        console.error('Erro ao registrar log de criação de membro:', logError);
+        // Não interrompemos o fluxo em caso de falha no log
+      }
+      
+      return mapMemberFromDb(data as unknown as MemberDbResponse);
+    } 
+    console.warn('Dados inválidos retornados ao criar membro:', data);
+    // Retornar um objeto com ID vazio para evitar erros de nulo
+    return { id: '' } as MemberExtended;
   } catch (error) {
     console.error('Erro ao criar membro:', error);
     throw error;
@@ -187,7 +241,44 @@ const update = async (id: string, member: MemberExtended): Promise<MemberExtende
       description: 'Membro atualizado com sucesso.',
     });
 
-    return data ? mapMemberFromDb(data as MemberDbResponse) : {} as MemberExtended;
+    // Verificar se os dados têm a estrutura esperada antes de fazer o cast
+    if (data && typeof data === 'object' && data !== null && 'id' in data) {
+      // Registrar a atualização do membro no histórico
+      try {
+        const userDetails = await supabase.auth.getUser();
+        const user = userDetails?.data?.user;
+        
+        // Obter o nome de usuário de forma mais detalhada, priorizando informações disponíveis
+        const username = user?.user_metadata?.name || 
+                         user?.user_metadata?.username || 
+                         user?.email || 
+                         'sistema';
+        
+        await activityLogService.createLog({
+          userId: user?.id || null,
+          username: username,
+          action: 'UPDATE',
+          entityType: 'MEMBER',
+          entityId: data.id,
+          details: {
+            memberName: data.name,
+            memberNumber: data.member_number,
+            changedFields: Object.keys(memberToUpdate).join(', '),
+            updatedBy: username,
+            updatedAt: new Date().toISOString()
+          }
+        });
+        console.log(`Log de atualização de membro registrado com sucesso por ${username}.`);
+      } catch (logError) {
+        console.error('Erro ao registrar log de atualização de membro:', logError);
+        // Não interrompemos o fluxo em caso de falha no log
+      }
+      
+      return mapMemberFromDb(data as unknown as MemberDbResponse);
+    }
+    console.warn('Dados inválidos retornados ao atualizar membro:', data);
+    // Retornar um objeto com ID vazio para evitar erros de nulo
+    return { id: '' } as MemberExtended;
   } catch (error) {
     console.error('Erro ao atualizar membro:', error);
     throw error;
@@ -215,6 +306,43 @@ const deleteMember = async (id: string): Promise<void> => {
       title: 'Sucesso',
       description: 'Membro excluído com sucesso.',
     });
+    
+    // Registrar a exclusão do membro no histórico
+    try {
+      // Primeiro, buscar o nome do membro que está sendo excluído para enriquecer o log
+      const { data: memberData } = await supabase
+        .from('members')
+        .select('name, member_number')
+        .eq('id', id)
+        .single();
+      
+      const userDetails = await supabase.auth.getUser();
+      const user = userDetails?.data?.user;
+      
+      // Obter o nome de usuário de forma mais detalhada, priorizando informações disponíveis
+      const username = user?.user_metadata?.name || 
+                       user?.user_metadata?.username || 
+                       user?.email || 
+                       'sistema';
+      
+      await activityLogService.createLog({
+        userId: user?.id || null,
+        username: username,
+        action: 'DELETE',
+        entityType: 'MEMBER',
+        entityId: id,
+        details: {
+          memberName: memberData?.name || 'Nome não disponível',
+          memberNumber: memberData?.member_number || 'Número não disponível',
+          deletedAt: new Date().toISOString(),
+          deletedBy: username
+        }
+      });
+      console.log(`Log de exclusão de membro registrado com sucesso por ${username}.`);
+    } catch (logError) {
+      console.error('Erro ao registrar log de exclusão de membro:', logError);
+      // Não interrompemos o fluxo em caso de falha no log
+    }
   } catch (error) {
     console.error('Erro ao excluir membro:', error);
     throw error;

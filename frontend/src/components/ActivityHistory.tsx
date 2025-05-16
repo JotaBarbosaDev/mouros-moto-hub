@@ -318,7 +318,14 @@ export function ActivityHistory({ entityType, entityId, fromDate, toDate, action
                   logs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell>{formatDate(log.created_at)}</TableCell>
-                      <TableCell>{log.username || "Sistema"}</TableCell>
+                      <TableCell>
+                        {log.username || "Sistema"}
+                        {log.details?.updatedBy && log.username !== log.details.updatedBy && (
+                          <span className="block text-xs text-gray-500">
+                            ({log.details.updatedBy})
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <span className={getActionClass(log.action)}>
                           {formatAction(log.action)}

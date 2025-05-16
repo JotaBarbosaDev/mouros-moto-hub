@@ -139,7 +139,24 @@ export function MemberActivityHistory({
                     <TableCell className="whitespace-nowrap">
                       {formatDate(log.created_at)}
                     </TableCell>
-                    <TableCell>{log.username || "Sistema"}</TableCell>
+                    <TableCell>
+                      {log.username || "Sistema"}
+                      {log.details?.updatedBy && log.username !== log.details.updatedBy && (
+                        <span className="block text-xs text-gray-500">
+                          ({log.details.updatedBy})
+                        </span>
+                      )}
+                      {log.details?.createdBy && log.username !== log.details.createdBy && (
+                        <span className="block text-xs text-gray-500">
+                          ({log.details.createdBy})
+                        </span>
+                      )}
+                      {log.details?.deletedBy && log.username !== log.details.deletedBy && (
+                        <span className="block text-xs text-gray-500">
+                          ({log.details.deletedBy})
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <span className={getActionClass(log.action)}>
                         {formatAction(log.action)}

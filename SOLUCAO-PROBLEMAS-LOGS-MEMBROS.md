@@ -6,23 +6,36 @@ A tabela `activity_logs` precisa ser criada no banco de dados Supabase para que 
 
 ### Solução:
 
-1. Certifique-se de ter as variáveis de ambiente do Supabase configuradas:
+#### Opção 1: Usando a interface web da aplicação (Recomendado)
+
+1. Inicie o sistema frontend e backend:
    ```bash
-   export SUPABASE_URL=sua_url_do_supabase
-   export SUPABASE_SERVICE_ROLE_KEY=sua_chave_de_servico
+   # Terminal 1:
+   cd /Users/joaobarbosa/Desktop/projetos/mouros-moto-hub
+   ./start-backend.sh
+   
+   # Terminal 2:
+   cd /Users/joaobarbosa/Desktop/projetos/mouros-moto-hub/frontend
+   npm run dev
    ```
 
-2. Execute o script para criar a tabela:
-   ```bash
-   cd frontend
-   ./create-activity-logs-direct.sh
-   ```
+2. Acesse a página de configuração de logs:
+   http://localhost:5173/logs-setup
 
-3. Alternativamente, você pode criar a tabela manualmente pelo painel do Supabase:
-   - Acesse o painel do Supabase
-   - Vá para SQL Editor
-   - Cole o conteúdo do arquivo `frontend/create-activity-logs-table.sql`
-   - Execute o script
+3. Clique no botão "Verificar configuração" para verificar se a tabela já existe.
+   
+4. Se não existir, clique em "Criar tabela de logs" para criá-la automaticamente.
+
+#### Opção 2: Usando o SQL Editor do Supabase
+
+1. Acesse o painel do Supabase: https://app.supabase.io/
+2. Navegue até o SQL Editor
+3. Cole o conteúdo do arquivo `frontend/create-activity-logs-table.sql`
+4. Execute o script
+
+⚠️ **Importante:** Os scripts via linha de comando estão enfrentando problemas de acesso com a API REST, portanto, prefira utilizar as soluções acima.
+
+Para instruções detalhadas, consulte o arquivo `INSTRUCOES-CRIAR-TABELA-LOGS.md` na raiz do projeto.
 
 ## Problema 2: Membros Não Estão Sendo Adicionados
 
@@ -70,3 +83,25 @@ Se os problemas persistirem, verifique:
 - Se a tabela `activity_logs` foi criada corretamente
 - Se as permissões estão configuradas conforme especificado no script SQL
 - Se o token de autenticação está sendo enviado corretamente nas requisições
+
+## Resumo das Soluções Implementadas
+
+1. **Correção do Problema de Logs**
+   - Criação de instruções detalhadas para configuração da tabela de logs
+   - Adição de interface web para criar e gerenciar a tabela de logs
+   - Verificação de existência da tabela antes de tentar registrar logs
+
+2. **Correção de Erros de TypeScript no Gerenciamento de Membros**
+   - Adição de campos padrão para `address` e `memberType`
+   - Melhoria na segurança dos tipos com verificações de null/undefined
+   - Correção dos tipos de retorno para evitar erros de referência nula
+
+3. **Resolução de Conflitos de Porta no Backend**
+   - Criação de script `clean-port.sh` para matar processos usando a porta 3001
+   - Modificação de `start-backend.sh` para verificar processos existentes
+   - Adição de limpeza automática de porta nos scripts npm
+
+4. **Implementação de Logging de Atividades**
+   - Integração no serviço de membros para registrar ações CRUD
+   - Adição de identificação de usuário e detalhamento das atividades
+   - Verificação de compatibilidade com a estrutura da tabela de logs
