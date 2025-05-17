@@ -1,6 +1,7 @@
 // Controller para gerenciamento de veículos
 const VehicleModel = require('../models/vehicle');
 const activityLogService = require('../services/activity-log-service');
+const { addEngineSize } = require('../utils/vehicle-patch');
 
 // Obter todos os veículos
 exports.getAllVehicles = async (req, res) => {
@@ -90,6 +91,14 @@ exports.createVehicle = async (req, res) => {
         error: 'Dados incompletos',
         details: 'ID do membro é obrigatório'
       });
+    }
+    
+    // Verificar e garantir que a coluna engine_size existe
+    try {
+      await addEngineSize();
+    } catch (err) {
+      console.warn('Não foi possível verificar a coluna engine_size:', err);
+      // Continua mesmo com erro, pois se a coluna já existir, não haverá problemas
     }
     
     // Normalizar os dados do veículo

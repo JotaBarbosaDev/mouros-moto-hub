@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -83,6 +84,7 @@ export function AddVehicleDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Adicionar Veículo</DialogTitle>
+          <DialogDescription>Preencha os detalhes do veículo a ser adicionado.</DialogDescription>
         </DialogHeader>
         
         {!hideOwnerSelect && (

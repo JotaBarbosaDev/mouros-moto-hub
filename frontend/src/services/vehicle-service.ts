@@ -88,28 +88,63 @@ export const vehicleService = {
     const { memberId, ...vehicle } = vehicleData;
     
     // Formatar os dados no formato esperado pelo backend
+    // Garantimos que todos os campos necessários estão presentes
+    const displacement = vehicle.displacement || 0;
+    
     const payload = {
       brand: vehicle.brand,
       model: vehicle.model,
       type: vehicle.type,
-      displacement: vehicle.displacement,
+      displacement: displacement,
+      engine_size: displacement, // Campo obrigatório para o backend - usando valor de displacement
       nickname: vehicle.nickname || null,
       photo_url: vehicle.photoUrl || null,
       member_id: memberId
     };
     
     const apiUrl = `${getApiBaseUrl()}/vehicles`;
-    const response = await fetchWithAuth(apiUrl, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Falha ao salvar veículo: ${response.status} - ${JSON.stringify(errorData)}`);
+    try {
+      const response = await fetchWithAuth(apiUrl, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Verificar se é o erro específico de coluna engine_size não encontrada
+        if (response.status === 500 && 
+            errorData?.details && 
+            typeof errorData.details === 'string' && 
+            errorData.details.includes('engine_size')) {
+          console.warn('Erro de coluna engine_size, tentando novamente sem esse campo...');
+          
+          // Remover o campo engine_size do payload e tentar novamente
+          const { engine_size, ...payloadWithoutEngineSize } = payload;
+          
+          // Segunda tentativa sem o campo engine_size
+          const retryResponse = await fetchWithAuth(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify(payloadWithoutEngineSize)
+          });
+          
+          if (!retryResponse.ok) {
+            const retryErrorData = await retryResponse.json().catch(() => ({}));
+            throw new Error(`Falha ao salvar veículo: ${retryResponse.status} - ${JSON.stringify(retryErrorData)}`);
+          }
+          
+          return retryResponse.json();
+        }
+        
+        throw new Error(`Falha ao salvar veículo: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('Erro ao salvar veículo:', error);
+      throw error;
     }
-    
-    return response.json();
   },
   
   /**
