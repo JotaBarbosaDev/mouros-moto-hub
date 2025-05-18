@@ -1,4 +1,4 @@
--- filepath: /Users/joaobarbosa/Desktop/projetos/mouros-moto-hub/frontend/create-activity-logs-table.sql
+-- filepath: /Users/joaobarbosa/Desktop/projetos/mouros-moto-hub/create-activity-logs-table.sql
 -- Script para criar tabela de logs de atividade no Supabase
 
 -- Verificar se a extensão uuid-ossp está ativada
@@ -26,9 +26,6 @@ COMMENT ON COLUMN public.activity_logs.entity_type IS 'Tipo de entidade afetada 
 COMMENT ON COLUMN public.activity_logs.entity_id IS 'ID da entidade afetada';
 COMMENT ON COLUMN public.activity_logs.details IS 'Detalhes da ação em formato JSON';
 COMMENT ON COLUMN public.activity_logs.ip_address IS 'Endereço IP de onde a ação foi realizada';
-
--- Garantir que RLS esteja ativado
-ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- Configurar RLS e permissões
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;

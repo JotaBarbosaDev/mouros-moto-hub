@@ -4,7 +4,7 @@ Este documento detalha todas as correções implementadas para resolver os probl
 
 ## 📋 VISÃO GERAL DOS PROBLEMAS RESOLVIDOS
 
-Foram identificados e corrigidos seis problemas principais:
+Foram identificados e corrigidos sete problemas principais:
 
 1. **URLs incorretas nos serviços de autenticação** - Causando erros 500 ao tentar fazer login e acessar `/api/auth/me`
 2. **Coluna `engine_size` ausente** - Causando erros 500 ao salvar veículos
@@ -12,6 +12,7 @@ Foram identificados e corrigidos seis problemas principais:
 4. **Problemas na inicialização do backend** - Relacionados à configuração do Supabase
 5. **Inconsistência nos padrões de URL da API** - Causando conflitos entre frontend e backend
 6. **Configuração incorreta de autenticação** - Problemas nas chaves do Supabase e JWT_SECRET causando erros de login
+7. **Problemas com adição de veículos (Resolvido em 19/05/2025)** - Erro na coluna engine_size causando falhas ao adicionar veículos aos membros
 
 ## 🔧 DETALHES DAS CORREÇÕES
 
@@ -43,6 +44,12 @@ Foram identificados e corrigidos seis problemas principais:
 1. **Frontend:** Modificado `vehicle-service.ts` para incluir o campo `engine_size` em todas as operações
 2. **Backend:** Criada utilidade `vehicle-patch.js` para verificar e adicionar a coluna se não existir
 3. **Banco de dados:** Criado script SQL para adicionar a coluna ao banco de dados
+
+**Atualização (19/05/2025):**
+1. **Frontend:** Implementado detector de campos de cilindrada com estratégias múltiplas de fallback
+2. **Backend:** Simplificado modelo de veículo para usar apenas `displacement` e eliminar dependência de `engine_size`
+3. **Erro:** Criado script `fix-engine-size.sh` para resolver o problema rapidamente
+4. **Documentação:** Adicionado documento detalhado `SOLUCAO-ENGINE-SIZE.md` com a solução completa
 
 **Scripts SQL:**
 ```sql

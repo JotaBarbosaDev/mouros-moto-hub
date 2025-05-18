@@ -30,6 +30,15 @@ interface AddMemberDialogProps {
   isSubmitting?: boolean;
 }
 
+// Interface para controlar os erros de validação
+interface FormErrors {
+  name?: string;
+  email?: string;
+  phoneMain?: string;
+  username?: string;
+  password?: string;
+}
+
 export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = false }: AddMemberDialogProps) {
   const [formData, setFormData] = useState<Partial<Member>>({
     name: '',
@@ -62,6 +71,11 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
     registrationFeeExempt: false,
     isAdmin: false,
   });
+  
+  // Estado para gerenciar erros de validação do formulário
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  // Estado para controlar se o formulário já foi submetido uma vez
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   const [vehicleForm, setVehicleForm] = useState<Partial<Vehicle>>({
     brand: '',
@@ -75,8 +89,85 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [vehiclePhotoPreview, setVehiclePhotoPreview] = useState<string | null>(null);
 
+  // Função para validar o email usando uma expressão regular
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
+
+  // Função para validar o telefone (aceita apenas números, espaços, + e -)
+  const validatePhone = (phone: string): boolean => {
+    const phoneRegex = /^[0-9\s\-+]+$/;
+    return phone ? phoneRegex.test(phone) : false;
+  };
+
+  // Função para validar campos obrigatórios
+  const validateRequired = (value: string): boolean => {
+    return !!value && value.trim() !== '';
+  };
+
+  // Função para validar senha (mínimo de 6 caracteres)
+  const validatePassword = (password: string | undefined): boolean => {
+    if (!password) return true; // Se estiver vazio, não é erro (será preenchido automaticamente)
+    return password.length >= 6;
+  };
+
+  // Função para validar o formulário completo
+  const validateForm = (): boolean => {
+    const errors: FormErrors = {};
+    let isValid = true;
+
+    // Validar nome
+    if (!validateRequired(formData.name || '')) {
+      errors.name = 'Nome é obrigatório';
+      isValid = false;
+    }
+
+    // Validar email
+    if (!validateRequired(formData.email || '')) {
+      errors.email = 'Email é obrigatório';
+      isValid = false;
+    } else if (!validateEmail(formData.email || '')) {
+      errors.email = 'Email inválido';
+      isValid = false;
+    }
+
+    // Validar telefone
+    if (!validateRequired(formData.phoneMain || '')) {
+      errors.phoneMain = 'Telefone é obrigatório';
+      isValid = false;
+    } else if (!validatePhone(formData.phoneMain || '')) {
+      errors.phoneMain = 'Formato de telefone inválido';
+      isValid = false;
+    }
+
+    // Validar username
+    if (validateRequired(formData.username || '')) {
+      // Se um username for fornecido, verifica se tem pelo menos 3 caracteres
+      if ((formData.username || '').length < 3) {
+        errors.username = 'Username deve ter pelo menos 3 caracteres';
+        isValid = false;
+      }
+    }
+
+    // Validar senha
+    if (!validatePassword(formData.password)) {
+      errors.password = 'Senha deve ter pelo menos 6 caracteres';
+      isValid = false;
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormSubmitted(true);
+    
+    // Validar o formulário antes de enviar
+    if (!validateForm()) {
+      return; // Impede envio se houver erros
+    }
     
     // Verificar se o membro possui username, se não, usa o email como username
     const updatedFormData = { ...formData };
@@ -104,6 +195,57 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
     updatedFormData.isAdmin = updatedFormData.isAdmin ?? false;
     
     onSubmit(updatedFormData);
+  };
+
+  // Função para validar campos durante a digitação
+  const validateField = (field: keyof FormErrors, value: string) => {
+    if (!formSubmitted) return; // Só valida após a primeira tentativa de envio
+
+    const newErrors = { ...formErrors };
+    
+    switch (field) {
+      case 'name':
+        if (!validateRequired(value)) {
+          newErrors.name = 'Nome é obrigatório';
+        } else {
+          delete newErrors.name;
+        }
+        break;
+      case 'email':
+        if (!validateRequired(value)) {
+          newErrors.email = 'Email é obrigatório';
+        } else if (!validateEmail(value)) {
+          newErrors.email = 'Email inválido';
+        } else {
+          delete newErrors.email;
+        }
+        break;
+      case 'phoneMain':
+        if (!validateRequired(value)) {
+          newErrors.phoneMain = 'Telefone é obrigatório';
+        } else if (!validatePhone(value)) {
+          newErrors.phoneMain = 'Formato de telefone inválido';
+        } else {
+          delete newErrors.phoneMain;
+        }
+        break;
+      case 'username':
+        if (validateRequired(value) && value.length < 3) {
+          newErrors.username = 'Username deve ter pelo menos 3 caracteres';
+        } else {
+          delete newErrors.username;
+        }
+        break;
+      case 'password':
+        if (!validatePassword(value)) {
+          newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+        } else {
+          delete newErrors.password;
+        }
+        break;
+    }
+
+    setFormErrors(newErrors);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,6 +334,11 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
     <Dialog open={open} onOpenChange={(state) => {
       if (!isSubmitting) {
         onOpenChange(state);
+        if (!state) {
+          // Resetar erros e estado de submissão quando o diálogo for fechado
+          setFormErrors({});
+          setFormSubmitted(false);
+        }
       }
     }}>
       <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
@@ -230,13 +377,20 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
               </div>
               
               <div className="grid gap-2 flex-1">
-                <Label htmlFor="name">Nome Completo*</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+                <div className="grid gap-1">
+                  <Label htmlFor="name" className={formErrors.name ? "text-red-500" : ""}>Nome Completo*</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      validateField('name', e.target.value);
+                    }}
+                    className={formErrors.name ? "border-red-500" : ""}
+                    required
+                  />
+                  {formErrors.name && <p className="text-xs text-red-500">{formErrors.name}</p>}
+                </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                   <div>
@@ -269,15 +423,20 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email*</Label>
+              <div className="grid gap-1">
+                <Label htmlFor="email" className={formErrors.email ? "text-red-500" : ""}>Email*</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value });
+                    validateField('email', e.target.value);
+                  }}
+                  className={formErrors.email ? "border-red-500" : ""}
                   required
                 />
+                {formErrors.email && <p className="text-xs text-red-500">{formErrors.email}</p>}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="bloodType">Tipo de Sangue</Label>
@@ -298,37 +457,52 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="username">Nome de Usuário*</Label>
+              <div className="grid gap-1">
+                <Label htmlFor="username" className={formErrors.username ? "text-red-500" : ""}>Nome de Usuário*</Label>
                 <Input
                   id="username"
                   type="text"
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, username: e.target.value });
+                    validateField('username', e.target.value);
+                  }}
+                  className={formErrors.username ? "border-red-500" : ""}
                   required
                 />
+                {formErrors.username && <p className="text-xs text-red-500">{formErrors.username}</p>}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Senha</Label>
+              <div className="grid gap-1">
+                <Label htmlFor="password" className={formErrors.password ? "text-red-500" : ""}>Senha</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="Se vazio, será igual ao nome de usuário"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    validateField('password', e.target.value);
+                  }}
+                  className={formErrors.password ? "border-red-500" : ""}
                 />
+                {formErrors.password && <p className="text-xs text-red-500">{formErrors.password}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="phoneMain">Telefone Principal*</Label>
+              <div className="grid gap-1">
+                <Label htmlFor="phoneMain" className={formErrors.phoneMain ? "text-red-500" : ""}>Telefone Principal*</Label>
                 <Input
                   id="phoneMain"
                   value={formData.phoneMain}
-                  onChange={(e) => setFormData({ ...formData, phoneMain: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, phoneMain: e.target.value });
+                    validateField('phoneMain', e.target.value);
+                  }}
+                  className={formErrors.phoneMain ? "border-red-500" : ""}
                   required
                 />
+                {formErrors.phoneMain && <p className="text-xs text-red-500">{formErrors.phoneMain}</p>}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="phoneAlternative">Telefone Alternativo</Label>
@@ -588,6 +762,12 @@ export function AddMemberDialog({ open, onOpenChange, onSubmit, isSubmitting = f
             </div>
           </div>
           <DialogFooter>
+            {/* Mostrar mensagens de erro gerais do formulário aqui */}
+            {formSubmitted && Object.keys(formErrors).length > 0 && (
+              <div className="w-full text-red-500 text-sm mb-2">
+                Por favor, corrija os erros no formulário antes de enviar.
+              </div>
+            )}
             <Button type="submit" className="bg-mouro-red hover:bg-mouro-red/90" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>

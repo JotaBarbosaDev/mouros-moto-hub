@@ -6,8 +6,8 @@ const { logActivity } = require('../middleware/activity-logger');
 
 const router = express.Router();
 
-// Aplicar middleware de autenticação em rotas específicas (método alternativo para evitar erros)
-// router.use(authMiddleware.authenticate); // Comentado temporariamente
+// Aplicar middleware de autenticação em todas as rotas de veículos
+router.use(authMiddleware.authenticate);
 
 // Obter todos os veículos
 router.get('/', 

@@ -44,12 +44,59 @@ export function AddVehicleDialog({
     defaultValues: defaultVehicleValues
   });
   
-  const handleSubmit = (values: VehicleFormValues) => {
+  const handleSubmit = async (values: VehicleFormValues) => {
     setIsSubmitting(true);
     
     try {
+      // Validar se o membro está selecionado
+      if (!selectedMemberId && !hideOwnerSelect) {
+        toast({
+          title: "Erro de validação",
+          description: "Por favor, selecione o proprietário do veículo.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validação adicional dos campos
+      if (!values.brand.trim()) {
+        toast({
+          title: "Erro de validação",
+          description: "A marca do veículo é obrigatória.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!values.model.trim()) {
+        toast({
+          title: "Erro de validação",
+          description: "O modelo do veículo é obrigatório.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!values.type) {
+        toast({
+          title: "Erro de validação",
+          description: "O tipo do veículo é obrigatório.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (values.displacement <= 0) {
+        toast({
+          title: "Erro de validação",
+          description: "A cilindrada deve ser maior que zero.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Passar o ID do membro quando salvar o veículo
-      onSave({
+      await onSave({
         brand: values.brand,
         model: values.model,
         type: values.type,
@@ -60,11 +107,33 @@ export function AddVehicleDialog({
       
       form.reset();
       onOpenChange(false);
+      
+      toast({
+        title: "Sucesso",
+        description: "Veículo adicionado com sucesso.",
+      });
     } catch (error) {
       console.error('Error saving vehicle:', error);
+      
+      let errorMessage = "Não foi possível adicionar o veículo.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes("Membro não encontrado")) {
+          errorMessage = "Membro não encontrado. Verifique se o membro existe.";
+        } else if (error.message.includes("engine_size")) {
+          errorMessage = "Erro no formato de cilindrada. Verifique se está informando um número válido.";
+        } else if (error.message.includes("foreign key")) {
+          errorMessage = "Erro de relacionamento. Verifique se o membro existe.";
+        } else if (error.message.includes("HTTP error! Status: 500")) {
+          errorMessage = "Erro interno do servidor. Tente novamente mais tarde.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar o veículo.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

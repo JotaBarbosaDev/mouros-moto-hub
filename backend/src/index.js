@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
+const { ensureVehicleColumns } = require('./utils/fix-columns');
 
 // Importar rotas
 const membersRoutes = require('./routes/members');
@@ -91,8 +92,25 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Iniciar o servidor
-app.listen(PORT, HOST, () => {
-  console.log(`Servidor rodando em http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
-  console.log(`Documentação Swagger disponível em http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/api-docs`);
-});
+// Verificar e corrigir problemas com colunas antes de iniciar o servidor
+console.log('Verificando a estrutura das tabelas do banco de dados...');
+ensureVehicleColumns()
+  .then(() => {
+    console.log('Verificação de tabelas concluída.');
+    
+    // Iniciar o servidor
+    app.listen(PORT, HOST, () => {
+      console.log(`Servidor rodando em http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+      console.log(`Documentação Swagger disponível em http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/api-docs`);
+    });
+  })
+  .catch(error => {
+    console.error('Erro ao verificar tabelas:', error);
+    console.log('Iniciando servidor mesmo com erros nas tabelas...');
+    
+    // Iniciar o servidor mesmo em caso de erro na verificação
+    app.listen(PORT, HOST, () => {
+      console.log(`Servidor rodando em http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+      console.log(`Documentação Swagger disponível em http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/api-docs`);
+    });
+  });

@@ -1,7 +1,7 @@
 // Controller para gerenciamento de veículos
 const VehicleModel = require('../models/vehicle');
 const activityLogService = require('../services/activity-log-service');
-const { addEngineSize } = require('../utils/vehicle-patch');
+const { ensureVehicleColumns } = require('../utils/fix-columns');
 
 // Obter todos os veículos
 exports.getAllVehicles = async (req, res) => {
@@ -93,20 +93,21 @@ exports.createVehicle = async (req, res) => {
       });
     }
     
-    // Verificar e garantir que a coluna engine_size existe
-    try {
-      await addEngineSize();
-    } catch (err) {
-      console.warn('Não foi possível verificar a coluna engine_size:', err);
-      // Continua mesmo com erro, pois se a coluna já existir, não haverá problemas
-    }
+    // Não vamos mais depender de campos relacionados à cilindrada exceto displacement
+    // Remover todos os campos relacionados à cilindrada que possam causar problemas
+    const { engine_size, engineSize, cylinderCapacity, engineDisplacement, engine_displacement, ...cleanData } = req.body;
     
     // Normalizar os dados do veículo
     const vehicleData = {
-      ...req.body,
-      // Garantir que temos displacement/engine_size independente de como foi enviado
-      displacement: req.body.displacement || req.body.engine_size,
-      engine_size: req.body.engine_size || req.body.displacement
+      ...cleanData,
+      // Garantir que temos displacement (cilindrada) independente de como foi enviado
+      displacement: req.body.displacement || 
+                   req.body.engine_size || 
+                   req.body.engineSize || 
+                   req.body.cylinderCapacity || 
+                   req.body.engineDisplacement || 
+                   req.body.engine_displacement || 
+                   0
     };
 
     const newVehicle = await VehicleModel.create(vehicleData);

@@ -18,6 +18,15 @@ if [ ! -d "./frontend" ] || [ ! -d "./backend" ]; then
   exit 1
 fi
 
+# Verificar e corrigir as tabelas do banco de dados
+echo -e "${YELLOW}Verificando e corrigindo tabelas do banco de dados...${NC}"
+if [ -f "./verify-and-fix-tables.sh" ]; then
+  chmod +x ./verify-and-fix-tables.sh
+  ./verify-and-fix-tables.sh
+else
+  echo -e "${RED}Aviso: Script verify-and-fix-tables.sh não encontrado. Pulando verificação de tabelas.${NC}"
+fi
+
 # Iniciar backend em um terminal separado
 echo -e "${GREEN}Iniciando backend na porta 3001...${NC}"
 

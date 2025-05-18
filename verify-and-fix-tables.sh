@@ -56,6 +56,31 @@ check_engine_size_column() {
   fi
 }
 
+# Função para verificar se a coluna displacement existe
+check_displacement_column() {
+  echo -e "${YELLOW}Verificando coluna displacement na tabela vehicles...${NC}"
+  
+  RESPONSE=$(curl -s -X GET \
+    "$SUPABASE_URL/rest/v1/rpc/exec_sql" \
+    -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+    -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"sql\": \"SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vehicles' AND column_name = 'displacement') as exists;\"}")
+  
+  if [[ "$RESPONSE" == *"true"* ]]; then
+    echo -e "${GREEN}✅ Coluna displacement já existe na tabela vehicles.${NC}"
+    return 0
+  elif [[ "$RESPONSE" == *"false"* ]]; then
+    echo -e "${YELLOW}⚠️ Coluna displacement não encontrada. Será criada.${NC}"
+    return 1
+  else
+    echo -e "${RED}Erro ao verificar coluna displacement: $RESPONSE${NC}"
+    # Tenta verificar se a função exec_sql existe
+    check_exec_sql
+    return 2
+  fi
+}
+
 # Função para verificar se a função exec_sql existe
 check_exec_sql() {
   echo -e "${YELLOW}Verificando função exec_sql...${NC}"
@@ -116,6 +141,26 @@ create_engine_size_column() {
     return 1
   else
     echo -e "${GREEN}✅ Coluna engine_size criada e valores atualizados com sucesso.${NC}"
+    return 0
+  fi
+}
+
+# Função para criar a coluna displacement
+create_displacement_column() {
+  echo -e "${YELLOW}Criando coluna displacement na tabela vehicles...${NC}"
+  
+  RESPONSE=$(curl -s -X POST \
+    "$SUPABASE_URL/rest/v1/rpc/exec_sql" \
+    -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+    -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"sql\": \"ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS displacement INTEGER; UPDATE public.vehicles SET displacement = engine_size WHERE displacement IS NULL AND engine_size IS NOT NULL;\"}")
+  
+  if [[ "$RESPONSE" == *"error"* ]]; then
+    echo -e "${RED}Erro ao criar coluna displacement: $RESPONSE${NC}"
+    return 1
+  else
+    echo -e "${GREEN}✅ Coluna displacement criada e valores atualizados com sucesso.${NC}"
     return 0
   fi
 }
@@ -208,6 +253,21 @@ check_exec_sql
 if ! check_engine_size_column; then
   create_engine_size_column
 fi
+
+# Verificar e criar coluna displacement se necessário
+if ! check_displacement_column; then
+  create_displacement_column
+fi
+
+# Sincronizar valores entre as colunas para garantir consistência
+echo -e "${YELLOW}Sincronizando valores entre as colunas engine_size e displacement...${NC}"
+curl -s -X POST \
+  "$SUPABASE_URL/rest/v1/rpc/exec_sql" \
+  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"sql\": \"UPDATE public.vehicles SET displacement = engine_size WHERE displacement IS NULL AND engine_size IS NOT NULL; UPDATE public.vehicles SET engine_size = displacement WHERE engine_size IS NULL AND displacement IS NOT NULL;\"}" > /dev/null
+echo -e "${GREEN}✅ Valores sincronizados entre as colunas.${NC}"
 
 # Verificar e criar tabela activity_logs se necessário
 if ! check_activity_logs_table; then

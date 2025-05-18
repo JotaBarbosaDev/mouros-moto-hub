@@ -1,4 +1,3 @@
-
 import { UseFormReturn } from "react-hook-form";
 import { VehicleFormValues } from "./schemas/vehicle-schema";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -41,19 +40,44 @@ export const VehicleBasicFields = ({ form }: VehicleBasicFieldsProps) => {
         />
       </div>
       
-      <FormField
-        control={form.control}
-        name="nickname"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Alcunha (opcional)</FormLabel>
-            <FormControl>
-              <Input {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="displacement"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cilindrada (cc)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  {...field}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value) && value > 0) {
+                      field.onChange(value);
+                    }
+                  }} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="nickname"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Alcunha (opcional)</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
     </>
   );
 };

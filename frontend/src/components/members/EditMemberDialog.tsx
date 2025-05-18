@@ -278,34 +278,24 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       // Add vehicle to database usando a API REST
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
       
-      // Preparar os dados para envio
+      // Importar o serviço de veículos
+      const { vehicleService } = await import('@/services/vehicle-service');
+      
+      // Preparar os dados para envio usando o serviço
       const vehicleData = {
         brand: vehicle.brand,
         model: vehicle.model,
         type: vehicle.type,
         displacement: vehicle.displacement,
-        nickname: vehicle.nickname || null,
-        photo_url: photoUrl,
-        member_id: targetMemberId
+        nickname: vehicle.nickname || undefined,
+        photoUrl: photoUrl,
+        memberId: targetMemberId
       };
       
       console.log('Enviando dados do veículo para API:', vehicleData);
       
-      const response = await fetch(`${baseUrl}/vehicles`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`
-        },
-        body: JSON.stringify(vehicleData)
-      });
-        
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      
-      // Obter o veículo criado da resposta
-      const responseData = await response.json();
+      // Usar o serviço de veículos para criar o veículo
+      const responseData = await vehicleService.create(vehicleData);
       
       // Criar o objeto de veículo para o estado local
       const newVehicle: Vehicle = {
@@ -313,7 +303,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
         brand: responseData.brand,
         model: responseData.model,
         type: responseData.type as VehicleType,
-        displacement: responseData.engineSize,
+        displacement: responseData.displacement || 0, // Usando displacement em vez de engineSize
         nickname: responseData.nickname || undefined,
         photoUrl: responseData.photoUrl || undefined,
       };
@@ -331,9 +321,26 @@ export function EditMemberDialog({ member, open, onOpenChange, onSave }: EditMem
       
     } catch (error) {
       console.error('Error adding vehicle:', error);
+      let errorMessage = "Não foi possível adicionar o veículo.";
+      
+      // Extrair mensagem de erro mais descritiva se disponível
+      if (error instanceof Error) {
+        if (error.message.includes("Membro não encontrado")) {
+          errorMessage = "Membro não encontrado. Verifique se o membro existe.";
+        } else if (error.message.includes("engine_size")) {
+          errorMessage = "Erro no formato de cilindrada. Verifique se está informando um número válido.";
+        } else if (error.message.includes("foreign key")) {
+          errorMessage = "Erro de relacionamento. Verifique se o membro existe.";
+        } else if (error.message.includes("HTTP error! Status: 500")) {
+          errorMessage = "Erro interno do servidor. Tente novamente mais tarde.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar o veículo.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
