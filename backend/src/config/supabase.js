@@ -6,17 +6,23 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Verificar se as variáveis de ambiente necessárias estão disponíveis
-const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+const requiredEnvVars = ['SUPABASE_URL'];
+// Verificar URL
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     throw new Error(`Variável de ambiente ${envVar} não configurada. Verifique o arquivo .env`);
   }
 }
 
+// Verificar se pelo menos uma das chaves está disponível
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_KEY) {
+  throw new Error(`Nem SUPABASE_SERVICE_ROLE_KEY nem SUPABASE_KEY foram configuradas. Verifique o arquivo .env`);
+}
+
 // Criar cliente Supabase com chave de serviço (acesso administrativo)
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY,
   {
     auth: {
       autoRefreshToken: false,
@@ -28,7 +34,7 @@ const supabaseAdmin = createClient(
 // Criar cliente Supabase com chave anônima (acesso público)
 const supabaseClient = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY
 );
 
 // Preferência por usar o cliente com permissões administrativas

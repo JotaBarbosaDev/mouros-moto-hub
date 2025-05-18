@@ -39,6 +39,7 @@ export const authService = {
    */
   login: async (credentials: LoginCredentials): Promise<{ user: UserProfile; token: string }> => {
     const apiUrl = `${getApiBaseUrl()}/auth/login`;
+    console.log('Fazendo login em:', apiUrl);
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {

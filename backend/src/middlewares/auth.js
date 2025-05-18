@@ -25,7 +25,34 @@ const authenticate = async (req, res, next) => {
   }
   
   try {
-    // Primeiro tenta verificar como token Supabase (prioridade maior)
+    // Primeiro tenta verificar como token JWT local
+    try {
+      if (process.env.JWT_SECRET) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded && decoded.id && decoded.email) {
+          console.log('Autenticação via JWT local bem-sucedida:', decoded.id);
+          
+          // Extrair todos os dados relevantes do token para não precisar buscar no Supabase Admin
+          const user = {
+            id: decoded.id,
+            email: decoded.email,
+            isAdmin: decoded.isAdmin === true,
+            name: decoded.name,
+            user_metadata: {
+              name: decoded.name,
+              ...(decoded.user_metadata || {})
+            }
+          };
+          
+          req.user = user;
+          return next();
+        }
+      }
+    } catch (jwtError) {
+      console.log('Token não é um JWT válido, tentando Supabase...', jwtError.message);
+    }
+  
+    // Se não for um JWT válido, tenta verificar como token Supabase
     try {
       const { data, error: supabaseError } = await supabaseAdmin.auth.getUser(token);
       
@@ -50,36 +77,25 @@ const authenticate = async (req, res, next) => {
         req.user = {
           id: data.user.id,
           email: data.user.email,
-          isSupabaseToken: true,
-          isAdmin: isAdmin
+          isAdmin
         };
+        
         return next();
       }
     } catch (supabaseError) {
-      console.log('Falha ao autenticar com Supabase, tentando JWT local...', supabaseError.message);
+      console.error('Erro ao verificar token Supabase:', supabaseError);
     }
     
-    // Se não foi um token Supabase válido, tenta como JWT local
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Adicionar dados do usuário ao objeto de requisição
-    req.user = decoded;
-    
-    // Continuar para o próximo middleware ou controlador
-    next();
+    // Se chegou até aqui, o token não é válido
+    return res.status(401).json({
+      error: 'Token inválido ou expirado',
+      details: 'Faça login novamente'
+    });
   } catch (error) {
-    console.error('Erro na autenticação:', error);
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        error: 'Não autorizado',
-        details: 'Token expirado' 
-      });
-    }
-    
-    return res.status(401).json({ 
-      error: 'Não autorizado',
-      details: 'Token inválido' 
+    console.error('Erro no middleware de autenticação:', error);
+    return res.status(500).json({
+      error: 'Erro de autenticação',
+      details: error.message
     });
   }
 };
