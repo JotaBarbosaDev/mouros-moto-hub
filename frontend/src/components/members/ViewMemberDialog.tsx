@@ -13,6 +13,8 @@ import { MemberVehiclesTab } from "./tabs/MemberVehiclesTab";
 import { MemberActivityHistory } from "@/components/MemberActivityHistory";
 import { Member } from "@/hooks/use-members";
 import { Vehicle, VehicleType } from "@/types/member";
+import { useState, useCallback, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ViewMemberDialogProps {
   member: Member | null;
@@ -20,7 +22,105 @@ interface ViewMemberDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Interface para mapear os dados de veículos retornados pela API
+interface VehicleApiData {
+  id: string;
+  brand: string;
+  model: string;
+  type: string;
+  displacement?: number;
+  engineSize?: number;
+  nickname?: string | null;
+  photoUrl?: string | null;
+}
+
 export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialogProps) {
+  const { toast } = useToast();
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+
+  // Adaptar veículos da API para o tipo Vehicle correto
+  const adaptVehicles = useCallback((vehiclesData: VehicleApiData[]): Vehicle[] => {
+    if (!vehiclesData || !Array.isArray(vehiclesData)) return [];
+    
+    return vehiclesData.map(v => {
+      // Garantir que o tipo é uma string válida do tipo VehicleType
+      let validType: VehicleType = 'Mota'; // Valor padrão
+      
+      // Verificar se já é um tipo válido do VehicleType
+      if (v.type === 'Mota' || v.type === 'Moto-quatro' || v.type === 'Buggy') {
+        validType = v.type as VehicleType;
+      } else {
+        // Mapeamento dos tipos possíveis para os valores aceitos pelo tipo VehicleType
+        switch(v.type?.toUpperCase()) {
+          case 'MOTORCYCLE':
+          case 'CUSTOM':
+          case 'CRUISER':
+          case 'SPORT':
+          case 'TOURING':
+          case 'TRAIL':
+            validType = 'Mota';
+            break;
+          case 'QUAD':
+          case 'SCOOTER':
+            validType = 'Moto-quatro';
+            break;
+          default:
+            validType = 'Buggy';
+        }
+      }
+      
+      return {
+        id: v.id,
+        brand: v.brand,
+        model: v.model,
+        type: validType,
+        displacement: v.displacement || v.engineSize || 0,
+        nickname: v.nickname || undefined,
+        photoUrl: v.photoUrl || undefined
+      };
+    });
+  }, []);
+
+  const fetchVehicles = useCallback(async () => {
+    if (!member?.id) return;
+
+    try {
+      // Usar a API REST para buscar veículos do membro
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      console.log(`Buscando veículos do membro na URL: ${baseUrl}/vehicles/member/${member.id}`);
+      
+      const response = await fetch(`${baseUrl}/vehicles/member/${member.id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data) {
+        console.log('Dados de veículos recebidos para o membro:', data);
+        setVehicles(adaptVehicles(data));
+      }
+    } catch (error) {
+      console.error('Erro ao buscar veículos:', error);
+      toast({
+        title: "Erro ao buscar veículos",
+        description: "Ocorreu um erro inesperado ao buscar os veículos do membro.",
+        variant: "destructive",
+      });
+    }
+  }, [member?.id, toast, adaptVehicles]);
+
+  useEffect(() => {
+    if (open && member) {
+      fetchVehicles();
+    }
+  }, [open, member, fetchVehicles]);
+  
   if (!member) return null;
 
   const formatDate = (dateString: string) => {
@@ -51,44 +151,6 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
     }
     
     return parts.length > 0 ? parts.join(', ') : 'Morada incompleta';
-  };
-  
-  // Adaptar veículos para o tipo Vehicle correto
-  const adaptVehicles = (): Vehicle[] => {
-    if (!member.vehicles) return [];
-    
-    return member.vehicles.map(v => {
-      // Garantir que o tipo é uma string válida do tipo VehicleType
-      let validType: VehicleType;
-      
-      // Verificar se já é um tipo válido do VehicleType
-      if (v.type === 'Mota' || v.type === 'Moto-quatro' || v.type === 'Buggy') {
-        validType = v.type;
-      } else {
-        // Mapeamento dos tipos possíveis para os valores aceitos pelo tipo VehicleType
-        switch(v.type?.toUpperCase()) {
-          case 'MOTORCYCLE':
-          case 'CUSTOM':
-          case 'CRUISER':
-          case 'SPORT':
-          case 'TOURING':
-          case 'TRAIL':
-            validType = 'Mota';
-            break;
-          case 'QUAD':
-          case 'SCOOTER':
-            validType = 'Moto-quatro';
-            break;
-          default:
-            validType = 'Buggy';
-        }
-      }
-      
-      return {
-        ...v,
-        type: validType
-      };
-    });
   };
 
   return (
@@ -126,9 +188,9 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
               <TabsTrigger value="info">Informações</TabsTrigger>
               <TabsTrigger value="vehicles">
                 Veículos
-                {member.vehicles && member.vehicles.length > 0 && (
+                {vehicles.length > 0 && (
                   <span className="ml-1 bg-gray-200 text-gray-800 rounded-full px-1.5 py-0.5 text-xs">
-                    {member.vehicles.length}
+                    {vehicles.length}
                   </span>
                 )}
               </TabsTrigger>
@@ -182,7 +244,7 @@ export function ViewMemberDialog({ member, open, onOpenChange }: ViewMemberDialo
             
             <TabsContent value="vehicles" className="pt-4">
               <MemberVehiclesTab 
-                vehicles={adaptVehicles()}
+                vehicles={vehicles}
                 setIsAddVehicleOpen={() => {}}
                 handleDeleteVehicle={() => {}}
               />

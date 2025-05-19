@@ -10,6 +10,14 @@ cd "$BACKEND_DIR"
 echo "Executando script de limpeza da porta 3001..."
 /Users/joaobarbosa/Desktop/projetos/mouros-moto-hub/clean-port.sh
 
+# Aplicar correções de RLS para veículos (se os scripts existirem)
+if [ -f "/Users/joaobarbosa/Desktop/projetos/mouros-moto-hub/fix-vehicles-rls.sh" ]; then
+  echo "Aplicando correções de RLS para veículos..."
+  cd /Users/joaobarbosa/Desktop/projetos/mouros-moto-hub
+  ./fix-vehicles-rls.sh
+  cd "$BACKEND_DIR"
+fi
+
 # Verificar se há um PID anterior salvo
 if [ -f backend.pid ]; then
   OLD_PID=$(cat backend.pid)

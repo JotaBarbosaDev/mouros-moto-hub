@@ -153,10 +153,28 @@ app.get('/api/members-extended', async (req, res) => {
   }
 });
 
+// Rota para buscar pagamentos de quotas de um membro específico
+app.get('/api/dues-payments/member/:memberId', async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    const { data, error } = await supabase
+      .from('dues_payments')
+      .select('*')
+      .eq('member_id', memberId);
+      
+    if (error) throw error;
+    
+    res.json(data || []);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`API disponível em http://localhost:${PORT}/api/members`);
   console.log(`API estendida disponível em http://localhost:${PORT}/api/members-extended`);
+  console.log(`API de pagamentos de quotas disponível em http://localhost:${PORT}/api/dues-payments/member/:memberId`);
 });
