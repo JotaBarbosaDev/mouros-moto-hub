@@ -28,7 +28,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
 
 // Configuração de CORS
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:8080'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083'];
 app.use(cors({
   origin: function (origin, callback) {
     // Permitir requisições sem origem (como chamadas de API diretamente do navegador)
