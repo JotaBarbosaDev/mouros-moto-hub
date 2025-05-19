@@ -18,12 +18,33 @@ if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
     exit 1
 fi
 
+# Mostrar informações de debug
+echo "URL Supabase: ${SUPABASE_URL}"
+echo "Chave de API: ${SUPABASE_SERVICE_ROLE_KEY:0:5}... (primeiros 5 caracteres)"
+echo "Verificando arquivo SQL..."
+if [ -f "backend/create-dues-payments-table.sql" ]; then
+    echo "Arquivo SQL encontrado (tamanho: $(wc -c < backend/create-dues-payments-table.sql) bytes)"
+else
+    echo "ERRO: Arquivo SQL não encontrado!"
+    exit 1
+fi
+
+# Ler o conteúdo SQL
+SQL_CONTENT=$(cat backend/create-dues-payments-table.sql)
+
 # Executando a migração SQL
 echo "Aplicando migração para criar a tabela dues_payments..."
-curl -X POST "${SUPABASE_URL}/rest/v1/rpc/exec" \
+echo "Enviando SQL para API..."
+
+# Formatar o conteúdo como um parâmetro JSON adequado
+JSON_DATA="{\"query\": $(jq -Rs . < backend/create-dues-payments-table.sql)}"
+
+echo "Enviando requisição para a API..."
+RESULT=$(curl -s -X POST "${SUPABASE_URL}/rest/v1/rpc/exec" \
     -H "Content-Type: application/json" \
     -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
     -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-    --data-binary @backend/create-dues-payments-table.sql
+    -d "$JSON_DATA")
 
+echo "Resultado da API: $RESULT"
 echo "Migração concluída!"

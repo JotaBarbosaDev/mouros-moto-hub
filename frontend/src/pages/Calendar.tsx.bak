@@ -95,30 +95,24 @@ const CalendarPage = () => {
     setIsLoadingShifts(true);
     try {
       const shifts = await getAllShifts();
-      setBarShifts(shifts || []);
-    } catch (error) {
-      console.error("Erro ao carregar escalas do bar:", error);
-    } finally {
-      setIsLoadingShifts(false);
-    }
-  }, [includeShifts, getAllShifts]);
-  
-  // Carregar escalas quando o componente for montado ou quando a preferência mudar
-  useEffect(() => {
-    let isMounted = true;
-    
-    const fetchData = async () => {
-      if (isMounted) {
-        await loadShifts();
+      // Verificamos se o componente ainda está montado antes de atualizar o estado
+        if (isMounted) {
+          setBarShifts(shifts || []);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error("Erro ao carregar escalas do bar:", error);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingShifts(false);
+        }
       }
+    }
     };
     
-    fetchData();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [loadShifts]); // Dependência apenas do loadShifts que já tem includeShifts como dependência
+    loadShifts();
+  }, [includeShifts, barShiftsDirect]);
 
   // Função auxiliar para determinar a cor do evento com base no tipo
   const getEventColor = (type: string) => {

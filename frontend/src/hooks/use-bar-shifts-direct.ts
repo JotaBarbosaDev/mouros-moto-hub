@@ -1,5 +1,6 @@
 // Hook para buscar escalas de bar diretamente, sem usar React Query
 import { supabase } from '@/integrations/supabase/client';
+import { useState, useCallback } from 'react';
 
 export interface BarShift {
   id: string;
@@ -17,9 +18,15 @@ export interface BarShift {
 
 // Hook simples que não depende do React Query
 export const useBarShiftsDirect = () => {
-  // Busca todas as escalas
-  const getAllShifts = async (): Promise<BarShift[]> => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  
+  // Busca todas as escalas - usando useCallback para evitar recriação da função
+  const getAllShifts = useCallback(async (): Promise<BarShift[]> => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       const { data, error } = await supabase
         .from('bar_shifts')
         .select(`
@@ -51,11 +58,16 @@ export const useBarShiftsDirect = () => {
       });
     } catch (err) {
       console.error("Erro ao buscar escalas:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
       return [];
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
-    getAllShifts
+    getAllShifts,
+    isLoading,
+    error
   };
 };

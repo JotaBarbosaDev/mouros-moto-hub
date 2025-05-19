@@ -64,19 +64,20 @@ exports.getEventById = async (req, res) => {
 // Criar novo evento
 exports.createEvent = async (req, res) => {
   try {
+    // Compatibilidade com formato do frontend: aceita tanto camelCase quanto snake_case
     const eventData = {
       title: req.body.title,
       description: req.body.description,
       location: req.body.location,
-      start_date: req.body.startDate,
-      end_date: req.body.endDate,
+      start_date: req.body.start_date || req.body.startDate,
+      end_date: req.body.end_date || req.body.endDate,
       type: req.body.type || 'encontro',
-      image_url: req.body.imageUrl,
-      created_by: req.user?.id, // ID do usuário autenticado
-      capacity: req.body.capacity,
-      price: req.body.price,
-      registration_deadline: req.body.registrationDeadline,
-      is_public: req.body.isPublic !== false // padrão é público
+      image_url: req.body.image_url || req.body.imageUrl,
+      created_by: req.body.creator_id || req.body.creatorId || req.user?.id,
+      capacity: req.body.capacity || req.body.max_participants,
+      price: req.body.price || 0,
+      registration_deadline: req.body.registration_deadline || req.body.registrationDeadline,
+      is_public: req.body.is_public !== undefined ? req.body.is_public : (req.body.isPublic !== false) // padrão é público
     };
     
     // Inserir o novo evento
