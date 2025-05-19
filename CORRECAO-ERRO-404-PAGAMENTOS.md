@@ -16,7 +16,7 @@ No entanto, o servidor backend está sendo executado na porta 3001, conforme con
 
 ## Solução Implementada
 
-Atualizamos as ocorrências da URL base incorreta no arquivo `member-service.ts`:
+Atualizamos as duas ocorrências da URL base incorreta no arquivo `member-service.ts`:
 
 1. Na função de busca de veículos, alteramos:
    ```typescript
@@ -27,12 +27,16 @@ Atualizamos as ocorrências da URL base incorreta no arquivo `member-service.ts`
    baseUrl = 'http://localhost:3001/api';
    ```
 
-2. Na função de busca de pagamentos de mensalidades, verificamos que já estava implementada a solução ideal, usando a função utilitária `getApiBaseUrl()` para determinar a URL base de forma dinâmica:
+2. Na função de busca de pagamentos de mensalidades, também corrigimos a URL:
    ```typescript
-   // Usar a função utilitária para obter a URL base da API
-   const { getApiBaseUrl } = await import('../utils/api');
-   const baseUrl = getApiBaseUrl();
+   baseUrl = 'http://localhost:3000/api';
    ```
+   para
+   ```typescript
+   baseUrl = 'http://localhost:3001/api';
+   ```
+
+Essas alterações garantem que as chamadas à API usem a porta correta (3001) em vez da porta incorreta (3000) quando a variável de ambiente `VITE_API_URL` não estiver definida.
 
 Essa solução garante que as chamadas API usem a URL correta e sejam consistentes com o restante da aplicação.
 

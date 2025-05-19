@@ -1,13 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-i  // Bus    // Usar a função utilitária para obter a URL base da API
-    const { getApiBaseUrl } = await import('../utils/api');
-    const baseUrl = getApiBaseUrl();ículos do membro
-  let vehicles: MemberVehicle[] = [];
-  try {
-    // Importar a função getApiBaseUrl de forma dinâmica para evitar dependência circular
-    const { getApiBaseUrl } = await import('../utils/api');
-    const baseUrl = getApiBaseUrl();emberExtended, MemberDbResponse } from '@/types/member-extended';
+import { MemberExtended, MemberDbResponse } from '@/types/member-extended';
 import { BloodType, MemberType, Vehicle } from '@/types/member';
 import { activityLogService } from './activity-log-service';
 
@@ -155,9 +148,12 @@ const mapMemberFromDb = async (member: MemberDbResponse): Promise<MemberExtended
   // Buscar pagamentos de quotas do membro
   let duesPayments: { year: number; paid: boolean; exempt: boolean; date?: string }[] = [];
   try {
-    // Usar a função utilitária para obter a URL base da API
-    const { getApiBaseUrl } = await import('../utils/api');
-    const baseUrl = getApiBaseUrl();
+    let baseUrl = import.meta.env.VITE_API_URL;
+    // Usa uma abordagem mais segura para garantir a URL correta
+    if (!baseUrl) {
+      baseUrl = 'http://localhost:3001/api';
+      console.warn('VITE_API_URL não definida, usando URL padrão:', baseUrl);
+    }
     
     // Adiciona log para depuração
     console.log(`Tentando acessar: ${baseUrl}/dues-payments/member/${member.id}`);
