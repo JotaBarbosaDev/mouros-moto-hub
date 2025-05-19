@@ -15,16 +15,17 @@ router.get('/',
   duesPaymentsController.getAllDuesPayments
 );
 
+// Obter pagamentos de quotas de um membro específico
+// IMPORTANTE: Rotas mais específicas devem vir antes das rotas mais genéricas
+router.get('/member/:memberId', 
+  logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.memberId }),
+  duesPaymentsController.getDuesPaymentsByMemberId
+);
+
 // Obter pagamento de quota específico por ID
 router.get('/:id', 
   logActivity({ entityType: 'DUES_PAYMENT', getEntityId: (req) => req.params.id }),
   duesPaymentsController.getDuesPaymentById
-);
-
-// Obter pagamentos de quotas de um membro específico
-router.get('/member/:memberId', 
-  logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.memberId }),
-  duesPaymentsController.getDuesPaymentsByMemberId
 );
 
 // Criar novo pagamento de quota

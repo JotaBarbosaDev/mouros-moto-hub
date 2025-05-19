@@ -18,6 +18,14 @@ if [ -f "/Users/joaobarbosa/Desktop/projetos/mouros-moto-hub/fix-vehicles-rls.sh
   cd "$BACKEND_DIR"
 fi
 
+# Aplicar migração para a tabela dues_payments (se o script existir)
+if [ -f "/Users/joaobarbosa/Desktop/projetos/mouros-moto-hub/apply-dues-payments-migration.sh" ]; then
+  echo "Aplicando migração para a tabela de pagamentos de mensalidades..."
+  cd /Users/joaobarbosa/Desktop/projetos/mouros-moto-hub
+  ./apply-dues-payments-migration.sh
+  cd "$BACKEND_DIR"
+fi
+
 # Verificar se há um PID anterior salvo
 if [ -f backend.pid ]; then
   OLD_PID=$(cat backend.pid)

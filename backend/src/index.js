@@ -16,6 +16,7 @@ const eventsRoutes = require('./routes/events');
 const adminRoutes = require('./routes/admin');
 const inventoryRoutes = require('./routes/inventory');
 const activityLogsRoutes = require('./routes/activity-logs');
+const duesPaymentsRoutes = require('./routes/dues-payments');
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -61,6 +62,7 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/activity-logs', activityLogsRoutes);
+app.use('/api/dues-payments', duesPaymentsRoutes);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
