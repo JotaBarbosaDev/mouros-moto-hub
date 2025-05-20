@@ -1,5 +1,6 @@
 // Controlador para gerenciamento de eventos
 const { supabase } = require('../config/supabase');
+const activityLogService = require('../services/activity-log-service');
 
 // Obter todos os eventos
 exports.getAllEvents = async (req, res) => {
@@ -72,12 +73,14 @@ exports.createEvent = async (req, res) => {
       start_date: req.body.start_date || req.body.startDate,
       end_date: req.body.end_date || req.body.endDate,
       type: req.body.type || 'encontro',
-      image_url: req.body.image_url || req.body.imageUrl,
+      image_url: req.body.image_url || req.body.imageUrl || req.body.image,
       created_by: req.body.creator_id || req.body.creatorId || req.user?.id,
       capacity: req.body.capacity || req.body.max_participants,
       price: req.body.price || 0,
       registration_deadline: req.body.registration_deadline || req.body.registrationDeadline,
-      is_public: req.body.is_public !== undefined ? req.body.is_public : (req.body.isPublic !== false) // padrão é público
+      is_public: req.body.is_public !== undefined ? req.body.is_public : (req.body.isPublic !== false), // padrão é público
+      is_featured: req.body.is_featured !== undefined ? req.body.is_featured : req.body.isFeatured || false,
+      registration_open: req.body.registration_open !== undefined ? req.body.registration_open : req.body.registrationOpen || false
     };
     
     // Inserir o novo evento
