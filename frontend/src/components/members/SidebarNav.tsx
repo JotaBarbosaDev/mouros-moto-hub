@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -124,6 +123,12 @@ export function SidebarNav() {
             title: "Administração",
             icon: Shield,
             href: "/administracao",
+            category: "outros"
+          },
+          {
+            title: "Teste Financeiro",
+            icon: CreditCard,
+            href: "/test-financial",
             category: "outros"
           },
         ]

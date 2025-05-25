@@ -1,12 +1,68 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import EventCard from '@/components/EventCard';
 import GalleryItem from '@/components/GalleryItem';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, Users, Calendar, MapPin, Trophy, Heart, Shield } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
+  const [clubStats, setClubStats] = useState({
+    totalMembers: 0,
+    activeEvents: 0,
+    foundedYear: 2015,
+    totalTrips: 0
+  });
+
+  const [clubSettings, setClubSettings] = useState({
+    name: 'Mouros Moto Hub',
+    welcome_message: 'Bem-vindos ao nosso moto clube!',
+    description: 'Unidos pela paixão das duas rodas',
+    logo_url: '',
+    banner_url: ''
+  });
+
+  useEffect(() => {
+    const fetchClubData = async () => {
+      try {
+        // Buscar configurações do clube
+        const { data: settings } = await supabase
+          .from('club_settings')
+          .select('*')
+          .single();
+
+        if (settings) {
+          setClubSettings(settings);
+        }
+
+        // Buscar estatísticas dos membros
+        const { data: members } = await supabase
+          .from('members')
+          .select('id')
+          .eq('is_active', true);
+
+        // Buscar eventos ativos
+        const { data: events } = await supabase
+          .from('events')
+          .select('id')
+          .eq('published', true)
+          .gte('start_date', new Date().toISOString());
+
+        setClubStats({
+          totalMembers: members?.length || 0,
+          activeEvents: events?.length || 0,
+          foundedYear: settings?.founding_date ? new Date(settings.founding_date).getFullYear() : 2015,
+          totalTrips: 150 // Placeholder - pode ser calculado com base no histórico
+        });
+      } catch (error) {
+        console.error('Erro ao carregar dados do clube:', error);
+      }
+    };
+
+    fetchClubData();
+  }, []);
   // Sample data for events
   const events = [
     {
@@ -179,20 +235,20 @@ const Index = () => {
               </p>
               <div className="flex flex-wrap gap-6 mt-8">
                 <div className="text-center">
-                  <p className="text-4xl font-display text-mouro-red">200+</p>
-                  <p className="text-sm text-mouro-gray">Membros</p>
+                  <p className="text-4xl font-display text-mouro-red">{clubStats.totalMembers}+</p>
+                  <p className="text-sm text-mouro-gray">Membros Ativos</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-display text-mouro-red">50+</p>
-                  <p className="text-sm text-mouro-gray">Eventos por Ano</p>
+                  <p className="text-4xl font-display text-mouro-red">{clubStats.activeEvents}+</p>
+                  <p className="text-sm text-mouro-gray">Eventos Ativos</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-display text-mouro-red">13</p>
+                  <p className="text-4xl font-display text-mouro-red">{new Date().getFullYear() - clubStats.foundedYear}</p>
                   <p className="text-sm text-mouro-gray">Anos de História</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-display text-mouro-red">20+</p>
-                  <p className="text-sm text-mouro-gray">Ações Sociais</p>
+                  <p className="text-4xl font-display text-mouro-red">{clubStats.totalTrips}+</p>
+                  <p className="text-sm text-mouro-gray">Aventuras Realizadas</p>
                 </div>
               </div>
             </div>

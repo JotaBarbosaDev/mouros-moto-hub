@@ -1,8 +1,38 @@
 import { fetchWithAuth, getApiBaseUrl } from '@/utils/api';
-import { Event, EventParticipant } from '@/types/event';
+import { Event, EventParticipant, EventType, EventStatus } from '@/types/event';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EventResponse = any; // TODO: Implementar uma tipagem mais forte para a resposta da API
+interface EventParticipantApiResponse {
+  member_id: string;
+  member_name?: string;
+  member_username?: string;
+  members?: {
+    name: string;
+    username: string;
+  };
+}
+
+/**
+ * Interface para a resposta da API dos eventos
+ */
+interface EventApiResponse {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  start_date?: string;
+  end_date?: string;
+  type?: EventType;
+  image_url?: string;
+  is_public: boolean;
+  status?: EventStatus;
+  creator_id: string;
+  created_at?: string;
+  updated_at?: string;
+  is_featured?: boolean;
+  registration_open?: boolean;
+  max_participants?: number;
+  event_participants?: EventParticipantApiResponse[];
+}
 
 /**
  * Serviço para gerenciamento de eventos
@@ -21,8 +51,7 @@ export const eventService = {
     
     const data = await response.json();
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return data.map((event: EventResponse) => {
+    return data.map((event: EventApiResponse) => {
       // Campos principais
       const startDate = event.start_date ? new Date(event.start_date) : null;
       const formattedDate = startDate ? 
@@ -67,8 +96,7 @@ export const eventService = {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const event: EventResponse = await response.json();
+    const event: EventApiResponse = await response.json();
     const startDate = event.start_date ? new Date(event.start_date) : null;
     const formattedDate = startDate ? 
       `${String(startDate.getDate()).padStart(2, '0')}/${String(startDate.getMonth() + 1).padStart(2, '0')}/${startDate.getFullYear()}`
@@ -99,7 +127,7 @@ export const eventService = {
       maxParticipants: event.max_participants || undefined,
       
       // Participantes
-      participants: event.event_participants?.map((p: any) => ({
+      participants: event.event_participants?.map((p: EventParticipantApiResponse) => ({
         eventId: id,
         memberId: p.member_id,
         memberName: p.members?.name || '',
@@ -140,8 +168,7 @@ export const eventService = {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const createdEvent: EventResponse = await response.json();
+    const createdEvent: EventApiResponse = await response.json();
     const startDate = createdEvent.start_date ? new Date(createdEvent.start_date) : null;
     const formattedDate = startDate ? 
       `${String(startDate.getDate()).padStart(2, '0')}/${String(startDate.getMonth() + 1).padStart(2, '0')}/${startDate.getFullYear()}`
@@ -204,8 +231,7 @@ export const eventService = {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updatedEvent: EventResponse = await response.json();
+    const updatedEvent: EventApiResponse = await response.json();
     const startDate = updatedEvent.start_date ? new Date(updatedEvent.start_date) : null;
     const formattedDate = startDate ? 
       `${String(startDate.getDate()).padStart(2, '0')}/${String(startDate.getMonth() + 1).padStart(2, '0')}/${startDate.getFullYear()}`
@@ -264,12 +290,11 @@ export const eventService = {
     
     const data = await response.json();
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return data.map((participant: any) => ({
+    return data.map((participant: EventParticipantApiResponse) => ({
       eventId: eventId,
       memberId: participant.member_id,
-      memberName: participant.member_name || '',
-      memberUsername: participant.member_username || ''
+      memberName: participant.member_name || participant.members?.name || '',
+      memberUsername: participant.member_username || participant.members?.username || ''
     }));
   },
   

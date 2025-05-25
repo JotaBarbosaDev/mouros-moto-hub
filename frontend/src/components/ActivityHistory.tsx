@@ -204,14 +204,14 @@ export function ActivityHistory({ entityType, entityId, fromDate, toDate, action
               <AccordionContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Ação</label>
+                    <label htmlFor="action-filter-activity" className="text-sm font-medium">Ação</label>
                     <Select
                       onValueChange={(value) =>
                         setFilters({ ...filters, action: value || undefined })
                       }
                       value={filters.action || ""}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="action-filter-activity">
                         <SelectValue placeholder="Todas as ações" />
                       </SelectTrigger>
                       <SelectContent>
@@ -226,14 +226,14 @@ export function ActivityHistory({ entityType, entityId, fromDate, toDate, action
 
                   {!entityType && (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Tipo de Entidade</label>
+                      <label htmlFor="entity-type-filter-activity" className="text-sm font-medium">Tipo de Entidade</label>
                       <Select
                         onValueChange={(value) =>
                           setFilters({ ...filters, entityType: value || undefined })
                         }
                         value={filters.entityType || ""}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="entity-type-filter-activity">
                           <SelectValue placeholder="Todos os tipos" />
                         </SelectTrigger>
                         <SelectContent>
@@ -248,8 +248,9 @@ export function ActivityHistory({ entityType, entityId, fromDate, toDate, action
                   )}
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Data Inicial</label>
+                    <label htmlFor="from-date-filter-activity" className="text-sm font-medium">Data Inicial</label>
                     <Input
+                      id="from-date-filter-activity"
                       type="date"
                       value={filters.fromDate || ""}
                       onChange={(e) =>
@@ -259,8 +260,9 @@ export function ActivityHistory({ entityType, entityId, fromDate, toDate, action
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Data Final</label>
+                    <label htmlFor="to-date-filter-activity" className="text-sm font-medium">Data Final</label>
                     <Input
+                      id="to-date-filter-activity"
                       type="date"
                       value={filters.toDate || ""}
                       onChange={(e) =>
@@ -322,7 +324,7 @@ export function ActivityHistory({ entityType, entityId, fromDate, toDate, action
                         {log.username || "Sistema"}
                         {log.details?.updatedBy && log.username !== log.details.updatedBy && (
                           <span className="block text-xs text-gray-500">
-                            ({log.details.updatedBy})
+                            ({String(log.details.updatedBy)})
                           </span>
                         )}
                       </TableCell>
@@ -335,7 +337,7 @@ export function ActivityHistory({ entityType, entityId, fromDate, toDate, action
                         {formatEntityType(log.entity_type)}
                         {log.details?.memberName && (
                           <span className="block text-xs text-gray-500">
-                            {log.details.memberName}
+                            {String(log.details.memberName)}
                           </span>
                         )}
                       </TableCell>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Direto do Sistema de Aprovação Financeira</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #10b981;
+            background-color: #f0fdf4;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .success { background: #10b981; color: white; }
+        .error { background: #ef4444; color: white; }
+        .warning { background: #f59e0b; color: white; }
+        .info { background: #3b82f6; color: white; }
+        pre {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏍️ Teste do Sistema de Aprovação Financeira - Mouros Moto Hub</h1>
+        
+        <div class="test-section">
+            <h2>🔧 Configuração do Supabase</h2>
+            <p><strong>URL:</strong> <span id="supabase-url">Carregando...</span></p>
+            <p><strong>Chave Anônima:</strong> <span id="supabase-key">Carregando...</span></p>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Testes Automatizados</h2>
+            <button onclick="runAllTests()">▶️ Executar Todos os Testes</button>
+            <button onclick="testConnection()">🔗 Testar Conexão</button>
+            <button onclick="testTables()">📋 Testar Tabelas</button>
+            <button onclick="testAuth()">🔐 Testar Autenticação</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2';
+
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://jugfkacnlgdjdosstiks.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Z2ZrYWNubGdkamRvc3N0aWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MDkzMzAsImV4cCI6MjA2MTA4NTMzMH0.PL8pg93wAVTl3kUoe-mfK7kGdjW6ytXapAiy-mpxk78';
+
+        // Criar cliente
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Mostrar configuração
+        document.getElementById('supabase-url').textContent = SUPABASE_URL;
+        document.getElementById('supabase-key').textContent = SUPABASE_ANON_KEY.substring(0, 20) + '...';
+
+        // Função para mostrar resultados
+        function showResult(title, status, message, data = null) {
+            const resultsDiv = document.getElementById('results');
+            const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : status === 'warning' ? 'warning' : 'info';
+            
+            const resultHtml = `
+                <div class="test-section">
+                    <h3>${title}</h3>
+                    <div class="status ${statusClass}">${status.toUpperCase()}: ${message}</div>
+                    ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+                </div>
+            `;
+            
+            resultsDiv.innerHTML += resultHtml;
+        }
+
+        // Teste de conexão
+        window.testConnection = async function() {
+            document.getElementById('results').innerHTML = '';
+            showResult('🔗 Teste de Conexão', 'info', 'Testando conectividade com Supabase...');
+            
+            try {
+                const { data, error } = await supabase.from('financial_approvals').select('count');
+                
+                if (error) {
+                    if (error.code === '42P01') {
+                        showResult('🔗 Conexão', 'error', 'Tabela financial_approvals não existe', error);
+                    } else if (error.code === '42501') {
+                        showResult('🔗 Conexão', 'warning', 'Conectado, mas sem permissões (RLS ativo)', error);
+                    } else {
+                        showResult('🔗 Conexão', 'error', 'Erro na conexão', error);
+                    }
+                } else {
+                    showResult('🔗 Conexão', 'success', 'Conectado com sucesso!', data);
+                }
+            } catch (err) {
+                showResult('🔗 Conexão', 'error', 'Erro de rede ou configuração', err.message);
+            }
+        };
+
+        // Teste de tabelas
+        window.testTables = async function() {
+            showResult('📋 Teste de Tabelas', 'info', 'Verificando estrutura das tabelas...');
+            
+            const tables = ['financial_approvals', 'approval_comments'];
+            
+            for (const table of tables) {
+                try {
+                    const { data, error } = await supabase.from(table).select('*').limit(1);
+                    
+                    if (error) {
+                        if (error.code === '42P01') {
+                            showResult(`📋 Tabela: ${table}`, 'error', 'Tabela não existe', error);
+                        } else if (error.code === '42501') {
+                            showResult(`📋 Tabela: ${table}`, 'warning', 'Tabela existe, mas RLS ativo', error);
+                        } else {
+                            showResult(`📋 Tabela: ${table}`, 'error', 'Erro ao acessar tabela', error);
+                        }
+                    } else {
+                        showResult(`📋 Tabela: ${table}`, 'success', 'Tabela acessível!', { rows: data?.length || 0 });
+                    }
+                } catch (err) {
+                    showResult(`📋 Tabela: ${table}`, 'error', 'Erro inesperado', err.message);
+                }
+            }
+        };
+
+        // Teste de autenticação
+        window.testAuth = async function() {
+            showResult('🔐 Teste de Autenticação', 'info', 'Verificando status de autenticação...');
+            
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    showResult('🔐 Autenticação', 'error', 'Erro ao verificar sessão', error);
+                } else if (session) {
+                    showResult('🔐 Autenticação', 'success', 'Usuário logado!', {
+                        user_id: session.user.id,
+                        email: session.user.email
+                    });
+                } else {
+                    showResult('🔐 Autenticação', 'warning', 'Usuário não autenticado (modo anônimo)');
+                }
+            } catch (err) {
+                showResult('🔐 Autenticação', 'error', 'Erro inesperado', err.message);
+            }
+        };
+
+        // Executar todos os testes
+        window.runAllTests = async function() {
+            document.getElementById('results').innerHTML = '';
+            await testConnection();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testTables();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testAuth();
+        };
+
+        // Executar teste inicial
+        setTimeout(() => {
+            testConnection();
+        }, 1000);
+    </script>
+</body>
+</html>

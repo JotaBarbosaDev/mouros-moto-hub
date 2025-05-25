@@ -30,6 +30,8 @@ import LogsSetup from "./pages/LogsSetup";
 import Calendar from "./pages/Calendar";
 import Treasury from "./pages/Treasury";
 import ApiDocs from "./pages/ApiDocs";
+import AuditPage from "./pages/AuditPage";
+import TestFinancialSystem from "./components/test/TestFinancialSystem";
 
 const queryClient = new QueryClient();
 
@@ -168,6 +170,22 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ApiDocs />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/auditoria" 
+            element={
+              <AdminRoute>
+                <AuditPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/test-financial" 
+            element={
+              <ProtectedRoute>
+                <TestFinancialSystem />
               </ProtectedRoute>
             } 
           />

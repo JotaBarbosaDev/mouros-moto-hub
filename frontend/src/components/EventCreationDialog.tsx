@@ -50,6 +50,26 @@ interface StopPoint {
   image?: string;
 }
 
+interface EventFormData {
+  title: string;
+  description: string;
+  date: string;
+  location: string;
+  type: 'trail' | 'estrada' | 'encontro' | 'solidario';
+  registrationDeadline: string;
+  memberPrice: string;
+  nonMemberPrice: string;
+  membersOnly: boolean;
+  minEngineSize: string;
+  startPoint: string;
+  endPoint: string;
+  externalFormLink: string;
+  isFeatured: boolean;
+  maxParticipants: string;
+  mainImage: File | null;
+  thumbnailImage: File | null;
+}
+
 const engineSizeOptions = [
   { value: "50", label: "50cc" },
   { value: "125", label: "125cc" },
@@ -160,7 +180,7 @@ const EventCreationDialog: React.FC<EventCreationDialogProps> = ({
     }
   };
   
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: EventFormData) => {
     // In a real app, you would upload images to storage here
     // and get back URLs to store in the event object
     
@@ -257,10 +277,11 @@ const EventCreationDialog: React.FC<EventCreationDialogProps> = ({
                                   </Button>
                                 </div>
                               ) : (
-                                <label className="flex flex-col items-center cursor-pointer">
+                                <label htmlFor="main-image-upload" className="flex flex-col items-center cursor-pointer">
                                   <Upload size={24} />
                                   <span className="mt-2 text-sm">Carregar Imagem</span>
                                   <input 
+                                    id="main-image-upload"
                                     type="file" 
                                     accept="image/*" 
                                     className="hidden" 
@@ -306,10 +327,11 @@ const EventCreationDialog: React.FC<EventCreationDialogProps> = ({
                                   </Button>
                                 </div>
                               ) : (
-                                <label className="flex flex-col items-center cursor-pointer">
+                                <label htmlFor="thumbnail-upload" className="flex flex-col items-center cursor-pointer">
                                   <Upload size={24} />
                                   <span className="mt-2 text-sm">Carregar Thumbnail</span>
                                   <input 
+                                    id="thumbnail-upload"
                                     type="file" 
                                     accept="image/*" 
                                     className="hidden" 
@@ -564,8 +586,9 @@ const EventCreationDialog: React.FC<EventCreationDialogProps> = ({
                         
                         <div className="space-y-3">
                           <div>
-                            <label className="text-sm font-medium">Nome do Local</label>
+                            <label htmlFor={`stop-name-${index}`} className="text-sm font-medium">Nome do Local</label>
                             <Input
+                              id={`stop-name-${index}`}
                               placeholder="Ex: Café da Montanha"
                               value={stop.name}
                               onChange={(e) => updateStopPoint(index, 'name', e.target.value)}
@@ -573,8 +596,9 @@ const EventCreationDialog: React.FC<EventCreationDialogProps> = ({
                           </div>
                           
                           <div>
-                            <label className="text-sm font-medium">Descrição</label>
+                            <label htmlFor={`stop-description-${index}`} className="text-sm font-medium">Descrição</label>
                             <Input
+                              id={`stop-description-${index}`}
                               placeholder="Descrição breve da paragem"
                               value={stop.description}
                               onChange={(e) => updateStopPoint(index, 'description', e.target.value)}
@@ -582,7 +606,7 @@ const EventCreationDialog: React.FC<EventCreationDialogProps> = ({
                           </div>
                           
                           <div>
-                            <label className="text-sm font-medium">Imagem da Paragem</label>
+                            <label htmlFor={`stop-image-${index}`} className="text-sm font-medium">Imagem da Paragem</label>
                             {stop.image ? (
                               <div className="relative h-32 mt-1">
                                 <img 
@@ -606,10 +630,11 @@ const EventCreationDialog: React.FC<EventCreationDialogProps> = ({
                               </div>
                             ) : (
                               <div className="flex items-center justify-center border-2 border-dashed rounded-md p-4 h-32 mt-1">
-                                <label className="flex flex-col items-center cursor-pointer">
+                                <label htmlFor={`stop-image-upload-${index}`} className="flex flex-col items-center cursor-pointer">
                                   <Upload size={24} />
                                   <span className="mt-2 text-sm">Carregar Imagem</span>
                                   <input 
+                                    id={`stop-image-upload-${index}`}
                                     type="file" 
                                     accept="image/*" 
                                     className="hidden"

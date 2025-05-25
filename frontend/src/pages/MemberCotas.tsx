@@ -5,23 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMembersData } from '@/hooks/use-members-data';
+import { useMembers } from '@/hooks/use-members';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Search } from "lucide-react";
 import MemberFeesManager from '@/components/MemberFeesManager';
+import { MemberExtended } from '@/types/member-extended';
 
 const MemberCotas = () => {
-  const { members, isLoading } = useMembersData();
+  const { members, isLoading } = useMembers();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedMember, setSelectedMember] = useState<MemberExtended | null>(null);
   const [activeTab, setActiveTab] = useState('search');
   
   // Filtragem de membros com base na busca
   const filteredMembers = members?.filter(member => {
-    const fullName = `${member.firstName} ${member.lastName}`.toLowerCase();
     const lowerQuery = searchQuery.toLowerCase();
-    return fullName.includes(lowerQuery) || 
+    return member.name.toLowerCase().includes(lowerQuery) || 
            member.memberNumber?.toString().includes(lowerQuery) || 
            member.email?.toLowerCase().includes(lowerQuery);
   });
@@ -34,7 +34,7 @@ const MemberCotas = () => {
   }, [members, selectedMember]);
   
   // Manipulador para quando um membro é selecionado na lista
-  const handleMemberSelect = (member: any) => {
+  const handleMemberSelect = (member: MemberExtended) => {
     setSelectedMember(member);
     setActiveTab('manage');
   };
@@ -50,7 +50,7 @@ const MemberCotas = () => {
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="search">Buscar Membro</TabsTrigger>
             <TabsTrigger value="manage" disabled={!selectedMember}>
-              {selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : 'Gerenciar Cotas'}
+              {selectedMember ? selectedMember.name : 'Gerenciar Cotas'}
             </TabsTrigger>
           </TabsList>
           
@@ -97,18 +97,18 @@ const MemberCotas = () => {
                                     {member.photoUrl ? (
                                       <img 
                                         src={member.photoUrl} 
-                                        alt={`${member.firstName} ${member.lastName}`}
+                                        alt={member.name}
                                         className="w-full h-full object-cover"
                                       />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center bg-mouro-red text-white">
-                                        {member.firstName?.[0]}{member.lastName?.[0]}
+                                        {member.name.charAt(0).toUpperCase()}
                                       </div>
                                     )}
                                   </div>
                                   <div className="flex-grow">
                                     <div className="font-medium">
-                                      {member.firstName} {member.lastName}
+                                      {member.name}
                                     </div>
                                     <div className="text-sm text-muted-foreground">
                                       {member.memberNumber && `#${member.memberNumber} • `}
@@ -140,7 +140,7 @@ const MemberCotas = () => {
               <>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-semibold">
-                    {selectedMember.firstName} {selectedMember.lastName}
+                    {selectedMember.name}
                   </h2>
                   <Button variant="outline" onClick={() => setActiveTab('search')}>
                     Escolher Outro Membro
@@ -149,7 +149,7 @@ const MemberCotas = () => {
                 
                 <MemberFeesManager 
                   memberId={selectedMember.id}
-                  memberName={`${selectedMember.firstName} ${selectedMember.lastName}`}
+                  memberName={selectedMember.name}
                   memberJoinDate={selectedMember.joinDate}
                 />
               </>

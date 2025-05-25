@@ -8,7 +8,7 @@ export interface ActivityLog {
   action: string;
   entity_type: string;
   entity_id?: string;
-  details?: any;
+  details?: Record<string, unknown> | null;
   ip_address?: string;
   created_at: string;
 }

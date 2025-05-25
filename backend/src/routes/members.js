@@ -3,6 +3,7 @@ const express = require('express');
 const membersController = require('../controllers/members');
 const authMiddleware = require('../middlewares/auth');
 const { logActivity } = require('../middleware/activity-logger');
+const { auditMembers } = require('../middleware/advanced-audit');
 
 const router = express.Router();
 
@@ -14,12 +15,14 @@ protectedRoutes.forEach(route => {
 
 // Obter todos os membros
 router.get('/', 
+  auditMembers,
   logActivity({ entityType: 'MEMBER' }),
   membersController.getAllMembers
 );
 
 // Obter membro específico por ID
 router.get('/:id', 
+  auditMembers,
   logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.id }),
   membersController.getMemberById
 );
@@ -27,18 +30,21 @@ router.get('/:id',
 // Criar novo membro (apenas administradores)
 router.post('/', 
   authMiddleware.isAdmin,
+  auditMembers,
   logActivity({ entityType: 'MEMBER' }),
   membersController.createMember
 );
 
 // Atualizar membro existente
 router.put('/:id', 
+  auditMembers,
   logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.id }),
   membersController.updateMember
 );
 
 // Atualização parcial (PATCH)
 router.patch('/:id', 
+  auditMembers,
   logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.id }),
   membersController.updateMember
 );
@@ -46,6 +52,7 @@ router.patch('/:id',
 // Excluir membro (apenas administradores)
 router.delete('/:id', 
   authMiddleware.isAdmin,
+  auditMembers,
   logActivity({ entityType: 'MEMBER', getEntityId: (req) => req.params.id }),
   membersController.deleteMember
 );

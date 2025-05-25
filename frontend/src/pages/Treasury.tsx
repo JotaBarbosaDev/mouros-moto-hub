@@ -89,9 +89,9 @@ const ReportGenerator = () => {
       <CardContent>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium block mb-2">Tipo de Relatório</label>
+            <label htmlFor="report-type-select" className="text-sm font-medium block mb-2">Tipo de Relatório</label>
             <Select value={reportType} onValueChange={setReportType}>
-              <SelectTrigger>
+              <SelectTrigger id="report-type-select">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -105,9 +105,9 @@ const ReportGenerator = () => {
           </div>
           
           <div>
-            <label className="text-sm font-medium block mb-2">Período</label>
+            <label htmlFor="period-select" className="text-sm font-medium block mb-2">Período</label>
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger>
+              <SelectTrigger id="period-select">
                 <SelectValue placeholder="Selecione o período" />
               </SelectTrigger>
               <SelectContent>
@@ -124,12 +124,12 @@ const ReportGenerator = () => {
           {period === 'personalizado' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium block mb-2">Data Inicial</label>
-                <Input type="date" />
+                <label htmlFor="start-date-treasury" className="text-sm font-medium block mb-2">Data Inicial</label>
+                <Input id="start-date-treasury" type="date" />
               </div>
               <div>
-                <label className="text-sm font-medium block mb-2">Data Final</label>
-                <Input type="date" />
+                <label htmlFor="end-date-treasury" className="text-sm font-medium block mb-2">Data Final</label>
+                <Input id="end-date-treasury" type="date" />
               </div>
             </div>
           )}
@@ -197,8 +197,9 @@ const TransactionForm = ({ onClose }: { onClose: () => void }) => {
       </div>
       
       <div>
-        <label className="text-sm font-medium block mb-2">Descrição</label>
+        <label htmlFor="transaction-description" className="text-sm font-medium block mb-2">Descrição</label>
         <Input 
+          id="transaction-description"
           placeholder="Descrição da transação" 
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -206,8 +207,9 @@ const TransactionForm = ({ onClose }: { onClose: () => void }) => {
       </div>
       
       <div>
-        <label className="text-sm font-medium block mb-2">Valor (€)</label>
+        <label htmlFor="transaction-amount" className="text-sm font-medium block mb-2">Valor (€)</label>
         <Input 
+          id="transaction-amount"
           type="number" 
           step="0.01" 
           min="0" 

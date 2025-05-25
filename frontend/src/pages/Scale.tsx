@@ -67,7 +67,7 @@ const Scale = () => {
   }, [schedules, selectedScheduleId, isLoadingSchedules]);
   
   // Handle schedule creation
-  const handleCreateSchedule = (data: any) => {
+  const handleCreateSchedule = (data: Partial<BarSchedule>) => {
     createSchedule(data, {
       onSuccess: (newSchedule) => {
         setSelectedScheduleId(newSchedule.id);
@@ -81,7 +81,7 @@ const Scale = () => {
   };
   
   // Handle schedule update
-  const handleUpdateSchedule = (data: any) => {
+  const handleUpdateSchedule = (data: Partial<BarSchedule>) => {
     if (editingSchedule) {
       updateSchedule(
         { ...data, id: editingSchedule.id },
@@ -100,7 +100,7 @@ const Scale = () => {
   };
   
   // Handle shift creation
-  const handleCreateShift = (data: any) => {
+  const handleCreateShift = (data: Partial<BarShift> & { date: string; startTime: string; endTime: string }) => {
     const startDate = new Date(data.date);
     const [startHour, startMinute] = data.startTime.split(':').map(Number);
     startDate.setHours(startHour, startMinute, 0);
@@ -143,7 +143,7 @@ const Scale = () => {
   };
   
   // Handle shift update
-  const handleUpdateShift = (data: any) => {
+  const handleUpdateShift = (data: Partial<BarShift> & { date: string; startTime: string; endTime: string }) => {
     if (editingShift) {
       const startDate = new Date(data.date);
       const [startHour, startMinute] = data.startTime.split(':').map(Number);

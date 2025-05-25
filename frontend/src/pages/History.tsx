@@ -84,14 +84,14 @@ const ActivityHistoryPage = () => {
             <CardContent className="border-b pb-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Ação:</label>
+                  <label htmlFor="action-filter" className="text-sm font-medium">Ação:</label>
                   <Select
                     value={filter.action}
                     onValueChange={(value) =>
                       setFilter({ ...filter, action: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="action-filter">
                       <SelectValue placeholder="Selecione uma ação" />
                     </SelectTrigger>
                     <SelectContent>
@@ -105,14 +105,14 @@ const ActivityHistoryPage = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Tipo de Entidade:</label>
+                  <label htmlFor="entity-type-filter" className="text-sm font-medium">Tipo de Entidade:</label>
                   <Select
                     value={filter.entityType}
                     onValueChange={(value) =>
                       setFilter({ ...filter, entityType: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="entity-type-filter">
                       <SelectValue placeholder="Selecione um tipo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -126,8 +126,9 @@ const ActivityHistoryPage = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Data Inicial:</label>
+                  <label htmlFor="from-date-filter" className="text-sm font-medium">Data Inicial:</label>
                   <Input
+                    id="from-date-filter"
                     type="date"
                     value={filter.fromDate}
                     onChange={(e) =>
@@ -137,8 +138,9 @@ const ActivityHistoryPage = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Data Final:</label>
+                  <label htmlFor="to-date-filter" className="text-sm font-medium">Data Final:</label>
                   <Input
+                    id="to-date-filter"
                     type="date"
                     value={filter.toDate}
                     onChange={(e) =>
@@ -168,5 +170,6 @@ const ActivityHistoryPage = () => {
       </div>
     </MembersLayout>
   );
+};
 
 export default ActivityHistoryPage;

@@ -1,9 +1,16 @@
 // backend/src/controllers/admin.js
 const { supabase } = require('../config/supabase');
+const SecurityAuditLogger = require('../middleware/security-audit');
 
 // Obter estatísticas gerais do sistema
 exports.getStats = async (req, res) => {
   try {
+    // Log de acesso às estatísticas administrativas
+    await SecurityAuditLogger.logAdminAction(req, 'VIEW_STATS', null, {
+      action: 'system_statistics_access',
+      timestamp: new Date().toISOString()
+    });
+    
     // Contagem de membros
     const { count: membersCount, error: membersError } = await supabase
       .from('members')
@@ -71,6 +78,13 @@ exports.getStats = async (req, res) => {
 // Obter logs de atividades do sistema
 exports.getLogs = async (req, res) => {
   try {
+    // Log de acesso aos logs do sistema
+    await SecurityAuditLogger.logAdminAction(req, 'VIEW_SYSTEM_LOGS', null, {
+      action: 'system_logs_access',
+      filters: req.query,
+      timestamp: new Date().toISOString()
+    });
+    
     // Parâmetros de paginação opcionais
     const { page = 0, limit = 20 } = req.query;
     const offset = page * limit;
@@ -109,6 +123,13 @@ exports.getLogs = async (req, res) => {
 exports.updateConfig = async (req, res) => {
   try {
     const configData = req.body;
+    
+    // Log de tentativa de atualização de configurações
+    await SecurityAuditLogger.logAdminAction(req, 'UPDATE_CONFIG', null, {
+      action: 'system_config_update',
+      configKeys: Object.keys(configData),
+      timestamp: new Date().toISOString()
+    });
     
     // Verificar se já existem configurações
     const { data: existingConfig, error: findError } = await supabase
@@ -163,6 +184,13 @@ exports.updateConfig = async (req, res) => {
 // Fazer backup do banco de dados (apenas metadados, para uso com Supabase)
 exports.createBackup = async (req, res) => {
   try {
+    // Log crítico de solicitação de backup
+    await SecurityAuditLogger.logAdminAction(req, 'REQUEST_BACKUP', null, {
+      action: 'database_backup_request',
+      critical: true,
+      timestamp: new Date().toISOString()
+    });
+    
     // Esta função é apenas um placeholder, pois o backup real do Supabase 
     // precisa ser feito através da API do Supabase ou Console de Admin
     

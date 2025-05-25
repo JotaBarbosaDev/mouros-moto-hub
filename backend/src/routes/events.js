@@ -3,6 +3,7 @@ const express = require('express');
 const eventsController = require('../controllers/events');
 const authMiddleware = require('../middlewares/auth');
 const { logActivity } = require('../middleware/activity-logger');
+const { auditEvents } = require('../middleware/advanced-audit');
 
 const router = express.Router();
 
@@ -11,11 +12,13 @@ router.use(authMiddleware.authenticate);
 
 // Rotas para eventos
 router.get('/', 
+  auditEvents,
   logActivity({ entityType: 'EVENT' }),
   eventsController.getAllEvents
 );
 
 router.get('/:id', 
+  auditEvents,
   logActivity({ entityType: 'EVENT', getEntityId: (req) => req.params.id }),
   eventsController.getEventById
 );

@@ -8,199 +8,42 @@ export type Json =
 
 export type Database = {
   public: {
-    Functions: {
-      create_table_if_not_exists: {
-        Args: {
-          table_name: string
-          columns: string
-        }
-        Returns: undefined
-      }
-      exec_sql: {
-        Args: {
-          sql: string
-        }
-        Returns: undefined
-      }
-    }
     Tables: {
-      club_settings: {
+      activity_logs: {
         Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
           id: string
-          name: string
-          short_name: string
-          founding_date: string
-          logo_url: string | null
-          banner_url: string | null
-          primary_color: string
-          secondary_color: string
-          accent_color: string
-          text_color: string
-          annual_fee: number
-          fee_start_date: string
-          inactive_periods: Json
-          address: string | null
-          email: string | null
-          phone: string | null
-          social_media: Json | null
-          description: string | null
-          welcome_message: string | null
-          created_at: string
-          updated_at: string
+          ip_address: string | null
+          user_id: string | null
+          username: string | null
         }
         Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
           id?: string
-          name: string
-          short_name: string
-          founding_date: string
-          logo_url?: string | null
-          banner_url?: string | null
-          primary_color: string
-          secondary_color: string
-          accent_color: string
-          text_color: string
-          annual_fee: number
-          fee_start_date: string
-          inactive_periods?: Json
-          address?: string | null
-          email?: string | null
-          phone?: string | null
-          social_media?: Json | null
-          description?: string | null
-          welcome_message?: string | null
-          created_at?: string
-          updated_at?: string
+          ip_address?: string | null
+          user_id?: string | null
+          username?: string | null
         }
         Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
           id?: string
-          name?: string
-          short_name?: string
-          founding_date?: string
-          logo_url?: string | null
-          banner_url?: string | null
-          primary_color?: string
-          secondary_color?: string
-          accent_color?: string
-          text_color?: string
-          annual_fee?: number
-          fee_start_date?: string
-          inactive_periods?: Json
-          address?: string | null
-          email?: string | null
-          phone?: string | null
-          social_media?: Json | null
-          description?: string | null
-          welcome_message?: string | null
-          created_at?: string
-          updated_at?: string
+          ip_address?: string | null
+          user_id?: string | null
+          username?: string | null
         }
         Relationships: []
-      }
-      settings: {
-        Row: {
-          id: string
-          key: string
-          value: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          key: string
-          value: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          key?: string
-          value?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      member_fee_settings: {
-        Row: {
-          id: string
-          member_id: string
-          join_date: string
-          exempt_periods: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          member_id: string
-          join_date: string
-          exempt_periods?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          member_id?: string
-          join_date?: string
-          exempt_periods?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "member_fee_settings_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      fee_payments: {
-        Row: {
-          id: string
-          member_id: string
-          year: number
-          payment_date: string
-          amount: number
-          payment_method: string
-          notes: string | null
-          receipt_url: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          member_id: string
-          year: number
-          payment_date: string
-          amount: number
-          payment_method: string
-          notes?: string | null
-          receipt_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          member_id?: string
-          year?: number
-          payment_date?: string
-          amount?: number
-          payment_method?: string
-          notes?: string | null
-          receipt_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fee_payments_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          }
-        ]
       }
       addresses: {
         Row: {
@@ -247,6 +90,13 @@ export type Database = {
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "addresses_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["member_id"]
+          },
         ]
       }
       administration: {
@@ -289,6 +139,67 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administration_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["member_id"]
+          },
+        ]
+      }
+      approval_comments: {
+        Row: {
+          approval_id: string
+          author_id: string
+          comment_type: Database["public"]["Enums"]["approval_comment_type"]
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          message: string
+          metadata: Json | null
+          proposed_amount: number | null
+          proposed_changes: Json | null
+        }
+        Insert: {
+          approval_id: string
+          author_id: string
+          comment_type: Database["public"]["Enums"]["approval_comment_type"]
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          metadata?: Json | null
+          proposed_amount?: number | null
+          proposed_changes?: Json | null
+        }
+        Update: {
+          approval_id?: string
+          author_id?: string
+          comment_type?: Database["public"]["Enums"]["approval_comment_type"]
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          metadata?: Json | null
+          proposed_amount?: number | null
+          proposed_changes?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_comments_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "financial_approvals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
             referencedColumns: ["id"]
           },
         ]
@@ -434,7 +345,15 @@ export type Database = {
           total?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bar_sales_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bar_schedules: {
         Row: {
@@ -509,6 +428,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bar_shifts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["member_id"]
+          },
+          {
             foreignKeyName: "bar_shifts_schedule_id_fkey"
             columns: ["schedule_id"]
             isOneToOne: false
@@ -516,6 +442,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      club_settings: {
+        Row: {
+          accent_color: string
+          address: string | null
+          annual_fee: number
+          banner_url: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          fee_start_date: string
+          founding_date: string
+          id: string
+          inactive_periods: Json | null
+          logo_url: string | null
+          name: string
+          phone: string | null
+          primary_color: string
+          secondary_color: string
+          short_name: string
+          social_media: Json | null
+          text_color: string
+          updated_at: string | null
+          welcome_message: string | null
+        }
+        Insert: {
+          accent_color: string
+          address?: string | null
+          annual_fee: number
+          banner_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          fee_start_date: string
+          founding_date: string
+          id?: string
+          inactive_periods?: Json | null
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          primary_color: string
+          secondary_color: string
+          short_name: string
+          social_media?: Json | null
+          text_color: string
+          updated_at?: string | null
+          welcome_message?: string | null
+        }
+        Update: {
+          accent_color?: string
+          address?: string | null
+          annual_fee?: number
+          banner_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          fee_start_date?: string
+          founding_date?: string
+          id?: string
+          inactive_periods?: Json | null
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          primary_color?: string
+          secondary_color?: string
+          short_name?: string
+          social_media?: Json | null
+          text_color?: string
+          updated_at?: string | null
+          welcome_message?: string | null
+        }
+        Relationships: []
       }
       dues_payments: {
         Row: {
@@ -555,6 +553,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dues_payments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["member_id"]
           },
         ]
       }
@@ -615,6 +620,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_registrations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "event_registrations_vehicle_id_fkey"
@@ -764,6 +776,174 @@ export type Database = {
         }
         Relationships: []
       }
+      fee_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          member_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          receipt_url: string | null
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          member_id: string
+          notes?: string | null
+          payment_date: string
+          payment_method: string
+          receipt_url?: string | null
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          receipt_url?: string | null
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
+      financial_approvals: {
+        Row: {
+          approved_at: string | null
+          assigned_treasurer_id: string | null
+          created_at: string | null
+          created_by: string | null
+          creator_id: string
+          currency: string | null
+          description: string | null
+          due_date: string | null
+          escalation_date: string | null
+          escalation_reason: string | null
+          final_approver_id: string | null
+          id: string
+          is_escalated: boolean | null
+          item_details: Json | null
+          item_id: string | null
+          item_type: string
+          priority_level: number | null
+          reference_number: string | null
+          requires_president_approval: boolean | null
+          reviewed_at: string | null
+          status:
+            | Database["public"]["Enums"]["financial_approval_status"]
+            | null
+          submitted_at: string | null
+          title: string
+          total_amount: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          assigned_treasurer_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          creator_id: string
+          currency?: string | null
+          description?: string | null
+          due_date?: string | null
+          escalation_date?: string | null
+          escalation_reason?: string | null
+          final_approver_id?: string | null
+          id?: string
+          is_escalated?: boolean | null
+          item_details?: Json | null
+          item_id?: string | null
+          item_type: string
+          priority_level?: number | null
+          reference_number?: string | null
+          requires_president_approval?: boolean | null
+          reviewed_at?: string | null
+          status?:
+            | Database["public"]["Enums"]["financial_approval_status"]
+            | null
+          submitted_at?: string | null
+          title: string
+          total_amount: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          assigned_treasurer_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          creator_id?: string
+          currency?: string | null
+          description?: string | null
+          due_date?: string | null
+          escalation_date?: string | null
+          escalation_reason?: string | null
+          final_approver_id?: string | null
+          id?: string
+          is_escalated?: boolean | null
+          item_details?: Json | null
+          item_id?: string | null
+          item_type?: string
+          priority_level?: number | null
+          reference_number?: string | null
+          requires_president_approval?: boolean | null
+          reviewed_at?: string | null
+          status?:
+            | Database["public"]["Enums"]["financial_approval_status"]
+            | null
+          submitted_at?: string | null
+          title?: string
+          total_amount?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_approvals_assigned_treasurer_id_fkey"
+            columns: ["assigned_treasurer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_approvals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_approvals_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_approvals_final_approver_id_fkey"
+            columns: ["final_approver_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_approvals_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory: {
         Row: {
           created_at: string
@@ -827,7 +1007,41 @@ export type Database = {
             referencedRelation: "inventory"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inventory_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      member_fee_settings: {
+        Row: {
+          created_at: string | null
+          exempt_periods: Json | null
+          id: string
+          join_date: string
+          member_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          exempt_periods?: Json | null
+          id?: string
+          join_date: string
+          member_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          exempt_periods?: Json | null
+          id?: string
+          join_date?: string
+          member_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       members: {
         Row: {
@@ -852,6 +1066,7 @@ export type Database = {
           registration_fee_exempt: boolean
           registration_fee_paid: boolean
           updated_at: string
+          username: string | null
         }
         Insert: {
           blood_type?: Database["public"]["Enums"]["blood_type"] | null
@@ -875,6 +1090,7 @@ export type Database = {
           registration_fee_exempt?: boolean
           registration_fee_paid?: boolean
           updated_at?: string
+          username?: string | null
         }
         Update: {
           blood_type?: Database["public"]["Enums"]["blood_type"] | null
@@ -898,6 +1114,7 @@ export type Database = {
           registration_fee_exempt?: boolean
           registration_fee_paid?: boolean
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -929,128 +1146,294 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
         }
-        Relationships: []
-      }
-      security_questions: {
-        Row: {
-          answer: string
-          created_at: string
-          id: string
-          member_id: string
-          question: string
-          updated_at: string
-        }
-        Insert: {
-          answer: string
-          created_at?: string
-          id?: string
-          member_id: string
-          question: string
-          updated_at?: string
-        }
-        Update: {
-          answer?: string
-          created_at?: string
-          id?: string
-          member_id?: string
-          question?: string
-          updated_at?: string
-        }
         Relationships: [
           {
-            foreignKeyName: "security_questions_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles_view"
             referencedColumns: ["id"]
           },
         ]
       }
       settings: {
         Row: {
+          created_at: string | null
           id: string
           key: string
+          updated_at: string | null
           value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      store_products: {
+        Row: {
+          color: string | null
           created_at: string
+          description: string
+          id: string
+          image_url: string | null
+          members_only: boolean
+          name: string
+          price: number
+          published_on_landing_page: boolean
+          size: Database["public"]["Enums"]["product_size"] | null
+          stock: number
+          type: Database["public"]["Enums"]["product_type"]
           updated_at: string
         }
         Insert: {
-          id?: string
-          key: string
-          value: Json
+          color?: string | null
           created_at?: string
+          description: string
+          id?: string
+          image_url?: string | null
+          members_only?: boolean
+          name: string
+          price: number
+          published_on_landing_page?: boolean
+          size?: Database["public"]["Enums"]["product_size"] | null
+          stock?: number
+          type: Database["public"]["Enums"]["product_type"]
           updated_at?: string
         }
         Update: {
-          id?: string
-          key?: string
-          value?: Json
+          color?: string | null
           created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          members_only?: boolean
+          name?: string
+          price?: number
+          published_on_landing_page?: boolean
+          size?: Database["public"]["Enums"]["product_size"] | null
+          stock?: number
+          type?: Database["public"]["Enums"]["product_type"]
           updated_at?: string
         }
         Relationships: []
       }
-      shift_replacements: {
+      username_corrections: {
         Row: {
+          corrected_at: string | null
+          correction_source: string | null
+          detected_pattern: string | null
+          id: string
+          new_username: string
+          old_username: string
+          user_id: string
+        }
+        Insert: {
+          corrected_at?: string | null
+          correction_source?: string | null
+          detected_pattern?: string | null
+          id?: string
+          new_username: string
+          old_username: string
+          user_id: string
+        }
+        Update: {
+          corrected_at?: string | null
+          correction_source?: string | null
+          detected_pattern?: string | null
+          id?: string
+          new_username?: string
+          old_username?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "username_corrections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          brand: string
           created_at: string
+          displacement: number
           id: string
           member_id: string
-          notes: string | null
-          new_schedule_id: string | null
-          old_schedule_id: string | null
-          status: string
+          model: string
+          nickname: string | null
+          photo_url: string | null
+          type: Database["public"]["Enums"]["vehicle_type"]
           updated_at: string
         }
         Insert: {
+          brand: string
           created_at?: string
+          displacement: number
           id?: string
           member_id: string
-          notes?: string | null
-          new_schedule_id?: string | null
-          old_schedule_id?: string | null
-          status?: string
+          model: string
+          nickname?: string | null
+          photo_url?: string | null
+          type: Database["public"]["Enums"]["vehicle_type"]
           updated_at?: string
         }
         Update: {
+          brand?: string
           created_at?: string
+          displacement?: number
           id?: string
           member_id?: string
-          notes?: string | null
-          new_schedule_id?: string | null
-          old_schedule_id?: string | null
-          status?: string
+          model?: string
+          nickname?: string | null
+          photo_url?: string | null
+          type?: Database["public"]["Enums"]["vehicle_type"]
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "shift_replacements_member_id_fkey"
+            foreignKeyName: "vehicles_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shift_replacements_new_schedule_id_fkey"
-            columns: ["new_schedule_id"]
+            foreignKeyName: "vehicles_member_id_fkey"
+            columns: ["member_id"]
             isOneToOne: false
-            referencedRelation: "bar_schedules"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shift_replacements_old_schedule_id_fkey"
-            columns: ["old_schedule_id"]
-            isOneToOne: false
-            referencedRelation: "bar_schedules"
-            referencedColumns: ["id"]
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["member_id"]
           },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      creator_dashboard: {
+        Row: {
+          approved: number | null
+          avg_request_amount: number | null
+          creator_id: string | null
+          drafts: number | null
+          pending: number | null
+          rejected: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_approvals_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treasurer_dashboard: {
+        Row: {
+          approved_today: number | null
+          avg_approved_amount: number | null
+          escalated: number | null
+          in_revision: number | null
+          pending_approvals: number | null
+          total_approved_today: number | null
+        }
+        Relationships: []
+      }
+      user_profiles_view: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_admin: boolean | null
+          last_sign_in_at: string | null
+          member_id: string | null
+          member_number: string | null
+          metadata: Json | null
+          name: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      disable_vehicles_rls: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      enable_vehicles_rls: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      find_member_by_username: {
+        Args: { username_input: string }
+        Returns: {
+          id: string
+          email: string
+          username: string
+          name: string
+        }[]
+      }
+      get_email_by_username: {
+        Args: { username_input: string }
+        Returns: string
+      }
+      get_user_by_username: {
+        Args: { p_username: string }
+        Returns: {
+          id: string
+          email: string
+          created_at: string
+          updated_at: string
+          member_id: string
+          name: string
+          username: string
+        }[]
+      }
+      get_user_profile: {
+        Args: { user_id: string }
+        Returns: {
+          id: string
+          email: string
+          metadata: Json
+          created_at: string
+        }[]
+      }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role_type"]
+      }
+      insert_vehicle: {
+        Args: { vehicle_data: Json }
+        Returns: {
+          brand: string
+          created_at: string
+          displacement: number
+          id: string
+          member_id: string
+          model: string
+          nickname: string | null
+          photo_url: string | null
+          type: Database["public"]["Enums"]["vehicle_type"]
+          updated_at: string
+        }[]
+      }
+      is_valid_email: {
+        Args: { email: string }
+        Returns: boolean
+      }
     }
     Enums: {
       admin_role:
@@ -1062,7 +1445,22 @@ export type Database = {
         | "Dir. Marketing"
         | "Dir. Patrimônio"
       admin_status: "Ativo" | "Inativo" | "Licença"
+      approval_comment_type:
+        | "request_changes"
+        | "counteroffer"
+        | "justification"
+        | "approval_note"
+        | "escalation_note"
       blood_type: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-"
+      financial_approval_status:
+        | "draft"
+        | "awaiting_approval"
+        | "in_revision"
+        | "awaiting_reevaluation"
+        | "escalated"
+        | "approved"
+        | "rejected"
+        | "cancelled"
       member_type:
         | "Sócio Adulto"
         | "Sócio Criança"
@@ -1078,6 +1476,7 @@ export type Database = {
         | "Adesivo"
         | "Outro"
       user_role: "admin" | "member" | "pending"
+      user_role_type: "creator" | "treasurer" | "president" | "admin"
       vehicle_type: "Mota" | "Moto-quatro" | "Buggy"
     }
     CompositeTypes: {
@@ -1097,7 +1496,7 @@ export type Tables<
   }
     ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
   ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
@@ -1204,7 +1603,24 @@ export const Constants = {
         "Dir. Patrimônio",
       ],
       admin_status: ["Ativo", "Inativo", "Licença"],
+      approval_comment_type: [
+        "request_changes",
+        "counteroffer",
+        "justification",
+        "approval_note",
+        "escalation_note",
+      ],
       blood_type: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+      financial_approval_status: [
+        "draft",
+        "awaiting_approval",
+        "in_revision",
+        "awaiting_reevaluation",
+        "escalated",
+        "approved",
+        "rejected",
+        "cancelled",
+      ],
       member_type: [
         "Sócio Adulto",
         "Sócio Criança",
@@ -1222,6 +1638,7 @@ export const Constants = {
         "Outro",
       ],
       user_role: ["admin", "member", "pending"],
+      user_role_type: ["creator", "treasurer", "president", "admin"],
       vehicle_type: ["Mota", "Moto-quatro", "Buggy"],
     },
   },

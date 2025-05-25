@@ -2,18 +2,33 @@
  * Utilitário para cache local de perfil de usuário
  */
 
+// Interface para o perfil do usuário
+interface UserProfile {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    member_type?: string;
+    is_admin?: boolean;
+    [key: string]: unknown;
+  };
+  app_metadata?: {
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 const USER_PROFILE_CACHE_KEY = 'mouros_user_profile';
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutos
 
 interface CachedProfile {
-  profile: any;
+  profile: UserProfile;
   timestamp: number;
 }
 
 /**
  * Salva o perfil do usuário no cache local
  */
-export const saveProfileToCache = (profile: any): void => {
+export const saveProfileToCache = (profile: UserProfile): void => {
   if (!profile || !profile.id) return;
   
   try {
@@ -33,7 +48,7 @@ export const saveProfileToCache = (profile: any): void => {
  * Recupera o perfil do usuário do cache local
  * Retorna null se não houver cache ou se estiver expirado
  */
-export const getProfileFromCache = (): any | null => {
+export const getProfileFromCache = (): UserProfile | null => {
   try {
     const cachedDataJson = localStorage.getItem(USER_PROFILE_CACHE_KEY);
     

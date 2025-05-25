@@ -219,14 +219,14 @@ export const AddEventDialog = ({ isOpen, onClose, onAddEvent }: AddEventDialogPr
           </DialogHeader>
           <div className="space-y-4 my-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium">
+              <label htmlFor="compromiso-type-select" className="text-sm font-medium">
                 Tipo de Compromisso*
               </label>
               <Select
                 value={compromisoType}
                 onValueChange={(value: CompromisoType) => handleCompromisoTypeChange(value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="compromiso-type-select">
                   <SelectValue placeholder="Selecionar tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -269,12 +269,13 @@ export const AddEventDialog = ({ isOpen, onClose, onAddEvent }: AddEventDialogPr
             
             <div className="flex flex-col md:flex-row gap-4 items-start">
               <div className="w-full md:w-1/2 space-y-2">
-                <label className="text-sm font-medium">
+                <label htmlFor="date-picker" className="text-sm font-medium">
                   Data do Compromisso*
                 </label>
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
+                      id="date-picker"
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",

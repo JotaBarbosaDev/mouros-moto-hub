@@ -5,12 +5,13 @@ import { MemberStatusTab } from "./tabs/MemberStatusTab";
 import { MemberVehiclesTab } from "./tabs/MemberVehiclesTab";
 import { MemberDuesTab } from "./tabs/MemberDuesTab";
 import { FormProps } from "./MemberFormTypes";
+import { Vehicle } from "@/types/member";
 
 interface MemberFormTabsProps extends FormProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  vehicles: any[];
-  setVehicles: (vehicles: any[]) => void;
+  vehicles: Vehicle[];
+  setVehicles: (vehicles: Vehicle[]) => void;
   duesPayments: {year: number, paid: boolean, exempt: boolean}[];
   setDuesPayments: (payments: {year: number, paid: boolean, exempt: boolean}[]) => void;
   isAddVehicleOpen: boolean;

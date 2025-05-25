@@ -2,6 +2,7 @@
 // Controlador para autenticação
 const jwt = require('jsonwebtoken');
 const { supabaseAdmin } = require('../config/supabase');
+const SecurityAuditLogger = require('../middleware/security-audit');
 
 // Login de usuário
 const login = async (req, res) => {
@@ -17,14 +18,13 @@ const login = async (req, res) => {
   try {
     console.log(`Tentativa de login para: ${email}`);
     
-    // SOLUÇÃO TEMPORÁRIA: Para fins de desenvolvimento/teste, permitir login com usuários específicos
-    // Esta solução deve ser removida em ambiente de produção
-    const DESENVOLVIMENTO_ATIVADO = true;
+    // MODO DE DESENVOLVIMENTO DESATIVADO EM PRODUÇÃO
+    // Para ativar novamente em desenvolvimento, defina: NODE_ENV=development e ENABLE_TEST_USERS=true
+    const DESENVOLVIMENTO_ATIVADO = false; // Forçado para false em produção
     const usuariosTeste = [
       { email: 'admin@mourosmotohub.com', password: 'admin123', isAdmin: true, name: 'Administrador' },
       { email: 'teste@exemplo.com', password: 'senhateste', isAdmin: false, name: 'Usuário Teste' },
       { email: 'joao@mourosmotohub.com', password: 'joao2025', isAdmin: true, name: 'João Barbosa' },
-      // Adicionando o usuário admin@admin.com - senha admin para este teste
       { email: 'admin@admin.com', password: 'admin', isAdmin: true, name: 'Admin' }
     ];
     
@@ -87,11 +87,28 @@ const login = async (req, res) => {
     
     if (error) {
       console.error('Erro na autenticação do Supabase:', error);
-      throw error;
+      
+      // Log de auditoria para falha de autenticação
+      await SecurityAuditLogger.logAuthAttempt(req, false, {
+        email: email,
+        reason: error.message || 'Credenciais inválidas'
+      });
+      
+      return res.status(401).json({
+        error: 'Credenciais inválidas',
+        details: 'Email ou senha incorretos'
+      });
     }
     
     if (!data || !data.user) {
       console.error('Dados de usuário inválidos retornados pelo Supabase');
+      
+      // Log de auditoria para dados inválidos
+      await SecurityAuditLogger.logAuthAttempt(req, false, {
+        email: email,
+        reason: 'Dados de usuário inválidos'
+      });
+      
       return res.status(401).json({
         error: 'Credenciais inválidas',
         details: 'Email ou senha incorretos'
@@ -126,6 +143,14 @@ const login = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
     );
     
+    // Log de auditoria para login bem-sucedido
+    await SecurityAuditLogger.logAuthAttempt(req, true, {
+      userId: data.user.id,
+      email: data.user.email,
+      name: name,
+      isAdmin: isAdmin
+    });
+    
     res.json({
       token,
       user: {
@@ -137,6 +162,13 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao fazer login:', error);
+    
+    // Log de auditoria para login falhado
+    await SecurityAuditLogger.logAuthAttempt(req, false, {
+      email: email,
+      reason: error.message
+    });
+    
     res.status(500).json({
       error: 'Erro na autenticação',
       details: error.message

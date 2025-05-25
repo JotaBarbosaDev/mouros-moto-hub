@@ -65,6 +65,8 @@ exports.getEventById = async (req, res) => {
 // Criar novo evento
 exports.createEvent = async (req, res) => {
   try {
+    console.log('[DEBUG] Recebendo requisição para criar evento:', req.body);
+    
     // Compatibilidade com formato do frontend: aceita tanto camelCase quanto snake_case
     const eventData = {
       title: req.body.title,
@@ -91,6 +93,35 @@ exports.createEvent = async (req, res) => {
       .single();
     
     if (error) throw error;
+    
+    // Registrar a atividade de criação de evento
+    console.log('[DEBUG] Evento criado com sucesso, registrando atividade', event.id);
+    const user = req.user || {};
+    try {
+      // Verificar se o serviço está disponível
+      if (typeof activityLogService !== 'undefined' && activityLogService && typeof activityLogService.log === 'function') {
+        await activityLogService.log({
+          userId: user.id,
+          username: user.email || user.username || 'anônimo',
+          action: 'CREATE',
+          entityType: 'EVENT',
+          entityId: event.id,
+          details: { 
+            eventTitle: event.title,
+            eventType: event.type,
+            eventDate: event.start_date
+          },
+          ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+        }).catch(err => {
+          console.error('[DEBUG] Erro ao registrar log (capturado em catch do log):', err);
+        });
+      } else {
+        console.error('[DEBUG] Serviço de log não está disponível:', typeof activityLogService);
+      }
+    } catch (logError) {
+      // Apenas logar o erro, não impedir a criação do evento
+      console.error('[DEBUG] Erro ao registrar log de criação de evento:', logError);
+    }
     
     res.status(201).json(event);
   } catch (error) {

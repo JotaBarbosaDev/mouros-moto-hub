@@ -11,6 +11,39 @@ export interface CreateInventoryItemDto {
 }
 
 /**
+ * Interface para resposta do API de inventário (formato snake_case)
+ */
+interface InventoryItemApiResponse {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_of_measure?: string;
+  unitOfMeasure?: string;
+  category: InventoryCategory;
+  use_type?: InventoryUseType;
+  useType?: InventoryUseType;
+  image_url?: string;
+  imageUrl?: string;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Interface para resposta de log de inventário do API (formato snake_case)
+ */
+interface InventoryLogApiResponse {
+  id: string;
+  inventory_id: string;
+  previous_quantity: number;
+  new_quantity: number;
+  change_reason?: string;
+  user_id: string;
+  created_at: string;
+}
+
+/**
  * Serviço para gerenciamento de inventário
  */
 export const inventoryService = {
@@ -27,7 +60,7 @@ export const inventoryService = {
     
     const data = await response.json();
     
-    return data.map((item: any) => ({
+    return data.map((item: InventoryItemApiResponse) => ({
       id: item.id,
       name: item.name,
       quantity: item.quantity,
@@ -113,7 +146,7 @@ export const inventoryService = {
     const apiUrl = `${getApiBaseUrl()}/inventory/${id}`;
     
     // Adapta os dados para o formato esperado pelo backend
-    const payload: Record<string, any> = {};
+    const payload: Partial<InventoryItemApiResponse> = {};
     
     if (itemData.name !== undefined) payload.name = itemData.name;
     if (itemData.quantity !== undefined) payload.quantity = itemData.quantity;
@@ -231,7 +264,7 @@ export const inventoryService = {
     
     const data = await response.json();
     
-    return data.map((log: any) => ({
+    return data.map((log: InventoryLogApiResponse) => ({
       id: log.id,
       inventoryId: log.inventory_id,
       previousQuantity: log.previous_quantity,

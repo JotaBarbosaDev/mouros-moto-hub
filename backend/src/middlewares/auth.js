@@ -1,6 +1,7 @@
 // middleware/auth.js - Middleware para autenticação JWT e Supabase
 const jwt = require('jsonwebtoken');
 const { supabaseAdmin } = require('../config/supabase');
+const SecurityAuditLogger = require('../middleware/security-audit');
 
 // Middleware que verifica e valida o token JWT ou token Supabase
 const authenticate = async (req, res, next) => {
@@ -87,12 +88,24 @@ const authenticate = async (req, res, next) => {
     }
     
     // Se chegou até aqui, o token não é válido
+    await SecurityAuditLogger.logAccessDenied(req, 'Token inválido ou expirado', {
+      token: '[REDACTED]',
+      authHeader: authHeader ? '[PRESENT]' : '[MISSING]'
+    });
+    
     return res.status(401).json({
       error: 'Token inválido ou expirado',
       details: 'Faça login novamente'
     });
   } catch (error) {
     console.error('Erro no middleware de autenticação:', error);
+    
+    // Log de erro crítico
+    await SecurityAuditLogger.logSuspiciousActivity(req, 'AUTH_MIDDLEWARE_ERROR', {
+      errorMessage: error.message,
+      errorName: error.name
+    });
+    
     return res.status(500).json({
       error: 'Erro de autenticação',
       details: error.message
@@ -104,15 +117,18 @@ const authenticate = async (req, res, next) => {
 const isAdmin = async (req, res, next) => {
   console.log('Verificando privilégios de administrador para:', req.user);
   
-  // Modo de desenvolvimento: permitir acesso de admin se variável de ambiente estiver definida
-  if (process.env.ALLOW_DEV_ADMIN === 'true') {
-    console.log('Modo de desenvolvimento ativo: concedendo privilégios de administrador');
-    req.user = req.user || { id: 'dev-admin', email: 'dev@admin.com', isAdmin: true };
-    return next();
-  }
+  // MODO DE DESENVOLVIMENTO DESATIVADO EM PRODUÇÃO
+  // Para reativar em desenvolvimento, defina: ALLOW_DEV_ADMIN=true
+  // No entanto, em produção isso deve estar sempre desabilitado por segurança
   
   // authenticate deve ter sido executado primeiro
   if (!req.user) {
+    // Log de tentativa de acesso não autorizado
+    await SecurityAuditLogger.logAccessDenied(req, 'Usuário não autenticado tentando acessar área administrativa', {
+      path: req.path,
+      method: req.method
+    });
+    
     return res.status(401).json({ 
       error: 'Não autorizado',
       details: 'Usuário não autenticado' 
@@ -122,6 +138,13 @@ const isAdmin = async (req, res, next) => {
   // Se já validamos o admin no middleware authenticate
   if (req.user.isAdmin === true) {
     console.log('Usuário já validado como admin');
+    
+    // Log de acesso administrativo autorizado
+    await SecurityAuditLogger.logAdminAction(req, 'ACCESS_ADMIN_AREA', { path: req.path }, {
+      accessType: 'admin_area_access',
+      authorized: true
+    });
+    
     return next();
   }
   
@@ -135,6 +158,14 @@ const isAdmin = async (req, res, next) => {
       
     if (error) {
       console.error('Erro ao verificar status de admin:', error);
+      
+      // Log de erro na verificação de admin
+      await SecurityAuditLogger.logSuspiciousActivity(req, 'ADMIN_VERIFICATION_ERROR', {
+        errorMessage: error.message,
+        userId: req.user.id,
+        path: req.path
+      });
+      
       return res.status(500).json({ 
         error: 'Erro interno',
         details: 'Falha ao verificar privilégios de administrador' 
@@ -142,6 +173,15 @@ const isAdmin = async (req, res, next) => {
     }
     
     if (!data || data.is_admin !== true) {
+      // Log de tentativa de acesso administrativo não autorizada
+      await SecurityAuditLogger.logAccessDenied(req, 'Usuário não possui privilégios administrativos', {
+        userId: req.user.id,
+        email: req.user.email,
+        attemptedPath: req.path,
+        method: req.method,
+        hasAdminFlag: false
+      });
+      
       return res.status(403).json({ 
         error: 'Acesso negado',
         details: 'Usuário não possui privilégios de administrador' 
@@ -151,10 +191,25 @@ const isAdmin = async (req, res, next) => {
     // Atualiza o status de admin no objeto da requisição para futuras verificações
     req.user.isAdmin = true;
     
+    // Log de acesso administrativo bem-sucedido
+    await SecurityAuditLogger.logAdminAction(req, 'ADMIN_ACCESS_GRANTED', { path: req.path }, {
+      accessType: 'admin_privilege_verified',
+      verificationMethod: 'database_lookup'
+    });
+    
     // Usuário é admin, continuar
     next();
   } catch (err) {
     console.error('Exceção ao verificar status de admin:', err);
+    
+    // Log de exceção crítica na verificação de admin
+    await SecurityAuditLogger.logSuspiciousActivity(req, 'ADMIN_VERIFICATION_EXCEPTION', {
+      errorMessage: err.message,
+      errorName: err.name,
+      userId: req.user?.id,
+      stack: err.stack?.substring(0, 500) // Apenas primeiros 500 chars do stack
+    });
+    
     return res.status(500).json({ 
       error: 'Erro interno',
       details: 'Falha ao processar verificação de administrador' 

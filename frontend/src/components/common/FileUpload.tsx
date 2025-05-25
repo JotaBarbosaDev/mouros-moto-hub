@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, Image } from "lucide-react";
@@ -21,6 +21,7 @@ export function FileUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
   const { toast } = useToast();
+  const uploadId = useId();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -117,7 +118,7 @@ export function FileUpload({
         </div>
       ) : (
         <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6 h-40">
-          <label className="flex flex-col items-center justify-center cursor-pointer">
+          <label htmlFor={uploadId} className="flex flex-col items-center justify-center cursor-pointer">
             <div className="flex flex-col items-center justify-center">
               {isUploading ? (
                 <div className="animate-pulse">A carregar...</div>
@@ -134,6 +135,7 @@ export function FileUpload({
               )}
             </div>
             <input 
+              id={uploadId}
               type="file" 
               className="hidden" 
               accept="image/*"

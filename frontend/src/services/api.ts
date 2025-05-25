@@ -93,5 +93,16 @@ export const inventoryService = {
   delete: (id: string) => api.delete(`/inventory/${id}`),
 };
 
+// Função auxiliar para requisições autenticadas genéricas
+export const fetchWithAuth = async (endpoint: string, options: any = {}) => {
+  const config = {
+    ...options,
+    url: endpoint,
+  };
+  
+  const response = await api(config);
+  return response.data;
+};
+
 export { api };
 export default api;

@@ -1,5 +1,6 @@
 // src/services/admin-user-service.ts
 import { supabase } from '@/integrations/supabase/client';
+import type { PostgrestResponse } from '@supabase/supabase-js';
 
 /**
  * Interface para o retorno da função get_user_by_username
@@ -12,6 +13,34 @@ interface UserByUsername {
   member_id: string;
   name: string;
   username: string;
+}
+
+/**
+ * Interface para o retorno da função list-users
+ */
+interface ListUsersResponse {
+  users: UserByUsername[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Interface para resposta de funções Edge do Supabase
+ */
+interface SupabaseFunctionResponse<T> {
+  data: T;
+  error: Error | null;
+}
+
+/**
+ * Interface estendida do Supabase para incluir RPC functions customizadas
+ */
+interface SupabaseRpcExtended {
+  rpc(
+    fn: 'get_user_by_username',
+    args: { p_username: string }
+  ): Promise<PostgrestResponse<UserByUsername[]>>;
 }
 
 /**
@@ -28,8 +57,7 @@ export const adminUserService = {
       const pageSize = options?.pageSize || 10;
 
       // Usamos a função Edge para buscar usuários
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response: any = await supabase.functions.invoke('list-users', {
+      const response: SupabaseFunctionResponse<ListUsersResponse> = await supabase.functions.invoke('list-users', {
         body: {
           filter,
           page,
@@ -61,15 +89,14 @@ export const adminUserService = {
   findUserByUsername: async (username: string) => {
     try {
       // Usa a função RPC que criamos na migração
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response: any = await supabase.rpc('get_user_by_username', {
+      const { data, error } = await (supabase as unknown as SupabaseRpcExtended).rpc('get_user_by_username', {
         p_username: username
       });
 
-      if (response.error) throw response.error;
+      if (error) throw error;
       
       return {
-        data: response.data as UserByUsername | null,
+        data: data && data.length > 0 ? data[0] : null,
         error: null
       };
     } catch (error) {

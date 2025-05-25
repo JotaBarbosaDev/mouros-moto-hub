@@ -29,13 +29,13 @@ const activityLogService = {
     try {
       // Estrutura do log para inserção na tabela
       const logEntry = {
-        user_id: userId,
-        username,
-        action: action.toUpperCase(),
-        entity_type: entityType.toUpperCase(),
-        entity_id: entityId,
+        user_id: userId || null, // Permitir nulo para evitar erros
+        username: username || 'sistema',
+        action: action ? action.toUpperCase() : 'UNKNOWN',
+        entity_type: entityType ? entityType.toUpperCase() : 'UNKNOWN',
+        entity_id: entityId || null,
         details: details || {},
-        ip_address: ipAddress
+        ip_address: ipAddress || 'unknown'
       };
 
       // Verificar se a tabela de logs existe

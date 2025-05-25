@@ -74,15 +74,20 @@ const logActivity = (options) => {
           }
           
           // Registrar a atividade
-          activityLogService.log({
-            userId: user.id,
-            username: user.email || user.username || 'sistema',
-            action,
-            entityType: options.entityType,
-            entityId,
-            details,
-            ipAddress
-          }).catch(err => console.error('Erro ao registrar log de atividade:', err));
+          try {
+            activityLogService.log({
+              userId: user.id,
+              username: user.email || user.username || 'sistema',
+              action,
+              entityType: options.entityType,
+              entityId,
+              details,
+              ipAddress
+            }).catch(err => console.error('Erro ao registrar log de atividade:', err));
+          } catch (logError) {
+            // Garantir que erros de log não afetem a resposta da API
+            console.error('Erro ao registrar log de atividade:', logError);
+          }
         }
         
         // Continuar com a resposta original

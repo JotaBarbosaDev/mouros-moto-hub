@@ -5,6 +5,66 @@ const SETTINGS_TABLE = 'club_settings';
 const MEMBER_FEE_SETTINGS_TABLE = 'member_fee_settings';
 const FEE_PAYMENTS_TABLE = 'fee_payments';
 
+/**
+ * Interface para dados de configurações no formato snake_case do banco de dados
+ */
+interface ClubSettingsDbResponse {
+  id?: string;
+  name?: string;
+  short_name?: string;
+  founding_date?: string;
+  logo_url?: string;
+  banner_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  accent_color?: string;
+  text_color?: string;
+  annual_fee?: number;
+  fee_start_date?: string;
+  inactive_periods?: Array<{
+    start_date?: string;
+    startDate?: string;
+    end_date?: string;
+    endDate?: string;
+    reason?: string;
+  }>;
+  social_media?: Record<string, string>;
+  address?: string;
+  email?: string;
+  phone?: string;
+  description?: string;
+  welcome_message?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Interface para períodos inativos/isentos no formato correto
+ */
+interface PeriodData {
+  start_date?: string;
+  startDate?: string;
+  end_date?: string;
+  endDate?: string;
+  reason?: string;
+}
+
+/**
+ * Interface para dados de pagamentos no formato snake_case do banco de dados
+ */
+interface FeePaymentDbResponse {
+  id: string;
+  member_id: string;
+  year: number;
+  payment_date: string;
+  amount: number;
+  payment_method: string;
+  notes: string;
+  receipt_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Valor padrão para configurações do clube
 const DEFAULT_SETTINGS: ClubSettings = {
   name: 'Mouros Moto Hub',
@@ -35,9 +95,49 @@ const DEFAULT_SETTINGS: ClubSettings = {
  */
 export const settingsService = {
   /**
+   * Converte camelCase para snake_case para operações do banco de dados
+   */
+  camelToSnakeCase(settings: Partial<ClubSettings>): Partial<ClubSettingsDbResponse> {
+    const result: Partial<ClubSettingsDbResponse> = {};
+    
+    if (settings.name !== undefined) result.name = settings.name;
+    if (settings.shortName !== undefined) result.short_name = settings.shortName;
+    if (settings.foundingDate !== undefined) result.founding_date = settings.foundingDate;
+    if (settings.logoUrl !== undefined) result.logo_url = settings.logoUrl;
+    if (settings.bannerUrl !== undefined) result.banner_url = settings.bannerUrl;
+    if (settings.primaryColor !== undefined) result.primary_color = settings.primaryColor;
+    if (settings.secondaryColor !== undefined) result.secondary_color = settings.secondaryColor;
+    if (settings.accentColor !== undefined) result.accent_color = settings.accentColor;
+    if (settings.textColor !== undefined) result.text_color = settings.textColor;
+    if (settings.annualFee !== undefined) result.annual_fee = settings.annualFee;
+    if (settings.feeStartDate !== undefined) result.fee_start_date = settings.feeStartDate;
+    if (settings.address !== undefined) result.address = settings.address;
+    if (settings.email !== undefined) result.email = settings.email;
+    if (settings.phone !== undefined) result.phone = settings.phone;
+    if (settings.description !== undefined) result.description = settings.description;
+    if (settings.welcomeMessage !== undefined) result.welcome_message = settings.welcomeMessage;
+    
+    // Converter inactivePeriods
+    if (settings.inactivePeriods) {
+      result.inactive_periods = settings.inactivePeriods.map(period => ({
+        start_date: period.startDate,
+        end_date: period.endDate,
+        reason: period.reason
+      }));
+    }
+    
+    // Converter socialMedia
+    if (settings.socialMedia) {
+      result.social_media = settings.socialMedia as Record<string, string>;
+    }
+    
+    return result;
+  },
+
+  /**
    * Converte snake_case para camelCase para a interface do cliente
    */
-  snakeToCamelCase(data: any): Partial<ClubSettings> {
+  snakeToCamelCase(data: ClubSettingsDbResponse): Partial<ClubSettings> {
     if (!data) return {};
     
     const result: Partial<ClubSettings> = {
@@ -61,7 +161,7 @@ export const settingsService = {
     
     // Converter inactivePeriods específicamente
     if (data.inactive_periods && Array.isArray(data.inactive_periods)) {
-      result.inactivePeriods = data.inactive_periods.map(period => ({
+      result.inactivePeriods = data.inactive_periods.map((period: PeriodData) => ({
         startDate: period.start_date || period.startDate,
         endDate: period.end_date || period.endDate,
         reason: period.reason
@@ -111,6 +211,9 @@ export const settingsService = {
    */
   async updateClubSettings(settings: Partial<ClubSettings>): Promise<ClubSettings> {
     try {
+      // Converter para snake_case
+      const snakeSettings = this.camelToSnakeCase(settings);
+      
       // Verificar se já existem configurações
       const { data: existingData } = await supabase
         .from(SETTINGS_TABLE)
@@ -121,7 +224,7 @@ export const settingsService = {
         // Atualizar configurações existentes
         const { data, error } = await supabase
           .from(SETTINGS_TABLE)
-          .update(settings)
+          .update(snakeSettings)
           .eq('id', existingData.id)
           .select()
           .single();
@@ -129,10 +232,13 @@ export const settingsService = {
         if (error) throw error;
         return this.snakeToCamelCase(data) as ClubSettings;
       } else {
-        // Criar novas configurações
+        // Criar novas configurações - converter DEFAULT_SETTINGS para snake_case
+        const defaultSnakeSettings = this.camelToSnakeCase(DEFAULT_SETTINGS);
+        const newSettings = { ...defaultSnakeSettings, ...snakeSettings };
+        
         const { data, error } = await supabase
           .from(SETTINGS_TABLE)
-          .insert({ ...DEFAULT_SETTINGS, ...settings })
+          .insert(newSettings)
           .select()
           .single();
         
@@ -170,7 +276,7 @@ export const settingsService = {
         memberId: data.member_id,
         joinDate: data.join_date,
         exemptPeriods: Array.isArray(data.exempt_periods) 
-          ? data.exempt_periods.map(p => ({
+          ? (data.exempt_periods as PeriodData[]).map((p: PeriodData) => ({
               startDate: p.start_date || p.startDate,
               endDate: p.end_date || p.endDate,
               reason: p.reason
@@ -245,13 +351,13 @@ export const settingsService = {
       if (!data || !Array.isArray(data)) return [];
       
       // Converter de snake_case para camelCase
-      return data.map(payment => ({
+      return data.map((payment: FeePaymentDbResponse) => ({
         memberId: payment.member_id,
         year: payment.year,
-        paid: !!payment.paid,
+        paid: true, // Se existe registro, foi pago
         paidDate: payment.payment_date,
         amount: payment.amount,
-        receiptNumber: payment.receipt_number,
+        receiptNumber: payment.receipt_url, // Usando receipt_url como receiptNumber
         notes: payment.notes
       }));
     } catch (error) {
@@ -273,7 +379,7 @@ export const settingsService = {
         amount: payment.amount,
         payment_method: 'Transferência', // Valor padrão se não fornecido
         notes: payment.notes,
-        receipt_number: payment.receiptNumber
+        receipt_url: payment.receiptNumber
       };
       
       // Verificar se já existe um pagamento para este membro/ano
@@ -301,7 +407,7 @@ export const settingsService = {
           paid: true,
           paidDate: data.payment_date,
           amount: data.amount,
-          receiptNumber: data.receipt_number,
+          receiptNumber: data.receipt_url,
           notes: data.notes
         };
       } else {
@@ -320,7 +426,7 @@ export const settingsService = {
           paid: true,
           paidDate: data.payment_date,
           amount: data.amount,
-          receiptNumber: data.receipt_number,
+          receiptNumber: data.receipt_url,
           notes: data.notes
         };
       }

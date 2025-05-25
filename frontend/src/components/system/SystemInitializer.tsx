@@ -1,6 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+
+// Interfaces para tipagem das respostas do Supabase
+interface UuidFunctionCheck {
+  has_uuid_function: boolean;
+}
+
+interface TablesExistenceCheck {
+  club_settings_exists: boolean;
+  settings_exists: boolean;
+  member_fee_settings_exists: boolean;
+  fee_payments_exists: boolean;
+}
+
+interface CountResult {
+  count: string;
+}
 
 /**
  * Este componente é responsável por verificar se as tabelas do sistema
@@ -95,7 +110,9 @@ Execute o script create-exec-sql.sh na pasta raiz do frontend para resolver este
         }
         
         // Se a função não existir, tentamos criá-la
-        if (!uuidFuncCheck || (uuidFuncCheck.length > 0 && !uuidFuncCheck[0]?.has_uuid_function)) {
+        if (!uuidFuncCheck || 
+            (Array.isArray(uuidFuncCheck) && (uuidFuncCheck as UuidFunctionCheck[]).length > 0 && 
+             !(uuidFuncCheck[0] as UuidFunctionCheck).has_uuid_function)) {
           console.log("Função uuid_generate_v4 não encontrada. Tentando criar extensão uuid-ossp...");
           await supabase.rpc('exec_sql', {
             sql: "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
@@ -143,11 +160,11 @@ Execute o script create-exec-sql.sh na pasta raiz do frontend para resolver este
         // Verifica se todas as tabelas existem
         const allTablesExist = tablesCheck && 
                             Array.isArray(tablesCheck) &&
-                            tablesCheck.length > 0 &&
-                            tablesCheck[0].club_settings_exists &&
-                            tablesCheck[0].settings_exists &&
-                            tablesCheck[0].member_fee_settings_exists &&
-                            tablesCheck[0].fee_payments_exists;
+                            (tablesCheck as TablesExistenceCheck[]).length > 0 &&
+                            (tablesCheck[0] as TablesExistenceCheck).club_settings_exists &&
+                            (tablesCheck[0] as TablesExistenceCheck).settings_exists &&
+                            (tablesCheck[0] as TablesExistenceCheck).member_fee_settings_exists &&
+                            (tablesCheck[0] as TablesExistenceCheck).fee_payments_exists;
                             
         if (!allTablesExist) {
           console.log("Algumas tabelas não existem. Criando tabelas...");
@@ -164,7 +181,10 @@ Execute o script create-exec-sql.sh na pasta raiz do frontend para resolver este
             return;
           }
           
-          const isEmpty = !countResult || countResult.length === 0 || parseInt(countResult[0].count) === 0;
+          const isEmpty = !countResult || 
+                       !Array.isArray(countResult) || 
+                       (countResult as CountResult[]).length === 0 || 
+                       parseInt((countResult[0] as CountResult).count) === 0;
           
           if (isEmpty) {
             console.log("Tabelas vazias. Inicializando configurações...");
@@ -189,8 +209,8 @@ Execute o script create-exec-sql.sh na pasta raiz do frontend para resolver este
         
         const isEmpty = !countResult || 
                        !Array.isArray(countResult) || 
-                       countResult.length === 0 || 
-                       parseInt(countResult[0].count) === 0;
+                       (countResult as CountResult[]).length === 0 || 
+                       parseInt((countResult[0] as CountResult).count) === 0;
         
         if (isEmpty) {
           console.log("Tabela club_settings está vazia. Inicializando configurações...");
@@ -200,7 +220,7 @@ Execute o script create-exec-sql.sh na pasta raiz do frontend para resolver este
         }
         
         setIsInitialized(true);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Erro durante inicialização:', err);
         setError(err instanceof Error ? err.message : 'Erro desconhecido');
       } finally {
@@ -209,7 +229,6 @@ Execute o script create-exec-sql.sh na pasta raiz do frontend para resolver este
     }
     
     setupSystem();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function createTables() {

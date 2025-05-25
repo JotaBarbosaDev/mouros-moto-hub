@@ -2,14 +2,12 @@
 import { useAuth } from '@/hooks/useAuth';
 import AuthForm from '@/components/AuthForm';
 import { MembersLayout } from '@/components/layouts/MembersLayout';
-import { MemberList } from '@/components/members/MemberList';
+import MemberManagementSystem from '@/components/members/MemberManagementSystem';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 const Members = () => {
   const { user, loading } = useAuth();
-
-  // Removido console.log que expõe dados do usuário nos logs
 
   if (loading) return null;
   
@@ -18,10 +16,7 @@ const Members = () => {
     return (
       <MembersLayout>
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-display text-mouro-black mb-8">
-            Gestão de <span className="text-mouro-red">Membros</span>
-          </h1>
-          <MemberList />
+          <MemberManagementSystem />
         </div>
       </MembersLayout>
     );
